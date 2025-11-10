@@ -1,0 +1,54 @@
+services:
+  postgres:
+    container_name: ms_postgres
+    image: postgres:17
+    env_file:
+      - .env
+    environment:
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+        - microservices-net
+    restart: unless-stopped
+  mongodb:
+    container_name: ms_mongodb
+    image: mongo:6
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongodb:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  keycloak:
+    container_name: ms_keycloak
+    image: quay.io/keycloak/keycloak:26.4.4
+    env_file:
+      - .env
+    ports:
+      - "9098:8080"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    networks:
+      - microservices-net
+    command:
+      - "start-dev"
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  mongodb:
