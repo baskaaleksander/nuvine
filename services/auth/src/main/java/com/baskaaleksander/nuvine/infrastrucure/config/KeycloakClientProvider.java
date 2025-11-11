@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.infrastrucure.config;
 
 import com.baskaaleksander.nuvine.application.dto.LoginRequest;
-import com.baskaaleksander.nuvine.application.dto.TokenResponse;
+import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
 import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
 import com.baskaaleksander.nuvine.infrastrucure.client.KeycloakFeignClient;
 import feign.FeignException;
@@ -38,7 +38,7 @@ public class KeycloakClientProvider {
                 .build();
     }
 
-    public TokenResponse loginUser(LoginRequest request) {
+    public KeycloakTokenResponse loginUser(LoginRequest request) {
         try {
             MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
             form.add("grant_type", "password");

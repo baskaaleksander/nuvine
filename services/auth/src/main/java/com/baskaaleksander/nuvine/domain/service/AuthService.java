@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.LoginRequest;
-import com.baskaaleksander.nuvine.application.dto.TokenResponse;
+import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
 import com.baskaaleksander.nuvine.application.dto.UserResponse;
 import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
@@ -122,7 +122,7 @@ public class AuthService {
                 .toList();
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public KeycloakTokenResponse login(LoginRequest request) {
         return keycloakClientProvider.loginUser(request);
     }
 }

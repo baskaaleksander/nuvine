@@ -1,9 +1,6 @@
 package com.baskaaleksander.nuvine.application.controller;
 
-import com.baskaaleksander.nuvine.application.dto.LoginRequest;
-import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
-import com.baskaaleksander.nuvine.application.dto.TokenResponse;
-import com.baskaaleksander.nuvine.application.dto.UserResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +30,12 @@ public class AuthController {
     public ResponseEntity<TokenResponse> loginUser(
             @RequestBody @Valid LoginRequest request
     ) {
-        return ResponseEntity.ok(service.login(request));
+        var tokenRes = service.login(request);
+        return ResponseEntity.ok(
+                new TokenResponse(
+                        tokenRes.getAccessToken(),
+                        tokenRes.getExpiresIn()
+                )
+        );
     }
 }
