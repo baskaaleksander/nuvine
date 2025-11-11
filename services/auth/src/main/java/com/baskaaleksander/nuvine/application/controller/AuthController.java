@@ -7,7 +7,12 @@ import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -74,7 +79,10 @@ public class AuthController {
     }
 
     @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("test");
+    public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt, Authentication auth) {
+        return Map.of(
+                "jwt_roles", jwt.getClaim("realm_access"),
+                "authorities", auth.getAuthorities()
+        );
     }
 }

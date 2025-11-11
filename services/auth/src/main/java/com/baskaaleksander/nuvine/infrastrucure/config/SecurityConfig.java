@@ -9,9 +9,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -27,7 +33,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh").permitAll()
-                        .requestMatchers("/api/v1/auth/test").hasRole("USER")
+//                        .requestMatchers("/api/v1/auth/test").hasRole("USER")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->
@@ -40,14 +46,29 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // todo fix that
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthoritiesClaimName("realm_access.roles");
-
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
+
+        jwtConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            List<GrantedAuthority> authorities = new ArrayList<>();
+
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess != null) {
+                Object rolesObj = realmAccess.get("roles");
+                if (rolesObj instanceof Collection<?> roles) {
+                    for (Object roleObj : roles) {
+                        String roleName = String.valueOf(roleObj);
+                        if (roleName.startsWith("ROLE_")) {
+                            authorities.add(new SimpleGrantedAuthority(roleName));
+                        }
+                    }
+                }
+            }
+
+            return authorities;
+        });
+
         return jwtConverter;
     }
 }
