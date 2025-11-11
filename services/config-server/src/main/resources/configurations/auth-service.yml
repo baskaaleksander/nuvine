@@ -23,5 +23,4 @@ keycloak:
   server-url: ${KEYCLOAK_URL}
   realm: ${KEYCLOAK_REALM}
   client-id: ${KEYCLOAK_CLIENT_ID}
-  admin-username: ${KEYCLOAK_ADMIN}
-  admin-password: ${KEYCLOAK_ADMIN_PASSWORD}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}

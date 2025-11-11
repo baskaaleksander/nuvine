@@ -14,19 +14,16 @@ public class KeycloakClientProvider {
     private String realm;
     @Value("${keycloak.client-id}")
     private String clientId;
-    @Value("${keycloak.admin-username}")
-    private String adminUsername;
-    @Value("${keycloak.admin-password}")
-    private String adminPassword;
+    @Value("${keycloak.client-secret}")
+    private String clientSecret;
 
     public Keycloak getInstance() {
         return KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
                 .realm(realm)
-                .grantType("password")
                 .clientId(clientId)
-                .username(adminUsername)
-                .password(adminPassword)
+                .clientSecret(clientSecret)
+                .grantType("client_credentials")
                 .build();
     }
 }

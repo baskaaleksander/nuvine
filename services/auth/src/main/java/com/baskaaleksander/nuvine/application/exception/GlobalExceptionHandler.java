@@ -25,4 +25,17 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(409).body(errorResponse);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                500,
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+
+        return ResponseEntity.status(500).body(errorResponse);
+    }
 }
