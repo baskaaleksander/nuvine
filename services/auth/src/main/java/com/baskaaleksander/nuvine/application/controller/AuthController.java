@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -22,7 +20,7 @@ public class AuthController {
     private final AuthService service;
 
     @PostMapping("/register")
-    public ResponseEntity<UUID> registerUser(
+    public ResponseEntity<UserResponse> registerUser(
             @RequestBody @Valid RegisterRequest request
     ) {
         return ResponseEntity.status(CREATED).body(service.register(request));

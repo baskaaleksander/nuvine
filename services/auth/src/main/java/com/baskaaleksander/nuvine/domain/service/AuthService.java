@@ -1,11 +1,13 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.controller.UserResponse;
 import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -29,15 +31,15 @@ public class AuthService {
     private static String DEFAULT_ROLE = "USER";
 
     @Transactional
-    public UUID register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         if (repository.existsByEmail(request.email())) {
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
-        String userId = createUserInKeycloak(request);
+        UserResponse userCreated = createUserInKeycloak(request);
 
         User user = User.builder()
-                .id(UUID.fromString(userId))
+                .id(userCreated.id())
                 .email(request.email())
                 .firstName(request.firstName())
                 .lastName(request.lastName())
@@ -45,12 +47,12 @@ public class AuthService {
                 .emailVerified(false)
                 .build();
 
-        var userSaved = repository.save(user);
+        repository.save(user);
 
-        return userSaved.getId();
+        return userCreated;
     }
 
-    private String createUserInKeycloak(RegisterRequest request) {
+    private UserResponse createUserInKeycloak(RegisterRequest request) {
 
         var userResource = keycloakClientProvider.getInstance()
                 .realm(realm)
@@ -85,14 +87,20 @@ public class AuthService {
 
         userResource.get(userId).resetPassword(passwordCred);
 
-        assignRole(DEFAULT_ROLE, userId);
+        var roles = assignRole(DEFAULT_ROLE, userId);
 
         response.close();
 
-        return userId;
+        return new UserResponse(
+                UUID.fromString(userId),
+                request.firstName(),
+                request.lastName(),
+                request.email(),
+                roles
+        );
     }
 
-    private void assignRole(String role, String userId) {
+    private List<String> assignRole(String role, String userId) {
         var realmResource = keycloakClientProvider.getInstance().realm(realm);
         var userResource = realmResource.users();
         var rolesResource = realmResource.roles();
@@ -103,5 +111,13 @@ public class AuthService {
                 .roles()
                 .realmLevel()
                 .add(List.of(userRole));
+
+        return userResource.get(userId)
+                .roles().
+                getAll()
+                .getRealmMappings()
+                .stream()
+                .map(RoleRepresentation::getName)
+                .toList();
     }
 }
