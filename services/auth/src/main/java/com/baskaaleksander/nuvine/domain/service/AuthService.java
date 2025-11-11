@@ -1,13 +1,14 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.controller.UserResponse;
+import com.baskaaleksander.nuvine.application.dto.LoginRequest;
+import com.baskaaleksander.nuvine.application.dto.TokenResponse;
+import com.baskaaleksander.nuvine.application.dto.UserResponse;
 import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -119,5 +120,9 @@ public class AuthService {
                 .stream()
                 .map(RoleRepresentation::getName)
                 .toList();
+    }
+
+    public TokenResponse login(LoginRequest request) {
+        return null;
     }
 }

@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.application.controller;
+package com.baskaaleksander.nuvine.application.dto;
 
 import java.util.List;
 import java.util.UUID;
