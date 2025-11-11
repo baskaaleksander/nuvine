@@ -10,6 +10,8 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @Service
 @RequiredArgsConstructor
@@ -38,13 +40,15 @@ public class KeycloakClientProvider {
 
     public TokenResponse loginUser(LoginRequest request) {
         try {
+            MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+            form.add("grant_type", "password");
+            form.add("client_id", clientId);
+            form.add("client_secret", clientSecret);
+            form.add("username", request.email());
+            form.add("password", request.password());
+            form.add("scope", "openid profile email");
             return feignClient.getToken(
-                    "password",
-                    clientId,
-                    clientSecret,
-                    request.email(),
-                    request.password(),
-                    "openid profile email"
+                    form
             );
         } catch (FeignException ex) {
             if (ex.status() == 401 | ex.status() == 400) {
