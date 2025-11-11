@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
+import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,24 @@ public class UserService {
 
     @Transactional
     public UUID register(RegisterRequest request) {
-        return null;
+        if (repository.existsByEmail(request.email())) {
+            throw new EmailExistsException("User with email " + request.email() + " already exists");
+        }
+
+        String userId = createUserInKeycloak(request);
+
+        User user = User.builder()
+                .id(UUID.fromString(userId))
+                .email(request.email())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .onboardingCompleted(false)
+                .emailVerified(false)
+                .build();
+
+        var userSaved = repository.save(user);
+
+        return userSaved.getId();
     }
 
     private String createUserInKeycloak(RegisterRequest request) {
