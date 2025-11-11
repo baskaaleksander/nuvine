@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class AuthService {
 
     private final KeycloakClientProvider keycloakClientProvider;
     private final UserRepository repository;
