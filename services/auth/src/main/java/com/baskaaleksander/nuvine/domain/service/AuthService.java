@@ -125,4 +125,9 @@ public class AuthService {
     public KeycloakTokenResponse login(LoginRequest request) {
         return keycloakClientProvider.loginUser(request);
     }
+
+    public KeycloakTokenResponse refreshToken(String refreshToken) {
+        //todo refresh token rotation
+        return keycloakClientProvider.refreshToken(refreshToken);
+    }
 }

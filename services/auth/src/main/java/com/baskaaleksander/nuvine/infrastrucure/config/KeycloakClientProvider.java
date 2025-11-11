@@ -57,4 +57,13 @@ public class KeycloakClientProvider {
             throw new RuntimeException("Keycloak token request failed " + ex.getMessage());
         }
     }
+
+    public KeycloakTokenResponse refreshToken(String refreshToken) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("client_id", clientId);
+        form.add("client_secret", clientSecret);
+        form.add("refresh_token", refreshToken);
+        return feignClient.refreshToken(form);
+    }
 }

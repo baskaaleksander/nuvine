@@ -16,4 +16,6 @@ public interface KeycloakFeignClient {
     @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     KeycloakTokenResponse getToken(@RequestBody MultiValueMap<String, String> form);
 
+    @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    KeycloakTokenResponse refreshToken(@RequestBody MultiValueMap<String, String> form);
 }
