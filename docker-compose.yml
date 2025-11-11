@@ -14,21 +14,21 @@ services:
     networks:
         - microservices-net
     restart: unless-stopped
-  mongodb:
-    container_name: ms_mongodb
-    image: mongo:6
-    env_file:
-      - .env
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-    volumes:
-      - mongodb:/data/db
-    ports:
-      - "27017:27017"
-    networks:
-      - microservices-net
-    restart: unless-stopped
+#  mongodb:
+#    container_name: ms_mongodb
+#    image: mongo:6
+#    env_file:
+#      - .env
+#    environment:
+#      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+#      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+#    volumes:
+#      - mongodb:/data/db
+#    ports:
+#      - "27017:27017"
+#    networks:
+#      - microservices-net
+#    restart: unless-stopped
 
   keycloak:
     container_name: ms_keycloak
@@ -44,6 +44,26 @@ services:
       - microservices-net
     command:
       - "start-dev"
+  kafka:
+    image: confluentinc/cp-kafka:8.1.0
+    container_name: kafka-kraft
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 1
+      KAFKA_CLUSTER_ID: "abcdefghijklmnopqrstuv"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-kraft:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+    restart: unless-stopped
 
 networks:
   microservices-net:
