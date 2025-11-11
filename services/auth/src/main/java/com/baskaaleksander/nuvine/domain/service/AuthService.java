@@ -1,10 +1,8 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.LoginRequest;
-import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
-import com.baskaaleksander.nuvine.application.dto.UserResponse;
-import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
+import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
@@ -13,10 +11,13 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -129,5 +130,33 @@ public class AuthService {
     public KeycloakTokenResponse refreshToken(String refreshToken) {
         //todo refresh token rotation
         return keycloakClientProvider.refreshToken(refreshToken);
+    }
+
+    public MeResponse getMe(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        User user = repository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        List<String> roles = List.of();
+        if (realmAccess != null) {
+            Object rolesObj = realmAccess.get("roles");
+            if (rolesObj instanceof Collection<?> r) {
+                roles = r.stream().map(Object::toString).filter(string -> string.startsWith("ROLE")).toList();
+            }
+        }
+
+        return new MeResponse(
+                userId,
+                jwt.getClaimAsString("email"),
+                user.getFirstName(),
+                user.getLastName(),
+                roles,
+                jwt.getClaim("email_verified") != null
+                ? jwt.getClaim("email_verified")
+                        : user.isEmailVerified(),
+                user.isOnboardingCompleted()
+        );
     }
 }
