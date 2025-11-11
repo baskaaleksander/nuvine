@@ -123,6 +123,6 @@ public class AuthService {
     }
 
     public TokenResponse login(LoginRequest request) {
-        return null;
+        return keycloakClientProvider.loginUser(request);
     }
 }

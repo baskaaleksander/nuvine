@@ -1,12 +1,21 @@
 package com.baskaaleksander.nuvine.infrastrucure.config;
 
+import com.baskaaleksander.nuvine.application.dto.LoginRequest;
+import com.baskaaleksander.nuvine.application.dto.TokenResponse;
+import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
+import com.baskaaleksander.nuvine.infrastrucure.client.KeycloakFeignClient;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class KeycloakClientProvider {
+
+    private final KeycloakFeignClient feignClient;
 
     @Value("${keycloak.server-url}")
     private String serverUrl;
@@ -25,5 +34,23 @@ public class KeycloakClientProvider {
                 .clientSecret(clientSecret)
                 .grantType("client_credentials")
                 .build();
+    }
+
+    public TokenResponse loginUser(LoginRequest request) {
+        try {
+            return feignClient.getToken(
+                    "password",
+                    clientId,
+                    clientSecret,
+                    request.email(),
+                    request.password(),
+                    "openid profile email"
+            );
+        } catch (FeignException ex) {
+            if (ex.status() == 401 | ex.status() == 400) {
+                throw new InvalidCredentialsException("Invalid credentials");
+            }
+            throw new RuntimeException("Keycloak token request failed " + ex.getMessage());
+        }
     }
 }
