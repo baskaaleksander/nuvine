@@ -1,0 +1,11 @@
+
+
+server:
+  port: 8040
+
+keycloak:
+  server-url: ${KEYCLOAK_URL}
+  realm: ${KEYCLOAK_REALM}
+  client-id: ${KEYCLOAK_CLIENT_ID}
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD}
