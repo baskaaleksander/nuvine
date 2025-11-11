@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.keycloak;
+package com.baskaaleksander.nuvine.infrastrucure.config;
 
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
