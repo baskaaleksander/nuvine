@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_users_email;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS version BIGINT;
