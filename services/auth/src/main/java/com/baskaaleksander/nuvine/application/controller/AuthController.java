@@ -83,6 +83,46 @@ public class AuthController {
         return ResponseEntity.ok(service.getMe(jwt));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue("refresh_token") String token
+    ) {
+
+        service.logout(token);
+
+        ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/api/v1/auth")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
+                .build();
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<Void> logoutAll(
+            @CookieValue("refresh_token") String token
+    ) {
+
+        service.logoutAll(token);
+
+        ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/api/v1/auth")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
+                .build();
+    }
+
     @GetMapping("/test")
     public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt, Authentication auth) {
         System.out.println(auth.getPrincipal().toString());

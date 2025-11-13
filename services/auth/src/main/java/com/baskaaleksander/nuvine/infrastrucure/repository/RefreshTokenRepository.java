@@ -14,6 +14,10 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     @Query("update RefreshToken t set t.revoked = true where t.user.email = :email and t.revoked = false")
     void revokeAllTokensByEmail(String email);
 
+    @Modifying
+    @Query("update RefreshToken t set t.revoked = true where t.token = :token")
+    void revokeToken(String token);
+
     Optional<RefreshToken> findByToken(String token);
 
     @Modifying

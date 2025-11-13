@@ -135,8 +135,6 @@ public class AuthService {
 
         String refreshToken = response.getRefreshToken();
 
-        refreshTokenRepository.revokeAllTokensByEmail(request.email());
-
         RefreshToken token = RefreshToken.builder()
                 .token(refreshToken)
                 .expiresAt(Instant.now().plusSeconds(24 * 60 * 60))
@@ -168,7 +166,7 @@ public class AuthService {
 
         String newRefreshToken = response.getRefreshToken();
 
-        refreshTokenRepository.revokeAllTokensByEmail(email);
+        refreshTokenRepository.revokeToken(refreshToken);
         refreshTokenRepository.updateUsedAt(Instant.now(), dbToken.getId());
 
         RefreshToken token = RefreshToken.builder()
@@ -184,6 +182,20 @@ public class AuthService {
         refreshTokenRepository.save(token);
 
         return response;
+    }
+
+    public void logoutAll(String refreshToken) {
+        var dbToken = refreshTokenRepository.findByToken(refreshToken);
+
+        dbToken.ifPresent(token -> refreshTokenRepository.revokeAllTokensByEmail(token.getUser().getEmail()));
+    }
+
+    public void logout(String refreshToken) {
+        try {
+            refreshTokenRepository.revokeToken(refreshToken);
+        } catch (Exception ignored) {
+
+        }
     }
 
     public MeResponse getMe(Jwt jwt) {
