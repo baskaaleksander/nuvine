@@ -14,22 +14,21 @@ services:
     networks:
         - microservices-net
     restart: unless-stopped
-#  mongodb:
-#    container_name: ms_mongodb
-#    image: mongo:6
-#    env_file:
-#      - .env
-#    environment:
-#      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-#      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-#    volumes:
-#      - mongodb:/data/db
-#    ports:
-#    ports:
-#      - "27017:27017"
-#    networks:
-#      - microservices-net
-#    restart: unless-stopped
+  mongodb:
+    container_name: ms_mongodb
+    image: mongo:6
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongodb:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - microservices-net
+    restart: unless-stopped
 
   keycloak:
     container_name: ms_keycloak
