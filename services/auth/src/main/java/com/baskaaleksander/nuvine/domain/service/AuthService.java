@@ -3,8 +3,10 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.RefreshToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
+import com.baskaaleksander.nuvine.infrastrucure.repository.RefreshTokenRepository;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -15,6 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,16 +28,17 @@ import java.util.UUID;
 public class AuthService {
 
     private final KeycloakClientProvider keycloakClientProvider;
-    private final UserRepository repository;
+    private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${keycloak.realm}")
     private String realm;
 
-    private static String DEFAULT_ROLE = "USER";
+    private static String DEFAULT_ROLE = "ROLE_USER";
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
-        if (repository.existsByEmail(request.email())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
@@ -49,7 +53,7 @@ public class AuthService {
                 .emailVerified(false)
                 .build();
 
-        repository.save(user);
+        userRepository.save(user);
 
         return userCreated;
     }
@@ -124,18 +128,62 @@ public class AuthService {
     }
 
     public KeycloakTokenResponse login(LoginRequest request) {
-        return keycloakClientProvider.loginUser(request);
+        var response = keycloakClientProvider.loginUser(request);
+
+        String refreshToken = response.getRefreshToken();
+
+        refreshTokenRepository.revokeAllTokensByEmail(request.email());
+
+        RefreshToken token = RefreshToken.builder()
+                .token(refreshToken)
+                .expiresAt(Instant.now().plusSeconds(24 * 60 * 60))
+                .user(
+                        userRepository.findByEmail(request.email())
+                                .orElseThrow(() -> new UserNotFoundException("User not found"))
+                )
+                .build();
+
+        refreshTokenRepository.save(token);
+
+        return response;
     }
 
-    public KeycloakTokenResponse refreshToken(String refreshToken) {
-        //todo refresh token rotation
-        return keycloakClientProvider.refreshToken(refreshToken);
+    public KeycloakTokenResponse refreshToken(String refreshToken, Jwt jwt) {
+
+        RefreshToken dbToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+
+        if (dbToken == null || dbToken.getRevoked() || dbToken.getExpiresAt().isBefore(Instant.now())) {
+            throw new RuntimeException("Refresh token not found");
+        }
+
+        var response = keycloakClientProvider.refreshToken(refreshToken);
+
+        String email = jwt.getClaimAsString("email");
+
+        String newRefreshToken = response.getRefreshToken();
+
+        refreshTokenRepository.revokeAllTokensByEmail(email);
+        refreshTokenRepository.updateUsedAt(Instant.now(), dbToken.getId());
+
+        RefreshToken token = RefreshToken.builder()
+                .token(newRefreshToken)
+                .expiresAt(Instant.now().plusSeconds(24 * 60 * 60))
+                .user(
+                        userRepository.findByEmail(email)
+                                .orElseThrow(() -> new UserNotFoundException("User not found"))
+                )
+                .build();
+
+        refreshTokenRepository.save(token);
+
+        return response;
     }
 
     public MeResponse getMe(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        User user = repository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
