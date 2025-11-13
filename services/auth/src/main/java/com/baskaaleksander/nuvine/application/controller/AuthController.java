@@ -56,10 +56,9 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refreshToken(
-            @CookieValue("refresh_token") String refreshToken,
-            @AuthenticationPrincipal Jwt jwt
+            @CookieValue("refresh_token") String refreshToken
     ) {
-        var tokenRes = service.refreshToken(refreshToken, jwt);
+        var tokenRes = service.refreshToken(refreshToken);
 
         ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenRes.getRefreshToken())
                 .httpOnly(true)

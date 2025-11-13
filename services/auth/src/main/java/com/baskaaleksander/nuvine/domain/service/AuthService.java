@@ -2,6 +2,8 @@ package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
+import com.baskaaleksander.nuvine.domain.exception.InvalidTokenException;
+import com.baskaaleksander.nuvine.domain.exception.TokenNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.RefreshToken;
 import com.baskaaleksander.nuvine.domain.model.User;
@@ -127,6 +129,7 @@ public class AuthService {
                 .toList();
     }
 
+    @Transactional
     public KeycloakTokenResponse login(LoginRequest request) {
         var response = keycloakClientProvider.loginUser(request);
 
@@ -141,6 +144,7 @@ public class AuthService {
                         userRepository.findByEmail(request.email())
                                 .orElseThrow(() -> new UserNotFoundException("User not found"))
                 )
+                .revoked(false)
                 .build();
 
         refreshTokenRepository.save(token);
@@ -148,18 +152,19 @@ public class AuthService {
         return response;
     }
 
-    public KeycloakTokenResponse refreshToken(String refreshToken, Jwt jwt) {
+    @Transactional
+    public KeycloakTokenResponse refreshToken(String refreshToken) {
 
         RefreshToken dbToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+                .orElseThrow(() -> new TokenNotFoundException("Refresh token not found"));
 
         if (dbToken == null || dbToken.getRevoked() || dbToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new RuntimeException("Refresh token not found");
+            throw new InvalidTokenException("Refresh token not found");
         }
 
         var response = keycloakClientProvider.refreshToken(refreshToken);
 
-        String email = jwt.getClaimAsString("email");
+        String email = dbToken.getUser().getEmail();
 
         String newRefreshToken = response.getRefreshToken();
 
@@ -173,6 +178,7 @@ public class AuthService {
                         userRepository.findByEmail(email)
                                 .orElseThrow(() -> new UserNotFoundException("User not found"))
                 )
+                .revoked(false)
                 .build();
 
         refreshTokenRepository.save(token);

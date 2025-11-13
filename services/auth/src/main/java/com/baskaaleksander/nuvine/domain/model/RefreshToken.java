@@ -33,7 +33,7 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 512)
+    @Column(nullable = false, length = 2048)
     private String token;
     @Column(nullable = false)
     private Instant expiresAt;
