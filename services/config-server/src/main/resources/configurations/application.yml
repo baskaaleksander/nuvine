@@ -4,6 +4,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+    eureka-service-url-poll-interval-seconds: 30
 spring:
   cloud:
     config:
