@@ -6,6 +6,7 @@ import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidTokenException;
 import com.baskaaleksander.nuvine.domain.exception.TokenNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.EmailVerificationToken;
 import com.baskaaleksander.nuvine.domain.model.RefreshToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
@@ -38,11 +39,12 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRegisteredEventProducer userRegisteredEventProducer;
+    private final EmailVerificationTokenGenerationService tokenGenerationService;
 
     @Value("${keycloak.realm}")
     private String realm;
 
-    private static String DEFAULT_ROLE = "ROLE_USER";
+    private static final String DEFAULT_ROLE = "ROLE_USER";
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -62,7 +64,8 @@ public class AuthService {
                 .emailVerified(false)
                 .build();
 
-        userRepository.save(user);
+        var userEntity = userRepository.save(user);
+        EmailVerificationToken emailVerificationToken = tokenGenerationService.createToken(userEntity);
 
         log.info("User registered id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
         userRegisteredEventProducer.sendUserRegisteredEvent(
@@ -70,7 +73,7 @@ public class AuthService {
                         userCreated.firstName(),
                         userCreated.lastName(),
                         userCreated.email(),
-                        UUID.randomUUID().toString(),
+                        emailVerificationToken.getToken(),
                         userCreated.id().toString()
                 )
         );

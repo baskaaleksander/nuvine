@@ -31,23 +31,17 @@ public class EmailVerificationService {
     private final UserRepository userRepository;
     private final EmailVerificationEventProducer eventProducer;
     private final KeycloakClientProvider keycloakClientProvider;
+    private final EmailVerificationTokenGenerationService tokenGenerationService;
     @Value("${keycloak.realm}")
     private String realm;
 
-    private static final long EXPIRATION_TIME = 7 * 24 * 3600;
+
 
     public void requestVerificationLink(String email) {
         var user = userRepository.findByEmail(email);
 
         if (user.isPresent()) {
-            UUID verificationToken = UUID.randomUUID();
-            EmailVerificationToken token = EmailVerificationToken.builder()
-                    .user(user.get())
-                    .token(verificationToken.toString())
-                    .expiresAt(Instant.now().plusSeconds(EXPIRATION_TIME))
-                    .build();
-
-            repository.save(token);
+            EmailVerificationToken verificationToken = tokenGenerationService.createToken(user.get());
             eventProducer.sendEmailVerificationEvent(
                     new EmailVerificationEvent(
                             email,
