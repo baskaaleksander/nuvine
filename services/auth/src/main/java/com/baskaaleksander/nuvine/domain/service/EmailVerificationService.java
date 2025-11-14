@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.exception.EmailVerificationTokenNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidEmailVerificationTokenException;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
@@ -50,31 +51,44 @@ public class EmailVerificationService {
                     )
             );
         }
+        else {
+            log.info("User not found email={}", MaskingUtil.maskEmail(email));
+        }
     }
 
     @Transactional
     public void verifyEmail(String token) {
+        log.info("Verifying email token={}", token);
         var tokenEntity = repository.findByToken(token)
                 .orElseThrow(() -> new EmailVerificationTokenNotFoundException("Token not found"));
 
+        log.info("Email verification token found userId={}", tokenEntity.getUser().getId());
+
         if (tokenEntity.getExpiresAt().isBefore(Instant.now()) || tokenEntity.getUsedAt() != null) {
+            log.info("Email verification token expired userId={}", tokenEntity.getUser().getId());
             throw new InvalidEmailVerificationTokenException("Invalid token");
         }
+
+        log.info("Email verification token valid userId={}", tokenEntity.getUser().getId());
 
         updateKeycloakUserEmailVerified(tokenEntity.getUser().getId().toString());
         userRepository.updateEmailVerified(tokenEntity.getUser().getEmail(), true);
         tokenEntity.setUsedAt(Instant.now());
+
         repository.save(tokenEntity);
+        log.info("Email verified userId={}", tokenEntity.getUser().getId());
     }
 
     private void updateKeycloakUserEmailVerified(String userId) {
         Keycloak keycloak = keycloakClientProvider.getInstance();
 
+        log.info("Updating keycloak user email verified userId={}", userId);
         UserResource userResource = keycloak.realm(realm).users().get(userId);
         UserRepresentation user = userResource.toRepresentation();
 
         user.setEmailVerified(true);
 
         userResource.update(user);
+        log.info("Keycloak user email verified userId={}", userId);
     }
 }
