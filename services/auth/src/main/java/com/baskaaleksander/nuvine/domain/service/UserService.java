@@ -1,9 +1,18 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.AdminUserResponse;
+import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.User;
+import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.representations.idm.RoleRepresentation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
 
 
 @Service
@@ -12,5 +21,39 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserRepository userRepository;
-    
+    private final KeycloakClientProvider keycloakClientProvider;
+
+    @Value("${keycloak.realm}")
+    private String realm;
+
+
+    public AdminUserResponse getUserById(String userId) {
+
+        User userDb = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        var realmResource = keycloakClientProvider.getInstance().realm(realm);
+        var userResource = realmResource.users();
+        var user = userResource.get(userId);
+
+        List<String> roles = user
+                .roles()
+                .getAll()
+                .getRealmMappings()
+                .stream()
+                .map(RoleRepresentation::getName)
+                .filter(string -> string.startsWith("ROLE"))
+                .toList();
+
+        return new AdminUserResponse(
+                userDb.getId(),
+                userDb.getFirstName(),
+                userDb.getLastName(),
+                userDb.getEmail(),
+                userDb.isEmailVerified(),
+                userDb.isOnboardingCompleted(),
+                roles
+        );
+    }
+
 }

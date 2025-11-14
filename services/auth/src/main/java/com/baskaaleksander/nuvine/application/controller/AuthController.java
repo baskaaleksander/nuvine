@@ -23,7 +23,6 @@ import static org.springframework.http.HttpStatus.CREATED;
 public class AuthController {
 
     private final AuthService authService;
-    private final UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerUser(
