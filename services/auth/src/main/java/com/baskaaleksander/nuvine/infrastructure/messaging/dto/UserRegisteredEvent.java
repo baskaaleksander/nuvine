@@ -7,6 +7,6 @@ public record UserRegisteredEvent(
         String lastName,
         String email,
         String emailVerificationToken,
-        UUID userId
+        String userId
 ) {
 }

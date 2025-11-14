@@ -26,7 +26,7 @@ public class EmailSender {
     private final JavaMailSender sender;
     private final SpringTemplateEngine templateEngine;
 
-    @Value("${spring.mail.email")
+    @Value("${spring.mail.email}")
     private String senderEmail;
 
     @Async
@@ -50,7 +50,13 @@ public class EmailSender {
 
         try {
             String htmlContent = templateEngine.process(templateName, context);
-            messageHelper.setText(htmlContent, true);
+            String plainContent = String.format(
+                    "Hi %s %s,\n\nWelcome to our platform!\nVerify your email using this link:\n%s",
+                    firstName,
+                    lastName,
+                    emailVerificationUrl
+            );
+            messageHelper.setText(plainContent, htmlContent);
 
             messageHelper.setTo(to);
             sender.send(message);

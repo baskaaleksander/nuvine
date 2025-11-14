@@ -32,3 +32,6 @@ crypto:
   notifications:
     secret: 6YaGkYwZHjU6wjatNb5TFrhPObNCz0LO
     fingerprint-secret: yowfPKLgdn47OYBPVrntz8TScmPbNr2Q
+
+application:
+  frontend-url: ${FRONTEND_URL}

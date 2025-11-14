@@ -67,11 +67,11 @@ public class AuthService {
         log.info("User registered id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
         userRegisteredEventProducer.sendUserRegisteredEvent(
                 new UserRegisteredEvent(
-                        userCreated.email(),
                         userCreated.firstName(),
                         userCreated.lastName(),
+                        userCreated.email(),
                         UUID.randomUUID().toString(),
-                        userCreated.id()
+                        userCreated.id().toString()
                 )
         );
 
