@@ -42,6 +42,14 @@ public class User {
     )
     private Set<RefreshToken> refreshTokens = new HashSet<>();
 
+    @OneToMany(
+            mappedBy = "user",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<EmailVerificationToken> emailVerificationTokens = new HashSet<>();
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
