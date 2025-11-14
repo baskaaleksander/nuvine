@@ -22,3 +22,6 @@ logging:
     org.springframework.web: INFO
     org.springframework.security: INFO
     org.hibernate: WARN
+
+topics:
+  email-verification-topic: email-verification-topic
