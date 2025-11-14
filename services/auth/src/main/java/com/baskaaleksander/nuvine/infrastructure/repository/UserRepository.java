@@ -1,6 +1,8 @@
 package com.baskaaleksander.nuvine.infrastructure.repository;
 
 import com.baskaaleksander.nuvine.domain.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

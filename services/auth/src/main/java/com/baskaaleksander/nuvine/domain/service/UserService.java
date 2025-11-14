@@ -1,6 +1,11 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.AdminUserListResponse;
 import com.baskaaleksander.nuvine.application.dto.AdminUserResponse;
+import com.baskaaleksander.nuvine.application.dto.PagedResponse;
+import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
+import com.baskaaleksander.nuvine.application.mapping.AdminUserListMapper;
+import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
@@ -9,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +29,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final KeycloakClientProvider keycloakClientProvider;
+    private final AdminUserListMapper adminUserMapper;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -56,4 +64,22 @@ public class UserService {
         );
     }
 
+    public PagedResponse<AdminUserListResponse> getAllUsers(PaginationRequest request) {
+        Pageable pageable = PaginationUtil.getPageable(request);
+        Page<User> page = userRepository.findAll(pageable);
+
+        List<AdminUserListResponse> content = page.getContent().stream()
+                .map(adminUserMapper::toAdminUserListResponse)
+                .toList();
+
+        return new PagedResponse<>(
+                content,
+                page.getNumber(),
+                page.getTotalElements(),
+                page.getSize(),
+                page.getTotalPages(),
+                page.isLast(),
+                page.hasNext()
+        );
+    }
 }
