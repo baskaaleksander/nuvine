@@ -1,8 +1,9 @@
 package com.baskaaleksander.nuvine.infrastructure.messaging.out;
 
+import com.baskaaleksander.nuvine.application.dto.CreateNotificationRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.model.NotificationType;
-import com.baskaaleksander.nuvine.domain.service.NotificationService;
+import com.baskaaleksander.nuvine.domain.service.NotificationEntityService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 public class EmailNotificationConsumer {
 
     private final EmailSender emailSender;
-    private final NotificationService service;
+    private final NotificationEntityService service;
     @Value("${application.frontend-url}")
     private String frontendUrl;
 
@@ -28,7 +29,12 @@ public class EmailNotificationConsumer {
         log.info("Email verification event received: {}", event.toString());
         try {
             emailSender.sendEmailVerificationEmail(event.email(), frontendUrl + "/verify-email?token=" + event.token());
-            service.createNotification(event.userId(), NotificationType.EMAIL_VERIFICATION, event.toString());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.userId(),
+                            NotificationType.EMAIL_VERIFICATION,
+                            event.toString()
+                    ));
         } catch (Exception e) {
             log.error("Failed to send email verification email to email={}", MaskingUtil.maskEmail(event.email()), e);
             throw e;
@@ -40,7 +46,12 @@ public class EmailNotificationConsumer {
         log.info("Password reset event received: {}", event.toString());
         try {
             emailSender.sendPasswordResetEmail(event.email(), frontendUrl + "/reset-password?token=" + event.token());
-            service.createNotification(event.userId(), NotificationType.PASSWORD_RESET, event.toString());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.userId(),
+                            NotificationType.PASSWORD_RESET,
+                            event.toString()
+                    ));
         } catch (Exception e) {
             log.error("Failed to send password reset email to email={}", MaskingUtil.maskEmail(event.email()), e);
             throw e;
@@ -52,7 +63,12 @@ public class EmailNotificationConsumer {
         log.info("User registered event received: {}", event.toString());
         try {
             emailSender.sendWelcomeEmail(event.email(), event.firstName(), event.lastName(), frontendUrl + "/verify-email?token=" + event.emailVerificationToken());
-            service.createNotification(event.userId(), NotificationType.USER_REGISTERED, event.toString());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.userId(), 
+                            NotificationType.USER_REGISTERED,
+                            event.toString()
+                    ));
         } catch (Exception e) {
             log.error("Failed to send welcome email to email={}", MaskingUtil.maskEmail(event.email()), e);
             throw e;

@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.CreateFailedNotificationRequest;
+import com.baskaaleksander.nuvine.application.dto.CreateNotificationRequest;
 import com.baskaaleksander.nuvine.domain.model.Notification;
 import com.baskaaleksander.nuvine.domain.model.NotificationType;
 import com.baskaaleksander.nuvine.infrastructure.crypto.CryptoService;
@@ -13,28 +15,32 @@ import java.time.Instant;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationService {
+public class NotificationEntityService {
 
     private final NotificationRepository notificationRepository;
     private final CryptoService crypto;
 
     public void createNotification(
-            String userId,
-            NotificationType type,
-            String payload
+        CreateNotificationRequest request
     ) {
-        String encryptedPayload = crypto.encrypt(payload);
-        String payloadHash = crypto.hash(payload);
+        String encryptedPayload = crypto.encrypt(request.payload());
+        String payloadHash = crypto.hash(request.payload());
 
         Notification notification = Notification.builder()
-                .userId(userId)
-                .type(type)
+                .userId(request.userId())
+                .type(request.type())
                 .encryptedPayload(encryptedPayload)
                 .payloadHash(payloadHash)
                 .createdAt(Instant.now())
                 .build();
 
         notificationRepository.save(notification);
-        log.info("Notification created id={} userId={}", notification.getId(), userId);
+        log.info("Notification created id={} userId={}", notification.getId(), request.userId());
+    }
+
+    public void saveFailedFromDlq(
+        CreateFailedNotificationRequest request
+    ) {
+
     }
 }
