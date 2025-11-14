@@ -58,7 +58,7 @@ public class EmailNotificationConsumer {
         }
     }
 
-    @KafkaListener(topics = "${topics.user-registered-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
+    @KafkaListener(topics = "${topics.user-registered-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}", containerFactory = "kafkaListenerContainerFactory")
     public void onUserRegistered(UserRegisteredEvent event) throws MessagingException {
         log.info("User registered event received: {}", event.toString());
         try {

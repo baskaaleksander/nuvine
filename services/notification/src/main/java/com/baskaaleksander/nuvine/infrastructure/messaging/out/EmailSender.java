@@ -29,11 +29,10 @@ public class EmailSender {
     @Value("${spring.mail.email}")
     private String senderEmail;
 
-    @Async
     public void sendWelcomeEmail(String to, String firstName, String lastName, String emailVerificationUrl) throws MessagingException {
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
-        messageHelper.setFrom(senderEmail);
+        messageHelper.setFrom("senderEmail");
 
         final String templateName = EmailTemplates.USER_REGISTERED.getTemplateName();
         final String subject = EmailTemplates.USER_REGISTERED.getSubject();
@@ -76,7 +75,6 @@ public class EmailSender {
         }
     }
 
-    @Async
     public void sendPasswordResetEmail(String to, String passwordResetUrl) throws MessagingException {
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
@@ -117,7 +115,6 @@ public class EmailSender {
         }
     }
 
-    @Async
     public void sendEmailVerificationEmail(String to, String emailVerificationUrl) throws MessagingException {
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
