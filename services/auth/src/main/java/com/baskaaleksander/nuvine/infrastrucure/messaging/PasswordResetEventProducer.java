@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.infrastrucure.messaging;
 
+import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.infrastrucure.messaging.dto.PasswordResetEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,5 +28,7 @@ public class PasswordResetEventProducer {
                 .build();
 
         kafkaTemplate.send(message);
+
+        log.info("Password reset event sent: {}", MaskingUtil.maskEmail(event.email()));
     }
 }
