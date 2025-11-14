@@ -20,6 +20,7 @@ spring:
     port: ${NOTIF_MAIL_PORT}
     username: ${NOTIF_MAIL_USERNAME}
     password: ${NOTIF_MAIL_PASSWORD}
+    email: ${NOTIF_MAIL_SENDER}
     properties:
       mail:
         smtp:
