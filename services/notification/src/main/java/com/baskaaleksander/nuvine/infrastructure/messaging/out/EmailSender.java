@@ -116,4 +116,45 @@ public class EmailSender {
             throw e;
         }
     }
+
+    @Async
+    public void sendEmailVerificationEmail(String to, String emailVerificationUrl) throws MessagingException {
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+        messageHelper.setFrom(senderEmail);
+
+        final String templateName = EmailTemplates.EMAIL_VERIFICATION.getTemplateName();
+        final String subject = EmailTemplates.EMAIL_VERIFICATION.getSubject();
+
+        Map<String, Object> variables = new HashMap<>();
+
+        variables.put("verifyUrl", emailVerificationUrl);
+
+        Context context = new Context();
+        context.setVariables(variables);
+        messageHelper.setSubject(subject);
+
+        try {
+            String htmlContent = templateEngine.process(templateName, context);
+            String plainContent = String.format(
+                    """
+                            You requested a email verification for your Nuvine account.
+                            Verify your email using the link below:
+                            %s
+                            
+                            If you didn't request a email verification, you can safely ignore this email.
+                            
+                            Visit us at https://nuvine.org""",
+                    emailVerificationUrl
+            );
+            messageHelper.setText(plainContent, htmlContent);
+
+            messageHelper.setTo(to);
+            sender.send(message);
+            log.info("Email verification email sent email={}", MaskingUtil.maskEmail(to));
+        } catch (Exception e) {
+            log.error("Failed to send email verification email to email={}", MaskingUtil.maskEmail(to), e);
+            throw e;
+        }
+    }
 }
