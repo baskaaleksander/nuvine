@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.domain.model;
 
 public enum NotificationType {
-    WELCOME_EMAIL,
+    USER_REGISTERED,
     PASSWORD_RESET,
     EMAIL_VERIFICATION
 }

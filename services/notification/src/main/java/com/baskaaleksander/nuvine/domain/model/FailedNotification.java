@@ -19,7 +19,6 @@ public class FailedNotification {
     private NotificationType type;
     private String encryptedPayload;
     private String payloadHash;
-    private String message;
 
     private String originalTopic;
     private String originalPartition;

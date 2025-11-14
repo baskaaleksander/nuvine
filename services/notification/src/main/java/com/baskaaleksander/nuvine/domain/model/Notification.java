@@ -18,6 +18,5 @@ public class Notification {
     private NotificationType type;
     private String encryptedPayload;
     private String payloadHash;
-    private String message;
     private Instant createdAt;
 }
