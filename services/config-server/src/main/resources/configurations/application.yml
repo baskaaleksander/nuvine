@@ -27,3 +27,8 @@ topics:
   email-verification-topic: email-verification-topic
   password-reset-topic: password-reset-topic
   user-registered-topic: user-registered-topic
+
+crypto:
+  notifications:
+    secret: 6YaGkYwZHjU6wjatNb5TFrhPObNCz0LO
+    fingerprint-secret: yowfPKLgdn47OYBPVrntz8TScmPbNr2Q
