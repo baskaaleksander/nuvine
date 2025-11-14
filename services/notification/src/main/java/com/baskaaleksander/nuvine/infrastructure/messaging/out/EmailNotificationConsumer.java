@@ -24,13 +24,27 @@ public class EmailNotificationConsumer {
     private String frontendUrl;
 
     @KafkaListener(topics = "${topics.email-verification-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
-    public void onEmailVerification(EmailVerificationEvent event) {
+    public void onEmailVerification(EmailVerificationEvent event) throws MessagingException {
         log.info("Email verification event received: {}", event.toString());
+        try {
+            emailSender.sendEmailVerificationEmail(event.email(), frontendUrl + "/verify-email?token=" + event.token());
+            service.createNotification(event.userId(), NotificationType.EMAIL_VERIFICATION, event.toString());
+        } catch (Exception e) {
+            log.error("Failed to send email verification email to email={}", MaskingUtil.maskEmail(event.email()), e);
+            throw e;
+        }
     }
 
     @KafkaListener(topics = "${topics.password-reset-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
-    public void onPasswordReset(PasswordResetEvent event) {
+    public void onPasswordReset(PasswordResetEvent event) throws MessagingException {
         log.info("Password reset event received: {}", event.toString());
+        try {
+            emailSender.sendPasswordResetEmail(event.email(), frontendUrl + "/reset-password?token=" + event.token());
+            service.createNotification(event.userId(), NotificationType.PASSWORD_RESET, event.toString());
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to email={}", MaskingUtil.maskEmail(event.email()), e);
+            throw e;
+        }
     }
 
     @KafkaListener(topics = "${topics.user-registered-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")

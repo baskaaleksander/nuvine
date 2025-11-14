@@ -35,5 +35,6 @@ public class NotificationService {
                 .build();
 
         notificationRepository.save(notification);
+        log.info("Notification created id={} userId={}", notification.getId(), userId);
     }
 }
