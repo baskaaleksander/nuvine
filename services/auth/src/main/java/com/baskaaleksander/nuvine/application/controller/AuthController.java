@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.AuthService;
+import com.baskaaleksander.nuvine.domain.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +22,23 @@ import static org.springframework.http.HttpStatus.CREATED;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService service;
+    private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerUser(
             @RequestBody @Valid RegisterRequest request
     ) {
-        return ResponseEntity.status(CREATED).body(service.register(request));
+        return ResponseEntity.status(CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> loginUser(
             @RequestBody @Valid LoginRequest request
     ) {
-        var tokenRes = service.login(request);
+        var tokenRes = authService.login(request);
 
-        ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenRes.getRefreshToken())
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenRes.refreshToken())
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
@@ -48,8 +50,8 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(
                     new TokenResponse(
-                        tokenRes.getAccessToken(),
-                        tokenRes.getExpiresIn()
+                        tokenRes.accessToken(),
+                        tokenRes.expiresIn()
                     )
         );
     }
@@ -58,9 +60,9 @@ public class AuthController {
     public ResponseEntity<TokenResponse> refreshToken(
             @CookieValue("refresh_token") String refreshToken
     ) {
-        var tokenRes = service.refreshToken(refreshToken);
+        var tokenRes = authService.refreshToken(refreshToken);
 
-        ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenRes.getRefreshToken())
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenRes.refreshToken())
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
@@ -72,15 +74,15 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(
                         new TokenResponse(
-                                tokenRes.getAccessToken(),
-                                tokenRes.getExpiresIn()
+                                tokenRes.accessToken(),
+                                tokenRes.expiresIn()
                         )
                 );
     }
 
     @GetMapping("/me")
     public ResponseEntity<MeResponse> getMe(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(service.getMe(jwt));
+        return ResponseEntity.ok(authService.getMe(jwt));
     }
 
     @PostMapping("/logout")
@@ -88,7 +90,7 @@ public class AuthController {
             @CookieValue("refresh_token") String token
     ) {
 
-        service.logout(token);
+        authService.logout(token);
 
         ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
@@ -108,7 +110,7 @@ public class AuthController {
             @CookieValue("refresh_token") String token
     ) {
 
-        service.logoutAll(token);
+        authService.logoutAll(token);
 
         ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)

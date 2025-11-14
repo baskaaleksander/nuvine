@@ -1,22 +1,19 @@
 package com.baskaaleksander.nuvine.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class KeycloakTokenResponse {
-    @JsonProperty("access_token")
-    private String accessToken;
-    @JsonProperty("refresh_token")
-    private String refreshToken;
-    @JsonProperty("expires_in")
-    private Long expiresIn;
-    @JsonProperty("token_type")
-    private String tokenType;
-    @JsonProperty("scope")
-    private String scope;
+
+public record KeycloakTokenResponse(
+        @JsonProperty("access_token")
+        String accessToken,
+        @JsonProperty("refresh_token")
+        String refreshToken,
+        @JsonProperty("expires_in")
+        Long expiresIn,
+        @JsonProperty("token_type")
+        String tokenType,
+        @JsonProperty("scope")
+        String scope
+) {
+
 }

@@ -157,7 +157,7 @@ public class AuthService {
         log.info("User login attempt email={}", MaskingUtil.maskEmail(request.email()));
         var response = keycloakClientProvider.loginUser(request);
 
-        String refreshToken = response.getRefreshToken();
+        String refreshToken = response.refreshToken();
 
         RefreshToken token = RefreshToken.builder()
                 .token(refreshToken)
@@ -190,7 +190,7 @@ public class AuthService {
 
         String email = dbToken.getUser().getEmail();
 
-        String newRefreshToken = response.getRefreshToken();
+        String newRefreshToken = response.refreshToken();
 
 
         refreshTokenRepository.revokeToken(refreshToken);
@@ -229,7 +229,6 @@ public class AuthService {
         } catch (Exception ignored) {
         }
     }
-
     public MeResponse getMe(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -254,7 +253,7 @@ public class AuthService {
                 user.getLastName(),
                 roles,
                 jwt.getClaim("email_verified") != null
-                ? jwt.getClaim("email_verified")
+                        ? jwt.getClaim("email_verified")
                         : user.isEmailVerified(),
                 user.isOnboardingCompleted()
         );
