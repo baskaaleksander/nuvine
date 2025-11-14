@@ -8,7 +8,7 @@ public record CreateFailedNotificationRequest(
         String payload,
         String originalTopic,
         String originalPartition,
-        String originalOffset,
+        Long originalOffset,
         String exceptionMessage,
         String exceptionClass
         ) {

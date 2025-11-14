@@ -65,7 +65,7 @@ public class EmailNotificationConsumer {
             emailSender.sendWelcomeEmail(event.email(), event.firstName(), event.lastName(), frontendUrl + "/verify-email?token=" + event.emailVerificationToken());
             service.createNotification(
                     new CreateNotificationRequest(
-                            event.userId(), 
+                            event.userId(),
                             NotificationType.USER_REGISTERED,
                             event.toString()
                     ));
