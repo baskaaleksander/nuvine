@@ -1,7 +1,7 @@
-package com.baskaaleksander.nuvine.infrastrucure.messaging;
+package com.baskaaleksander.nuvine.infrastructure.messaging;
 
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
-import com.baskaaleksander.nuvine.infrastrucure.messaging.dto.UserRegisteredEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ public class UserRegisteredEventProducer {
 
     private final KafkaTemplate<String, UserRegisteredEvent> kafkaTemplate;
 
-    private void sendPasswordResetEvent(UserRegisteredEvent event) {
+    public void sendUserRegisteredEvent(UserRegisteredEvent event) {
         Message<UserRegisteredEvent> message = MessageBuilder
                 .withPayload(event)
                 .setHeader(KafkaHeaders.TOPIC, userRegisteredTopic)

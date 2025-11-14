@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.config;
+package com.baskaaleksander.nuvine.infrastructure.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

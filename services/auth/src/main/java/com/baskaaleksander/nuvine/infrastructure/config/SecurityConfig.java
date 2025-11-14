@@ -1,8 +1,8 @@
-package com.baskaaleksander.nuvine.infrastrucure.config;
+package com.baskaaleksander.nuvine.infrastructure.config;
 
 
-import com.baskaaleksander.nuvine.infrastrucure.security.RestAccessDeniedHandler;
-import com.baskaaleksander.nuvine.infrastrucure.security.RestAuthenticationEntryPoint;
+import com.baskaaleksander.nuvine.infrastructure.security.RestAccessDeniedHandler;
+import com.baskaaleksander.nuvine.infrastructure.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

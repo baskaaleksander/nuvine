@@ -8,9 +8,11 @@ import com.baskaaleksander.nuvine.domain.exception.TokenNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.RefreshToken;
 import com.baskaaleksander.nuvine.domain.model.User;
-import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
-import com.baskaaleksander.nuvine.infrastrucure.repository.RefreshTokenRepository;
-import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
+import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
+import com.baskaaleksander.nuvine.infrastructure.messaging.UserRegisteredEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
+import com.baskaaleksander.nuvine.infrastructure.repository.RefreshTokenRepository;
+import com.baskaaleksander.nuvine.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -35,6 +37,7 @@ public class AuthService {
     private final KeycloakClientProvider keycloakClientProvider;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRegisteredEventProducer userRegisteredEventProducer;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -62,6 +65,14 @@ public class AuthService {
         userRepository.save(user);
 
         log.info("User registered id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
+        userRegisteredEventProducer.sendUserRegisteredEvent(
+                new UserRegisteredEvent(
+                        userCreated.email(),
+                        userCreated.firstName(),
+                        userCreated.lastName(),
+                        UUID.randomUUID().toString()
+                )
+        );
 
         return userCreated;
     }

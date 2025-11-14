@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.client;
+package com.baskaaleksander.nuvine.infrastructure.client;
 
 import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
 import org.springframework.cloud.openfeign.FeignClient;

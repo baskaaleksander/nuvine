@@ -14,7 +14,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: '*'
-        spring.json.type.mapping:
+        spring.json.type.mapping: emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent, passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent, userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent
   mail:
     host: ${NOTIF_MAIL_HOST}
     port: ${NOTIF_MAIL_PORT}

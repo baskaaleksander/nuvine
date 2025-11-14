@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.repository;
+package com.baskaaleksander.nuvine.infrastructure.repository;
 
 import com.baskaaleksander.nuvine.domain.model.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;

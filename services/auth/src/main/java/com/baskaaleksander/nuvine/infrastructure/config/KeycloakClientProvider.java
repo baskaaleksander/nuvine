@@ -1,10 +1,10 @@
-package com.baskaaleksander.nuvine.infrastrucure.config;
+package com.baskaaleksander.nuvine.infrastructure.config;
 
 import com.baskaaleksander.nuvine.application.dto.LoginRequest;
 import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
-import com.baskaaleksander.nuvine.infrastrucure.client.KeycloakFeignClient;
+import com.baskaaleksander.nuvine.infrastructure.client.KeycloakFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

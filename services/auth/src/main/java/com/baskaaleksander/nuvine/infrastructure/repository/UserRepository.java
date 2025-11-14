@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.repository;
+package com.baskaaleksander.nuvine.infrastructure.repository;
 
 import com.baskaaleksander.nuvine.domain.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;

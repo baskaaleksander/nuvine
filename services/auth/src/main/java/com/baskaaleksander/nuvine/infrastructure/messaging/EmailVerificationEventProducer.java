@@ -1,7 +1,7 @@
-package com.baskaaleksander.nuvine.infrastrucure.messaging;
+package com.baskaaleksander.nuvine.infrastructure.messaging;
 
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
-import com.baskaaleksander.nuvine.infrastrucure.messaging.dto.EmailVerificationEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

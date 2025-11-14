@@ -15,7 +15,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.type.mapping: emailVerificationEvent:com.baskaaleksander.nuvine.infrastrucure.messaging.dto.EmailVerificationEvent, passwordResetEvent:com.baskaaleksander.nuvine.infrastrucure.messaging.dto.PasswordResetEvent, userRegisteredEvent:com.baskaaleksander.nuvine.infrastrucure.messaging.dto.UserRegisteredEvent
+        spring.json.type.mapping: emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent, passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent, userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent
 
 
 

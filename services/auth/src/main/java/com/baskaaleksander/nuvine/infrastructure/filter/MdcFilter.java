@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.filter;
+package com.baskaaleksander.nuvine.infrastructure.filter;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;

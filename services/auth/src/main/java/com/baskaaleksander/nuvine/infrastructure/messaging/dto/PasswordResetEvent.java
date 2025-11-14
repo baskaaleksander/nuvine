@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastrucure.messaging.dto;
+package com.baskaaleksander.nuvine.infrastructure.messaging.dto;
 
 public record PasswordResetEvent(
         String email,
