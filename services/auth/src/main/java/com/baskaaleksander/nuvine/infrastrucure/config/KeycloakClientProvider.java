@@ -2,10 +2,12 @@ package com.baskaaleksander.nuvine.infrastrucure.config;
 
 import com.baskaaleksander.nuvine.application.dto.LoginRequest;
 import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
+import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
 import com.baskaaleksander.nuvine.infrastrucure.client.KeycloakFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,7 @@ import org.springframework.util.MultiValueMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KeycloakClientProvider {
 
     private final KeycloakFeignClient feignClient;
@@ -52,8 +55,10 @@ public class KeycloakClientProvider {
             );
         } catch (FeignException ex) {
             if (ex.status() == 401 | ex.status() == 400) {
+                log.info("User login failed email={}", MaskingUtil.maskEmail(request.email()));
                 throw new InvalidCredentialsException("Invalid credentials");
             }
+            log.error("Keycloak token request failed " + ex.getMessage());
             throw new RuntimeException("Keycloak token request failed " + ex.getMessage());
         }
     }

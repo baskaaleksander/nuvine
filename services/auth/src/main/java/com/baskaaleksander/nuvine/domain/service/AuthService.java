@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.*;
+import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidTokenException;
 import com.baskaaleksander.nuvine.domain.exception.TokenNotFoundException;
@@ -11,6 +12,7 @@ import com.baskaaleksander.nuvine.infrastrucure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastrucure.repository.RefreshTokenRepository;
 import com.baskaaleksander.nuvine.infrastrucure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -27,6 +29,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final KeycloakClientProvider keycloakClientProvider;
@@ -41,6 +44,7 @@ public class AuthService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
+            log.info("User registration failed: email taken email={}", MaskingUtil.maskEmail(request.email()));
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
@@ -57,6 +61,8 @@ public class AuthService {
 
         userRepository.save(user);
 
+        log.info("User registered id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
+
         return userCreated;
     }
 
@@ -69,6 +75,7 @@ public class AuthService {
         var existing = userResource.search(request.email(), true);
 
         if (!existing.isEmpty()) {
+            log.info("User registration failed: email taken email={}", MaskingUtil.maskEmail(request.email()));
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
@@ -83,6 +90,7 @@ public class AuthService {
         var response = userResource.create(user);
 
         if (response.getStatus() != 201) {
+            log.error("Failed to create user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
             throw new RuntimeException("Failed to create user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
         }
 
@@ -98,6 +106,8 @@ public class AuthService {
         var roles = assignRole(DEFAULT_ROLE, userId);
 
         response.close();
+
+        log.info("User created in Keycloak id={} email={}", userId, MaskingUtil.maskEmail(request.email()));
 
         return new UserResponse(
                 UUID.fromString(userId),
@@ -131,6 +141,8 @@ public class AuthService {
 
     @Transactional
     public KeycloakTokenResponse login(LoginRequest request) {
+
+        log.info("User login attempt email={}", MaskingUtil.maskEmail(request.email()));
         var response = keycloakClientProvider.loginUser(request);
 
         String refreshToken = response.getRefreshToken();
@@ -146,6 +158,8 @@ public class AuthService {
                 .build();
 
         refreshTokenRepository.save(token);
+
+        log.info("User logged in email={}", request.email());
 
         return response;
     }
@@ -166,6 +180,7 @@ public class AuthService {
 
         String newRefreshToken = response.getRefreshToken();
 
+
         refreshTokenRepository.revokeToken(refreshToken);
         refreshTokenRepository.updateUsedAt(Instant.now(), dbToken.getId());
 
@@ -181,25 +196,32 @@ public class AuthService {
 
         refreshTokenRepository.save(token);
 
+        log.info("User refreshed token email={}", MaskingUtil.maskEmail(email));
+
+
         return response;
     }
 
     public void logoutAll(String refreshToken) {
         var dbToken = refreshTokenRepository.findByToken(refreshToken);
 
-        dbToken.ifPresent(token -> refreshTokenRepository.revokeAllTokensByEmail(token.getUser().getEmail()));
+        dbToken.ifPresent(token -> {
+            log.info("User logged out email={}", MaskingUtil.maskEmail(token.getUser().getEmail()));
+            refreshTokenRepository.revokeAllTokensByEmail(token.getUser().getEmail());
+        });
     }
 
     public void logout(String refreshToken) {
         try {
             refreshTokenRepository.revokeToken(refreshToken);
         } catch (Exception ignored) {
-
         }
     }
 
     public MeResponse getMe(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
+
+        log.info("User getMe email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
