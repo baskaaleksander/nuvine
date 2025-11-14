@@ -37,6 +37,8 @@ public class UserService {
 
     public AdminUserResponse getUserById(String userId) {
 
+        log.info("Attempt to get user by id: {}", userId);
+
         User userDb = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -53,6 +55,8 @@ public class UserService {
                 .filter(string -> string.startsWith("ROLE"))
                 .toList();
 
+        log.info("User found: {}", userDb);
+
         return new AdminUserResponse(
                 userDb.getId(),
                 userDb.getFirstName(),
@@ -65,12 +69,15 @@ public class UserService {
     }
 
     public PagedResponse<AdminUserListResponse> getAllUsers(PaginationRequest request) {
+        log.info("Attempt to get all users");
         Pageable pageable = PaginationUtil.getPageable(request);
         Page<User> page = userRepository.findAll(pageable);
 
         List<AdminUserListResponse> content = page.getContent().stream()
                 .map(adminUserMapper::toAdminUserListResponse)
                 .toList();
+
+        log.info("Get all users success");
 
         return new PagedResponse<>(
                 content,

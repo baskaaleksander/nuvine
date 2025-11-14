@@ -126,7 +126,6 @@ public class AuthController {
 
     @GetMapping("/test")
     public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt, Authentication auth) {
-        System.out.println(auth.getPrincipal().toString());
         return Map.of(
                 "jwt_roles", jwt.getClaim("realm_access"),
                 "authorities", auth.getAuthorities()
