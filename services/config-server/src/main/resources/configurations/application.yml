@@ -14,3 +14,11 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:9098/realms/nuvine
+
+logging:
+  level:
+    root: INFO
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate: WARN

@@ -1,4 +1,4 @@
-package com.baskaaleksander.gateway.config;
+package com.baskaaleksander.gateway.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
