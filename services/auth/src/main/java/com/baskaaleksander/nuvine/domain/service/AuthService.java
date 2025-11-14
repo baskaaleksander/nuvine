@@ -70,7 +70,8 @@ public class AuthService {
                         userCreated.email(),
                         userCreated.firstName(),
                         userCreated.lastName(),
-                        UUID.randomUUID().toString()
+                        UUID.randomUUID().toString(),
+                        userCreated.id()
                 )
         );
 
