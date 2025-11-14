@@ -51,7 +51,16 @@ public class EmailSender {
         try {
             String htmlContent = templateEngine.process(templateName, context);
             String plainContent = String.format(
-                    "Hi %s %s,\n\nWelcome to our platform!\nVerify your email using this link:\n%s",
+                    """
+                            Hi %s %s,
+                            
+                            Welcome to Nuvine!
+                            Please verify your email using the link below:
+                            %s
+                            
+                            If you did not create an account, you can safely ignore this message.
+                            
+                            Visit us at https://nuvine.org""",
                     firstName,
                     lastName,
                     emailVerificationUrl
@@ -63,6 +72,47 @@ public class EmailSender {
             log.info("Welcome email sent email={}", MaskingUtil.maskEmail(to));
         } catch (Exception e) {
             log.error("Failed to send welcome email to email={}", MaskingUtil.maskEmail(to), e);
+            throw e;
+        }
+    }
+
+    @Async
+    public void sendPasswordResetEmail(String to, String passwordResetUrl) throws MessagingException {
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+        messageHelper.setFrom(senderEmail);
+
+        final String templateName = EmailTemplates.PASSWORD_RESET.getTemplateName();
+        final String subject = EmailTemplates.PASSWORD_RESET.getSubject();
+
+        Map<String, Object> variables = new HashMap<>();
+
+        variables.put("resetUrl", passwordResetUrl);
+
+        Context context = new Context();
+        context.setVariables(variables);
+        messageHelper.setSubject(subject);
+
+        try {
+            String htmlContent = templateEngine.process(templateName, context);
+            String plainContent = String.format(
+                    """
+                            You requested a password reset for your Nuvine account.
+                            Reset your password using the link below:
+                            %s
+                            
+                            If you didn't request a password reset, you can safely ignore this email.
+                            
+                            Visit us at https://nuvine.org""",
+                    passwordResetUrl
+            );
+            messageHelper.setText(plainContent, htmlContent);
+
+            messageHelper.setTo(to);
+            sender.send(message);
+            log.info("Password reset email sent email={}", MaskingUtil.maskEmail(to));
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to email={}", MaskingUtil.maskEmail(to), e);
             throw e;
         }
     }
