@@ -5,6 +5,6 @@ import java.util.UUID;
 public record EmailVerificationEvent(
         String email,
         String token,
-        UUID userId
+        String userId
 ) {
 }

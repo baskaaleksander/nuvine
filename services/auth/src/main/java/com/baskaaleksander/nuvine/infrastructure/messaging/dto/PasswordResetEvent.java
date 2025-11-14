@@ -5,7 +5,6 @@ import java.util.UUID;
 public record PasswordResetEvent(
         String email,
         String token,
-        UUID userId
-
+        String userId
 ) {
 }
