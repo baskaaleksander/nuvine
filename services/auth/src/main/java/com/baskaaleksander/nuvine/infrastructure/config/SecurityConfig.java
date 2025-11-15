@@ -32,9 +32,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/email/verify").permitAll()
+                                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/email/verify", "/api/v1/auth/password/forgot").permitAll()
 //                        .requestMatchers("/api/v1/auth/test").hasRole("USER")
-                        .anyRequest().authenticated()
+                                .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->
                         resourceServer.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

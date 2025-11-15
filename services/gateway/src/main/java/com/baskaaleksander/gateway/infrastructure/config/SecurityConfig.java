@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(e -> e
-                        .pathMatchers("/eureka/**","/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/email/verify").permitAll()
+                        .pathMatchers("/eureka/**", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/email/verify", "/api/v1/auth/password/forgot").permitAll()
                         .pathMatchers("/api/v1/admin").hasAnyRole("ADMIN")
                         .anyExchange().authenticated()
                 )
