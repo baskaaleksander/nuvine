@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +57,7 @@ public class EmailVerificationService {
 
     @Transactional
     public void verifyEmail(String token) {
-        log.info("Verifying email token={}", token);
+        log.info("Verifying email token={}", MaskingUtil.maskToken(token));
         var tokenEntity = repository.findByToken(token)
                 .orElseThrow(() -> new EmailVerificationTokenNotFoundException("Token not found"));
 

@@ -11,4 +11,9 @@ public class MaskingUtil {
         }
         return local.charAt(0) + "***" + local.charAt(local.length() - 1) + "@" + parts[1];
     }
+
+    public static String maskToken(String token) {
+        if (token == null || token.length() < 6) return "invalid";
+        return token.charAt(0) + "***" + token.charAt(token.length() - 1);
+    }
 }
