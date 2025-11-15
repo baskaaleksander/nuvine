@@ -14,4 +14,6 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
 
     @Query("select count(*) from WorkspaceMember wm where wm.workspaceId = :workspaceId")
     Long getWorkspaceMemberCountByWorkspaceId(UUID workspaceId);
+
+    boolean existsByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 }

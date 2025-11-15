@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.domain.service.WorkspaceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -39,8 +40,10 @@ public class WorkspaceController {
     }
 
     @GetMapping("/{workspaceId}")
+    @PreAuthorize("@workspaceAccess.canViewWorkspace(#workspaceId, #jwt.getSubject())")
     public WorkspaceResponseWithStats getWorkspace(
-            @PathVariable UUID workspaceId
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
         return workspaceService.getWorkspace(workspaceId);
     }
