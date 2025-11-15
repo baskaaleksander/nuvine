@@ -51,15 +51,13 @@ public class PasswordChangeService {
         }
     }
 
-    public Boolean checkToken(String token) {
+    public void checkToken(String token) {
         var refreshToken = repository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token not found"));
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now()) || refreshToken.getUsedAt() != null) {
             throw new RuntimeException("Token expired or already used");
         }
-
-        return true;
     }
 
     public void requestPasswordReset(String email) {

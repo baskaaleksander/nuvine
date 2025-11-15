@@ -1,6 +1,8 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.CheckTokenRequest;
 import com.baskaaleksander.nuvine.application.dto.ForgotPasswordRequest;
+import com.baskaaleksander.nuvine.application.dto.PasswordResetRequest;
 import com.baskaaleksander.nuvine.domain.service.PasswordChangeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,4 +27,19 @@ public class PasswordChangeController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/reset")
+    public ResponseEntity<Void> resetPassword(
+            @RequestBody @Valid PasswordResetRequest request
+    ) {
+        service.resetPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/check-token")
+    public ResponseEntity<Void> checkToken(
+            @RequestBody @Valid CheckTokenRequest request
+    ) {
+        service.checkToken(request.token());
+        return ResponseEntity.ok().build();
+    }
 }

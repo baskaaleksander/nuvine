@@ -32,7 +32,16 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/email/verify", "/api/v1/auth/password/forgot").permitAll()
+                                .requestMatchers(
+                                        "/api/v1/auth/login",
+                                        "/api/v1/auth/register",
+                                        "/api/v1/auth/refresh",
+                                        "/api/v1/auth/email/verify",
+                                        "/api/v1/auth/password/forgot",
+                                        "/api/v1/auth/password/check-token",
+                                        "/api/v1/auth/password/reset"
+                                ).permitAll()
+                                .requestMatchers("/api/v1/auth/users", "/api/v1/auth/users/**").hasRole("ADMIN")
 //                        .requestMatchers("/api/v1/auth/test").hasRole("USER")
                                 .anyRequest().authenticated()
                 )
