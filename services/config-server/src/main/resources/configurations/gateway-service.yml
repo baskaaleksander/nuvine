@@ -17,5 +17,9 @@ spring:
               uri: lb://auth-service
               predicates:
                 - Path=/api/v1/auth/**
+            - id: workspace-service
+              uri: lb://workspace-service
+              predicates:
+                - Path=/api/v1/workspaces/**
 server:
   port: 8222
