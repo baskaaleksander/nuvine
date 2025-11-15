@@ -1,8 +1,11 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.PagedResponse;
+import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceCreateResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
+import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
@@ -12,6 +15,8 @@ import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepos
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -56,11 +61,24 @@ public class WorkspaceService {
         return workspaceMapper.toWorkspaceCreateResponse(savedWorkspace);
     }
 
-    public List<WorkspaceResponse> getWorkspaces(UUID uuid) {
+    public PagedResponse<WorkspaceResponse> getWorkspaces(UUID uuid, PaginationRequest request) {
         List<UUID> workspaceIds = workspaceMemberRepository.findWorkspaceIdsByUserId(uuid);
 
-        return workspaceRepository.findAllByIdIn(workspaceIds).stream()
+        Pageable pageable = PaginationUtil.getPageable(request);
+        Page<Workspace> page = workspaceRepository.findAllByIdIn(workspaceIds, pageable);
+
+        List<WorkspaceResponse> content = page.getContent().stream()
                 .map(workspaceMapper::toWorkspaceResponse)
                 .toList();
+
+        return new PagedResponse<>(
+                content,
+                page.getNumber(),
+                page.getTotalElements(),
+                page.getSize(),
+                page.getTotalPages(),
+                page.isLast(),
+                page.hasNext()
+        );
     }
 }
