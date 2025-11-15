@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.infrastructure.config;
 import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
 import com.baskaaleksander.nuvine.application.dto.LoginRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
+import com.baskaaleksander.nuvine.domain.exception.ExternalIdentityProviderException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
 import com.baskaaleksander.nuvine.infrastructure.client.KeycloakFeignClient;
 import feign.FeignException;
@@ -96,7 +97,7 @@ public class KeycloakClientProvider {
                     status,
                     MaskingUtil.maskEmail(email),
                     ex);
-            throw new ExternalIdentityProviderException("Keycloak error during password verification", e);
+            throw new ExternalIdentityProviderException("Keycloak error during password verification");
         }
     }
 }

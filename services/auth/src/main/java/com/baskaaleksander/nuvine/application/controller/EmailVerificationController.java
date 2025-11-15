@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.EmailChangeRequest;
 import com.baskaaleksander.nuvine.application.dto.EmailVerificationRequest;
 import com.baskaaleksander.nuvine.domain.service.EmailVerificationService;
 import jakarta.validation.Valid;
@@ -30,4 +31,14 @@ public class EmailVerificationController {
         service.verifyEmail(request.token());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/change")
+    public ResponseEntity<Void> changeEmail(
+            @RequestBody @Valid EmailChangeRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        service.changeEmail(jwt.getClaimAsString("email"), request.email(), request.password());
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -1,11 +1,8 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
-import com.baskaaleksander.nuvine.domain.exception.EmailVerificationTokenNotFoundException;
-import com.baskaaleksander.nuvine.domain.exception.InvalidEmailVerificationTokenException;
-import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.EmailVerificationToken;
-import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastructure.messaging.EmailVerificationEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
@@ -36,7 +33,6 @@ public class EmailVerificationService {
     private String realm;
 
 
-
     public void requestVerificationLink(String email) {
         var user = userRepository.findByEmail(email);
 
@@ -49,8 +45,7 @@ public class EmailVerificationService {
                             user.get().getId().toString()
                     )
             );
-        }
-        else {
+        } else {
             log.info("User not found email={}", MaskingUtil.maskEmail(email));
         }
     }
@@ -70,7 +65,7 @@ public class EmailVerificationService {
 
         log.info("Email verification token valid userId={}", tokenEntity.getUser().getId());
 
-        updateKeycloakUserEmailVerified(tokenEntity.getUser().getId().toString());
+        updateKeycloakUserEmailVerified(tokenEntity.getUser().getId().toString(), true);
         userRepository.updateEmailVerified(tokenEntity.getUser().getEmail(), true);
         tokenEntity.setUsedAt(Instant.now());
 
@@ -78,16 +73,71 @@ public class EmailVerificationService {
         log.info("Email verified userId={}", tokenEntity.getUser().getId());
     }
 
-    private void updateKeycloakUserEmailVerified(String userId) {
+    private void updateKeycloakUserEmailVerified(String userId, boolean verified) {
         Keycloak keycloak = keycloakClientProvider.getInstance();
 
         log.info("Updating keycloak user email verified userId={}", userId);
         UserResource userResource = keycloak.realm(realm).users().get(userId);
         UserRepresentation user = userResource.toRepresentation();
 
-        user.setEmailVerified(true);
+        user.setEmailVerified(verified);
 
         userResource.update(user);
         log.info("Keycloak user email verified userId={}", userId);
+    }
+
+    @Transactional
+    public void changeEmail(String oldEmail, String newEmail, String password) {
+        log.info("EMAIL_CHANGE START oldEmail={}", MaskingUtil.maskEmail(oldEmail));
+
+        var user = userRepository.findByEmail(oldEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        var existing = userRepository.findByEmail(newEmail);
+
+        if (existing.isPresent()) {
+            log.info("EMAIL_CHANGE FAILED reason=email_taken newEmail={}", MaskingUtil.maskEmail(newEmail));
+            throw new UserConflictException("User with email " + newEmail + " already exists");
+        }
+
+        if (!keycloakClientProvider.verifyPassword(oldEmail, password)) {
+            log.info("EMAIL_CHANGE FAILED reason=invalid_password oldEmail={}", MaskingUtil.maskEmail(oldEmail));
+            throw new InvalidCredentialsException("Invalid password");
+        }
+
+        EmailVerificationToken verificationToken = tokenGenerationService.createToken(user);
+
+        updateKeycloakUserEmail(user.getId().toString(), newEmail);
+
+        userRepository.updateEmail(user.getId().toString(), newEmail);
+        userRepository.updateEmailVerified(user.getId().toString(), false);
+
+        eventProducer.sendEmailVerificationEvent(
+                new EmailVerificationEvent(
+                        newEmail,
+                        verificationToken.getToken(),
+                        user.getId().toString()
+                )
+        );
+
+        log.info("EMAIL_CHANGE SUCCESS userId={} oldEmail={} newEmail={}",
+                user.getId(),
+                MaskingUtil.maskEmail(oldEmail),
+                MaskingUtil.maskEmail(newEmail)
+        );
+    }
+
+    private void updateKeycloakUserEmail(String userId, String newEmail) {
+        Keycloak keycloak = keycloakClientProvider.getInstance();
+
+        log.info("Updating keycloak user email userId={}", userId);
+        UserResource userResource = keycloak.realm(realm).users().get(userId);
+        UserRepresentation user = userResource.toRepresentation();
+
+        user.setEmailVerified(false);
+        user.setEmail(newEmail);
+
+        userResource.update(user);
+        log.info("Keycloak user email updated userId={}", userId);
     }
 }
