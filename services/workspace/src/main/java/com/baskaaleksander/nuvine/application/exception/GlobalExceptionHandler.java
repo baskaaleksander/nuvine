@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.exception;
 
 import com.baskaaleksander.nuvine.domain.exception.ErrorResponse;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,18 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(WorkspaceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleWorkspaceNotFoundException(WorkspaceNotFoundException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                404,
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+    
     @ExceptionHandler(InvalidWorkspaceNameException.class)
     public ResponseEntity<ErrorResponse> handleInvalidWorkspaceNameException(InvalidWorkspaceNameException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(

@@ -1,16 +1,15 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.PagedResponse;
-import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
-import com.baskaaleksander.nuvine.application.dto.WorkspaceCreateResponse;
-import com.baskaaleksander.nuvine.application.dto.WorkspaceResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
+import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +28,7 @@ public class WorkspaceService {
 
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final ProjectRepository projectRepository;
     private final WorkspaceMapper workspaceMapper;
 
     public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId) {
@@ -62,6 +62,7 @@ public class WorkspaceService {
     }
 
     public PagedResponse<WorkspaceResponse> getWorkspaces(UUID uuid, PaginationRequest request) {
+        log.info("GET_WORKSPACES START userId={}", uuid);
         List<UUID> workspaceIds = workspaceMemberRepository.findWorkspaceIdsByUserId(uuid);
 
         Pageable pageable = PaginationUtil.getPageable(request);
@@ -71,6 +72,8 @@ public class WorkspaceService {
                 .map(workspaceMapper::toWorkspaceResponse)
                 .toList();
 
+        log.info("GET_WORKSPACES SUCCESS userId={} workspaceCount={}", uuid, content.size());
+
         return new PagedResponse<>(
                 content,
                 page.getNumber(),
@@ -79,6 +82,32 @@ public class WorkspaceService {
                 page.getTotalPages(),
                 page.isLast(),
                 page.hasNext()
+        );
+    }
+
+    public WorkspaceResponseWithStats getWorkspace(UUID workspaceId) {
+        log.info("GET_WORKSPACE START workspaceId={}", workspaceId);
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("GET_WORKSPACES FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
+
+        Long memberCount = workspaceMemberRepository.getWorkspaceMemberCountByWorkspaceId(workspaceId);
+        Long projectCount = projectRepository.getProjectCountByWorkspaceId(workspaceId);
+
+        log.info("GET_WORKSPACE SUCCESS workspaceId={}", workspaceId);
+
+        return new WorkspaceResponseWithStats(
+                workspace.getId(),
+                workspace.getName(),
+                workspace.getOwnerUserId(),
+                workspace.getSubscriptionId(),
+                workspace.getBillingTier(),
+                workspace.getCreatedAt(),
+                workspace.getUpdatedAt(),
+                memberCount,
+                projectCount
         );
     }
 }

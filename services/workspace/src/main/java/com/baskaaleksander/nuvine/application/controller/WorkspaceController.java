@@ -37,4 +37,11 @@ public class WorkspaceController {
 
         return workspaceService.getWorkspaces(UUID.fromString(jwt.getSubject()), request);
     }
+
+    @GetMapping("/{workspaceId}")
+    public WorkspaceResponseWithStats getWorkspace(
+            @PathVariable UUID workspaceId
+    ) {
+        return workspaceService.getWorkspace(workspaceId);
+    }
 }
