@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.PasswordChangeRequest;
 import com.baskaaleksander.nuvine.application.dto.PasswordResetRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
+import com.baskaaleksander.nuvine.domain.exception.ExternalIdentityProviderException;
 import com.baskaaleksander.nuvine.domain.model.PasswordResetToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
@@ -35,24 +36,25 @@ public class PasswordChangeService {
     private String realm;
 
     public void changePassword(PasswordChangeRequest request, String email) {
-        log.info("Changing password for user email={}", MaskingUtil.maskEmail(email));
+        log.info("CHANGE_PASSWORD START email={}", MaskingUtil.maskEmail(email));
         if (!clientProvider.verifyPassword(email, request.oldPassword())) throw new RuntimeException();
 
         if (!request.newPassword().equalsIgnoreCase(request.confirmNewPassword())) {
-            log.info("New password and confirm password do not match email={}", MaskingUtil.maskEmail(email));
+            log.info("CHANGE_PASSWORD FAILED reason=password_mismatch email={}", MaskingUtil.maskEmail(email));
             throw new RuntimeException();
         }
 
         try {
             updateKeycloakPassword(email, request.newPassword());
-            log.info("Password changed for user email={}", MaskingUtil.maskEmail(email));
+            log.info("CHANGE_PASSWORD SUCCESS email={}", MaskingUtil.maskEmail(email));
         } catch (Exception ex) {
-            log.error("Failed to update password in Keycloak email={}", MaskingUtil.maskEmail(email));
-            throw new RuntimeException("Failed to update password in Keycloak");
+            log.error("CHANGE_PASSWORD FAILED reason=keycloak_error email={}", MaskingUtil.maskEmail(email));
+            throw new ExternalIdentityProviderException("Failed to update password in Keycloak");
         }
     }
 
     public void resetPassword(PasswordResetRequest request) {
+        log.info("RESET_PASSWORD START token={}", MaskingUtil.maskToken(request.token()));
         checkToken(request.token());
 
         if (!request.password().equalsIgnoreCase(request.confirmPassword())) throw new RuntimeException();
@@ -63,25 +65,28 @@ public class PasswordChangeService {
         try {
             updateKeycloakPassword(token.getUser().getId().toString(), request.password());
         } catch (Exception ex) {
-            throw new RuntimeException("Failed to update password in Keycloak");
+            log.error("RESET_PASSWORD FAILED reason=keycloak_error token={}", MaskingUtil.maskToken(request.token()));
+            throw new ExternalIdentityProviderException("Failed to update password in Keycloak");
         } finally {
             token.setUsedAt(Instant.now());
             repository.save(token);
+            log.info("RESET_PASSWORD SUCCESS token={}", MaskingUtil.maskToken(request.token()));
         }
     }
 
     public void checkToken(String token) {
-        log.info("Checking password reset token={}", MaskingUtil.maskToken(token));
+        log.info("CHECK_TOKEN START token={}", MaskingUtil.maskToken(token));
         var refreshToken = repository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token not found"));
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now()) || refreshToken.getUsedAt() != null) {
-            log.info("Token expired or already used token={}", MaskingUtil.maskToken(token));
+            log.info("CHECK_TOKEN FAILED reason=expired_or_used token={}", MaskingUtil.maskToken(token));
             throw new RuntimeException("Token expired or already used");
         }
     }
 
     public void requestPasswordReset(String email) {
+        log.info("REQUEST_PASSWORD_RESET START email={}", MaskingUtil.maskEmail(email));
         var user = userRepository.findByEmail(email);
 
         if (user.isPresent()) {
@@ -92,14 +97,16 @@ public class PasswordChangeService {
                             token.getToken(),
                             user.get().getId().toString()
                     )
+
             );
+            log.info("REQUEST_PASSWORD_RESET SUCCESS email={}", MaskingUtil.maskEmail(email));
         } else {
-            log.info("User not found email={}", MaskingUtil.maskEmail(email));
+            log.info("REQUEST_PASSWORD_RESET FAILED reason=user_not_found email={}", MaskingUtil.maskEmail(email));
         }
     }
 
     private PasswordResetToken createToken(User user) {
-        log.info("Creating password reset token userId={}", user.getId());
+        log.info("CREATE_PASSWORD_RESET_TOKEN START userId={}", user.getId());
         UUID resetToken = UUID.randomUUID();
         PasswordResetToken token = PasswordResetToken.builder()
                 .user(user)
@@ -107,7 +114,7 @@ public class PasswordChangeService {
                 .expiresAt(Instant.now().plusSeconds(EXPIRATION_TIME))
                 .build();
 
-        log.info("Password reset token created userId={}", user.getId());
+        log.info("CREATE_PASSWORD_RESET_TOKEN SUCCESS userId={}", user.getId());
 
         return repository.save(token);
     }

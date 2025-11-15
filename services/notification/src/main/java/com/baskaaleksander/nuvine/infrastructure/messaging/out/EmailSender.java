@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -30,6 +29,7 @@ public class EmailSender {
     private String senderEmail;
 
     public void sendWelcomeEmail(String to, String firstName, String lastName, String emailVerificationUrl) throws MessagingException {
+        log.info("SEND_WELCOME_EMAIL START to={}", MaskingUtil.maskEmail(to));
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
         messageHelper.setFrom("senderEmail");
@@ -68,14 +68,15 @@ public class EmailSender {
 
             messageHelper.setTo(to);
             sender.send(message);
-            log.info("Welcome email sent email={}", MaskingUtil.maskEmail(to));
+            log.info("SEND_WELCOME_EMAIL SUCCESS to={}", MaskingUtil.maskEmail(to));
         } catch (Exception e) {
-            log.error("Failed to send welcome email to email={}", MaskingUtil.maskEmail(to), e);
+            log.error("SEND_WELCOME_EMAIL FAILED to={}", MaskingUtil.maskEmail(to), e);
             throw e;
         }
     }
 
     public void sendPasswordResetEmail(String to, String passwordResetUrl) throws MessagingException {
+        log.info("SEND_PASSWORD_RESET_EMAIL START to={}", MaskingUtil.maskEmail(to));
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
         messageHelper.setFrom(senderEmail);
@@ -108,14 +109,15 @@ public class EmailSender {
 
             messageHelper.setTo(to);
             sender.send(message);
-            log.info("Password reset email sent email={}", MaskingUtil.maskEmail(to));
+            log.info("SEND_PASSWORD_RESET_EMAIL SUCCESS to={}", MaskingUtil.maskEmail(to));
         } catch (Exception e) {
-            log.error("Failed to send password reset email to email={}", MaskingUtil.maskEmail(to), e);
+            log.error("SEND_PASSWORD_RESET_EMAIL FAILED to={}", MaskingUtil.maskEmail(to), e);
             throw e;
         }
     }
 
     public void sendEmailVerificationEmail(String to, String emailVerificationUrl) throws MessagingException {
+        log.info("SEND_EMAIL_VERIFICATION_EMAIL START to={}", MaskingUtil.maskEmail(to));
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
         messageHelper.setFrom(senderEmail);
@@ -148,9 +150,9 @@ public class EmailSender {
 
             messageHelper.setTo(to);
             sender.send(message);
-            log.info("Email verification email sent email={}", MaskingUtil.maskEmail(to));
+            log.info("SEND_EMAIL_VERIFICATION_URL SUCCESS to={}", MaskingUtil.maskEmail(to));
         } catch (Exception e) {
-            log.error("Failed to send email verification email to email={}", MaskingUtil.maskEmail(to), e);
+            log.error("SEND_EMAIL_VERIFICATION_URL FAILED to={}", MaskingUtil.maskEmail(to), e);
             throw e;
         }
     }

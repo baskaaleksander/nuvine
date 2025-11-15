@@ -29,6 +29,6 @@ public class EmailVerificationEventProducer {
 
         kafkaTemplate.send(message);
 
-        log.info("Email verification event sent: {}", MaskingUtil.maskEmail(event.email()));
+        log.info("EMAIL_VERIFICATION EVENT SUCCESS email={}", MaskingUtil.maskEmail(event.email()));
     }
 }

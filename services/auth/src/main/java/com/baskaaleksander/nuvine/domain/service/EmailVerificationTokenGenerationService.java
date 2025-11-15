@@ -19,7 +19,7 @@ public class EmailVerificationTokenGenerationService {
     private final EmailVerificationTokenRepository repository;
 
     public EmailVerificationToken createToken(User user) {
-        log.info("Creating email verification token userId={}", user.getId());
+        log.info("CREATE_EMAIL_VERIFICATION_TOKEN START userId={}", user.getId());
         UUID verificationToken = UUID.randomUUID();
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .user(user)
@@ -27,7 +27,7 @@ public class EmailVerificationTokenGenerationService {
                 .expiresAt(Instant.now().plusSeconds(EXPIRATION_TIME))
                 .build();
 
-        log.info("Email verification token created userId={}", user.getId());
+        log.info("CREATE_EMAIL_VERIFICATION_TOKEN SUCCESS userId={}", user.getId());
 
         return repository.save(token);
     }

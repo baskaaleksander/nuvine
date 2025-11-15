@@ -29,6 +29,6 @@ public class PasswordResetEventProducer {
 
         kafkaTemplate.send(message);
 
-        log.info("Password reset event sent: {}", MaskingUtil.maskEmail(event.email()));
+        log.info("PASSWORD_RESET_EVENT SUCCESS email={}", MaskingUtil.maskEmail(event.email()));
     }
 }

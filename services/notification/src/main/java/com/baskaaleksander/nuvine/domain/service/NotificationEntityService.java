@@ -4,7 +4,6 @@ import com.baskaaleksander.nuvine.application.dto.CreateFailedNotificationReques
 import com.baskaaleksander.nuvine.application.dto.CreateNotificationRequest;
 import com.baskaaleksander.nuvine.domain.model.FailedNotification;
 import com.baskaaleksander.nuvine.domain.model.Notification;
-import com.baskaaleksander.nuvine.domain.model.NotificationType;
 import com.baskaaleksander.nuvine.infrastructure.crypto.CryptoService;
 import com.baskaaleksander.nuvine.infrastructure.repository.FailedNotificationRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.NotificationRepository;
@@ -24,7 +23,7 @@ public class NotificationEntityService {
     private final CryptoService crypto;
 
     public void createNotification(
-        CreateNotificationRequest request
+            CreateNotificationRequest request
     ) {
         String encryptedPayload = crypto.encrypt(request.payload());
         String payloadHash = crypto.hash(request.payload());
@@ -38,11 +37,11 @@ public class NotificationEntityService {
                 .build();
 
         notificationRepository.save(notification);
-        log.info("Notification created id={} userId={}", notification.getId(), request.userId());
+        log.info("CREATE_NOTIFICATION SUCCESS id={} userId={}", notification.getId(), request.userId());
     }
 
     public void saveFailedFromDlq(
-        CreateFailedNotificationRequest request
+            CreateFailedNotificationRequest request
     ) {
         String encryptedPayload = crypto.encrypt(request.payload());
         String payloadHash = crypto.hash(request.payload());
@@ -61,6 +60,6 @@ public class NotificationEntityService {
                 .build();
 
         failedNotificationRepository.save(failedNotification);
-        log.info("Failed notification saved id={} userId={}", failedNotification.getId(), request.userId());
+        log.info("SAVE_FAILED_FROM_DLQ SUCCESS id={} userId={}", failedNotification.getId(), request.userId());
     }
 }

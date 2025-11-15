@@ -49,7 +49,7 @@ public class AuthService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            log.info("User registration failed: email taken email={}", MaskingUtil.maskEmail(request.email()));
+            log.info("REGISTER FAILED email={}", MaskingUtil.maskEmail(request.email()));
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
@@ -67,7 +67,7 @@ public class AuthService {
         var userEntity = userRepository.save(user);
         EmailVerificationToken emailVerificationToken = tokenGenerationService.createToken(userEntity);
 
-        log.info("User registered id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
+        log.info("REGISTER SUCCESS id={} email={}", userCreated.id(), MaskingUtil.maskEmail(userCreated.email()));
         userRegisteredEventProducer.sendUserRegisteredEvent(
                 new UserRegisteredEvent(
                         userCreated.firstName(),
@@ -90,7 +90,7 @@ public class AuthService {
         var existing = userResource.search(request.email(), true);
 
         if (!existing.isEmpty()) {
-            log.info("User registration failed: email taken email={}", MaskingUtil.maskEmail(request.email()));
+            log.info("CREATE_USER_IN_KEYCLOAK FAILED email={}", MaskingUtil.maskEmail(request.email()));
             throw new EmailExistsException("User with email " + request.email() + " already exists");
         }
 
@@ -105,7 +105,7 @@ public class AuthService {
         var response = userResource.create(user);
 
         if (response.getStatus() != 201) {
-            log.error("Failed to create user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
+            log.error("CREATE_USER_IN_KEYCLOAK FAILED reason={}", response.getStatusInfo().getReasonPhrase());
             throw new RuntimeException("Failed to create user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
         }
 
@@ -122,7 +122,7 @@ public class AuthService {
 
         response.close();
 
-        log.info("User created in Keycloak id={} email={}", userId, MaskingUtil.maskEmail(request.email()));
+        log.info("CREATE_USER_IN_KEYCLOAK SUCCESS id={} email={}", userId, MaskingUtil.maskEmail(request.email()));
 
         return new UserResponse(
                 UUID.fromString(userId),
@@ -157,7 +157,7 @@ public class AuthService {
     @Transactional
     public KeycloakTokenResponse login(LoginRequest request) {
 
-        log.info("User login attempt email={}", MaskingUtil.maskEmail(request.email()));
+        log.info("LOGIN START email={}", MaskingUtil.maskEmail(request.email()));
         var response = keycloakClientProvider.loginUser(request);
 
         String refreshToken = response.refreshToken();
@@ -174,18 +174,20 @@ public class AuthService {
 
         refreshTokenRepository.save(token);
 
-        log.info("User logged in email={}", request.email());
+        log.info("LOGIN SUCCESS email={}", request.email());
 
         return response;
     }
 
     @Transactional
     public KeycloakTokenResponse refreshToken(String refreshToken) {
+        log.info("REFRESH_TOKEN START token={}", MaskingUtil.maskToken(refreshToken));
 
         RefreshToken dbToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new TokenNotFoundException("Refresh token not found"));
 
         if (dbToken == null || dbToken.getRevoked() || dbToken.getExpiresAt().isBefore(Instant.now())) {
+            log.info("REFRESH_TOKEN FAILED token={}", MaskingUtil.maskToken(refreshToken));
             throw new InvalidTokenException("Refresh token not found");
         }
 
@@ -211,7 +213,7 @@ public class AuthService {
 
         refreshTokenRepository.save(token);
 
-        log.info("User refreshed token email={}", MaskingUtil.maskEmail(email));
+        log.info("REFRESH_TOKEN SUCCESS email={}", MaskingUtil.maskEmail(email));
 
 
         return response;
@@ -221,21 +223,23 @@ public class AuthService {
         var dbToken = refreshTokenRepository.findByToken(refreshToken);
 
         dbToken.ifPresent(token -> {
-            log.info("User logged out email={}", MaskingUtil.maskEmail(token.getUser().getEmail()));
+            log.info("LOGOUT_ALL email={}", MaskingUtil.maskEmail(token.getUser().getEmail()));
             refreshTokenRepository.revokeAllTokensByEmail(token.getUser().getEmail());
         });
     }
 
     public void logout(String refreshToken) {
+        log.info("LOGOUT START token={}", MaskingUtil.maskToken(refreshToken));
         try {
             refreshTokenRepository.revokeToken(refreshToken);
         } catch (Exception ignored) {
         }
     }
+
     public MeResponse getMe(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        log.info("User getMe email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
+        log.info("GET_ME START email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -249,6 +253,7 @@ public class AuthService {
             }
         }
 
+        log.info("GET_ME SUCCESS email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
         return new MeResponse(
                 userId,
                 jwt.getClaimAsString("email"),

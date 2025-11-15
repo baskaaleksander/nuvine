@@ -56,11 +56,11 @@ public class KeycloakClientProvider {
             );
         } catch (FeignException ex) {
             if (ex.status() == 401 | ex.status() == 400) {
-                log.info("User login failed email={}", MaskingUtil.maskEmail(request.email()));
+                log.info("KEYCLOAK_USER_LOGIN FAILED reason=invalid_credentials email={}", MaskingUtil.maskEmail(request.email()));
                 throw new InvalidCredentialsException("Invalid credentials");
             }
-            log.error("Keycloak token request failed " + ex.getMessage());
-            throw new RuntimeException("Keycloak token request failed " + ex.getMessage());
+            log.error("KEYCLOAK_USER_LOGIN FAILED reason={}", ex.getMessage());
+            throw new ExternalIdentityProviderException("Keycloak token request failed " + ex.getMessage());
         }
     }
 
@@ -89,11 +89,11 @@ public class KeycloakClientProvider {
             int status = ex.status();
 
             if (status == 400 || status == 401) {
-                log.info("Password verification failed email={}", MaskingUtil.maskEmail(email));
+                log.info("KEYCLOAK_PASSWORD_VERIFICATION FAILED reason=invalid_credentials email={}", MaskingUtil.maskEmail(email));
                 return false;
             }
 
-            log.error("Keycloak token endpoint error status={} email={}",
+            log.error("KEYCLOAK_PASSWORD_VERIFICATION FAILED status={} email={}",
                     status,
                     MaskingUtil.maskEmail(email),
                     ex);

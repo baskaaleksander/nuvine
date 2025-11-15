@@ -29,6 +29,6 @@ public class UserRegisteredEventProducer {
 
         kafkaTemplate.send(message);
 
-        log.info("User registered event sent: {}", MaskingUtil.maskEmail(event.email()));
+        log.info("SEND_USER_REGISTERED_EVENT SUCCESS email={}", MaskingUtil.maskEmail(event.email()));
     }
 }
