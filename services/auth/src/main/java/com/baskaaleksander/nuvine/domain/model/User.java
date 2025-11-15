@@ -14,7 +14,8 @@ import java.util.UUID;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 @Builder
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
@@ -49,6 +50,14 @@ public class User {
             orphanRemoval = true
     )
     private Set<EmailVerificationToken> emailVerificationTokens = new HashSet<>();
+
+    @OneToMany(
+            mappedBy = "user",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<PasswordResetToken> passwordResetTokens = new HashSet<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
