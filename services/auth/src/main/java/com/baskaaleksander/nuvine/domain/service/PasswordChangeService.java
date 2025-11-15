@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.PasswordChangeRequest;
 import com.baskaaleksander.nuvine.application.dto.PasswordResetRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.model.PasswordResetToken;
@@ -33,6 +34,24 @@ public class PasswordChangeService {
     @Value("${keycloak.realm}")
     private String realm;
 
+    public void changePassword(PasswordChangeRequest request, String email) {
+        log.info("Changing password for user email={}", MaskingUtil.maskEmail(email));
+        if (!clientProvider.verifyPassword(email, request.oldPassword())) throw new RuntimeException();
+
+        if (!request.newPassword().equalsIgnoreCase(request.confirmNewPassword())) {
+            log.info("New password and confirm password do not match email={}", MaskingUtil.maskEmail(email));
+            throw new RuntimeException();
+        }
+
+        try {
+            updateKeycloakPassword(email, request.newPassword());
+            log.info("Password changed for user email={}", MaskingUtil.maskEmail(email));
+        } catch (Exception ex) {
+            log.error("Failed to update password in Keycloak email={}", MaskingUtil.maskEmail(email));
+            throw new RuntimeException("Failed to update password in Keycloak");
+        }
+    }
+
     public void resetPassword(PasswordResetRequest request) {
         checkToken(request.token());
 
@@ -52,10 +71,12 @@ public class PasswordChangeService {
     }
 
     public void checkToken(String token) {
+        log.info("Checking password reset token={}", MaskingUtil.maskToken(token));
         var refreshToken = repository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token not found"));
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now()) || refreshToken.getUsedAt() != null) {
+            log.info("Token expired or already used token={}", MaskingUtil.maskToken(token));
             throw new RuntimeException("Token expired or already used");
         }
     }

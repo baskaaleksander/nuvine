@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
-import com.baskaaleksander.nuvine.application.dto.LoginRequest;
 import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
+import com.baskaaleksander.nuvine.application.dto.LoginRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
 import com.baskaaleksander.nuvine.infrastructure.client.KeycloakFeignClient;
@@ -70,5 +70,33 @@ public class KeycloakClientProvider {
         form.add("client_secret", clientSecret);
         form.add("refresh_token", refreshToken);
         return feignClient.refreshToken(form);
+    }
+
+    public boolean verifyPassword(String email, String currentPassword) {
+        try {
+            MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+            form.add("grant_type", "password");
+            form.add("client_id", clientId);
+            form.add("client_secret", clientSecret);
+            form.add("username", email);
+            form.add("password", currentPassword);
+            form.add("scope", "openid profile email");
+            return feignClient.getToken(
+                    form
+            ) != null;
+        } catch (FeignException ex) {
+            int status = ex.status();
+
+            if (status == 400 || status == 401) {
+                log.info("Password verification failed email={}", MaskingUtil.maskEmail(email));
+                return false;
+            }
+
+            log.error("Keycloak token endpoint error status={} email={}",
+                    status,
+                    MaskingUtil.maskEmail(email),
+                    ex);
+            throw new ExternalIdentityProviderException("Keycloak error during password verification", e);
+        }
     }
 }
