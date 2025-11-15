@@ -1,14 +1,19 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.PasswordResetRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.model.PasswordResetToken;
 import com.baskaaleksander.nuvine.domain.model.User;
+import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastructure.messaging.PasswordResetEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.PasswordResetTokenRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,7 +27,40 @@ public class PasswordChangeService {
     private final PasswordResetTokenRepository repository;
     private final UserRepository userRepository;
     private final PasswordResetEventProducer eventProducer;
+    private final KeycloakClientProvider clientProvider;
     private static final long EXPIRATION_TIME = 24 * 3600;
+
+    @Value("${keycloak.realm}")
+    private String realm;
+
+    public void resetPassword(PasswordResetRequest request) {
+        checkToken(request.token());
+
+        if (!request.password().equalsIgnoreCase(request.confirmPassword())) throw new RuntimeException();
+
+        var token = repository.findByToken(request.token())
+                .orElseThrow(() -> new RuntimeException("Token not found"));
+
+        try {
+            updateKeycloakPassword(token.getUser().getId().toString(), request.password());
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to update password in Keycloak");
+        } finally {
+            token.setUsedAt(Instant.now());
+            repository.save(token);
+        }
+    }
+
+    public Boolean checkToken(String token) {
+        var refreshToken = repository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Token not found"));
+
+        if (refreshToken.getExpiresAt().isBefore(Instant.now()) || refreshToken.getUsedAt() != null) {
+            throw new RuntimeException("Token expired or already used");
+        }
+
+        return true;
+    }
 
     public void requestPasswordReset(String email) {
         var user = userRepository.findByEmail(email);
@@ -53,5 +91,20 @@ public class PasswordChangeService {
         log.info("Password reset token created userId={}", user.getId());
 
         return repository.save(token);
+    }
+
+    private void updateKeycloakPassword(String userId, String newPassword) {
+        Keycloak keycloak = clientProvider.getInstance();
+
+        CredentialRepresentation cred = new CredentialRepresentation();
+        cred.setType(CredentialRepresentation.PASSWORD);
+        cred.setValue(newPassword);
+        cred.setTemporary(false);
+
+        keycloak
+                .realm(realm)
+                .users()
+                .get(userId)
+                .resetPassword(cred);
     }
 }
