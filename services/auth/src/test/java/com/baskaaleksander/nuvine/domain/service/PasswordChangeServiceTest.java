@@ -7,6 +7,7 @@ import com.baskaaleksander.nuvine.domain.model.PasswordResetToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
 import com.baskaaleksander.nuvine.infrastructure.messaging.PasswordResetEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.PasswordResetTokenRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +24,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -201,5 +205,72 @@ class PasswordChangeServiceTest {
         verify(tokenRepository).save(passwordResetToken);
         assertNotNull(passwordResetToken.getUsedAt());
         verify(tokenRepository, times(2)).findByToken(resetTokenValue);
+    }
+
+    @Test
+    void checkTokenThrowsWhenTokenDoesNotExist() {
+        when(tokenRepository.findByToken(resetTokenValue)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> passwordChangeService.checkToken(resetTokenValue));
+
+        verify(tokenRepository).findByToken(resetTokenValue);
+    }
+
+    @Test
+    void checkTokenThrowsWhenTokenExpired() {
+        passwordResetToken.setExpiresAt(Instant.now().minusSeconds(5));
+        when(tokenRepository.findByToken(resetTokenValue)).thenReturn(Optional.of(passwordResetToken));
+
+        assertThrows(RuntimeException.class, () -> passwordChangeService.checkToken(resetTokenValue));
+    }
+
+    @Test
+    void checkTokenThrowsWhenTokenAlreadyUsed() {
+        passwordResetToken.setUsedAt(Instant.now().minusSeconds(10));
+        when(tokenRepository.findByToken(resetTokenValue)).thenReturn(Optional.of(passwordResetToken));
+
+        assertThrows(RuntimeException.class, () -> passwordChangeService.checkToken(resetTokenValue));
+    }
+
+    @Test
+    void checkTokenSucceedsWhenTokenValid() {
+        when(tokenRepository.findByToken(resetTokenValue)).thenReturn(Optional.of(passwordResetToken));
+
+        assertDoesNotThrow(() -> passwordChangeService.checkToken(resetTokenValue));
+    }
+
+    @Test
+    void requestPasswordResetDoesNothingWhenUserMissing() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        passwordChangeService.requestPasswordReset(email);
+
+        verify(userRepository).findByEmail(email);
+        verify(tokenRepository, never()).save(any());
+        verifyNoInteractions(eventProducer);
+    }
+
+    @Test
+    void requestPasswordResetCreatesTokenAndPublishesEvent() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(tokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Instant beforeCall = Instant.now();
+
+        passwordChangeService.requestPasswordReset(email);
+
+        ArgumentCaptor<PasswordResetToken> tokenCaptor = ArgumentCaptor.forClass(PasswordResetToken.class);
+        verify(tokenRepository).save(tokenCaptor.capture());
+        PasswordResetToken createdToken = tokenCaptor.getValue();
+        assertEquals(user, createdToken.getUser());
+        assertNotNull(createdToken.getToken());
+        long secondsUntilExpire = Duration.between(beforeCall, createdToken.getExpiresAt()).getSeconds();
+        assertTrue(secondsUntilExpire >= 86400 - 5 && secondsUntilExpire <= 86400 + 5);
+
+        ArgumentCaptor<PasswordResetEvent> eventCaptor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+        verify(eventProducer).sendPasswordResetEvent(eventCaptor.capture());
+        PasswordResetEvent event = eventCaptor.getValue();
+        assertEquals(email, event.email());
+        assertEquals(createdToken.getToken(), event.token());
+        assertEquals(user.getId().toString(), event.userId());
     }
 }
