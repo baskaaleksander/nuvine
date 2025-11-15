@@ -1,7 +1,10 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.domain.exception.EmailVerificationTokenNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidEmailVerificationTokenException;
+import com.baskaaleksander.nuvine.domain.exception.UserConflictException;
+import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.EmailVerificationToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
@@ -71,10 +74,14 @@ class EmailVerificationServiceTest {
     private String tokenValue;
     private String email;
     private static final String REALM = "test-realm";
+    private String newEmail;
+    private String password;
 
     @BeforeEach
     void setUp() {
         email = "user@example.com";
+        newEmail = "new@example.com";
+        password = "Password#123";
         user = User.builder()
                 .id(UUID.randomUUID())
                 .email(email)
@@ -171,5 +178,85 @@ class EmailVerificationServiceTest {
 
         verify(userRepository, never()).updateEmailVerified(anyString(), anyBoolean());
         verify(tokenRepository, never()).save(token);
+    }
+
+    @Test
+    void changeEmailThrowsWhenUserNotFound() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class,
+                () -> emailVerificationService.changeEmail(email, newEmail, password));
+    }
+
+    @Test
+    void changeEmailThrowsWhenNewEmailAlreadyExists() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(newEmail)).thenReturn(Optional.of(User.builder().id(UUID.randomUUID()).email(newEmail).build()));
+
+        assertThrows(UserConflictException.class,
+                () -> emailVerificationService.changeEmail(email, newEmail, password));
+    }
+
+    @Test
+    void changeEmailThrowsWhenPasswordInvalid() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(newEmail)).thenReturn(Optional.empty());
+        when(keycloakClientProvider.verifyPassword(email, password)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> emailVerificationService.changeEmail(email, newEmail, password));
+
+        verify(tokenGenerationService, never()).createToken(user);
+        verifyNoInteractions(eventProducer);
+    }
+
+    @Test
+    void changeEmailUpdatesKeycloakAndSendsEvent() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(newEmail)).thenReturn(Optional.empty());
+        when(keycloakClientProvider.verifyPassword(email, password)).thenReturn(true);
+        when(tokenGenerationService.createToken(user)).thenReturn(token);
+        when(keycloakClientProvider.getInstance()).thenReturn(keycloak);
+        when(keycloak.realm(REALM)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get(user.getId().toString())).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(userRepresentation);
+
+        emailVerificationService.changeEmail(email, newEmail, password);
+
+        verify(tokenGenerationService).createToken(user);
+        verify(userRepresentation).setEmailVerified(false);
+        verify(userRepresentation).setUsername(newEmail);
+        verify(userRepresentation).setEmail(newEmail);
+        verify(userResource).update(userRepresentation);
+        verify(userRepository).updateEmail(user.getId(), newEmail);
+        verify(userRepository).updateEmailVerifiedByUserId(user.getId(), false);
+        ArgumentCaptor<EmailVerificationEvent> eventCaptor = ArgumentCaptor.forClass(EmailVerificationEvent.class);
+        verify(eventProducer).sendEmailVerificationEvent(eventCaptor.capture());
+        EmailVerificationEvent event = eventCaptor.getValue();
+        assertEquals(newEmail, event.email());
+        assertEquals(token.getToken(), event.token());
+        assertEquals(user.getId().toString(), event.userId());
+    }
+
+    @Test
+    void changeEmailThrowsWhenKeycloakUpdateFails() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(newEmail)).thenReturn(Optional.empty());
+        when(keycloakClientProvider.verifyPassword(email, password)).thenReturn(true);
+        when(tokenGenerationService.createToken(user)).thenReturn(token);
+        when(keycloakClientProvider.getInstance()).thenReturn(keycloak);
+        when(keycloak.realm(REALM)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get(user.getId().toString())).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(userRepresentation);
+        doThrow(new RuntimeException("Keycloak error")).when(userResource).update(userRepresentation);
+
+        assertThrows(RuntimeException.class,
+                () -> emailVerificationService.changeEmail(email, newEmail, password));
+
+        verify(userRepository, never()).updateEmail(user.getId(), newEmail);
+        verify(userRepository, never()).updateEmailVerifiedByUserId(user.getId(), false);
+        verify(eventProducer, never()).sendEmailVerificationEvent(any());
     }
 }
