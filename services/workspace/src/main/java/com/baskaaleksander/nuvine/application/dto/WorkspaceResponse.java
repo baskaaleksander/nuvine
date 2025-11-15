@@ -5,11 +5,13 @@ import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import java.time.Instant;
 import java.util.UUID;
 
-public record WorkspaceCreateResponse(
+public record WorkspaceResponse(
         UUID id,
         String name,
         UUID ownerUserId,
+        String subscriptionId,
         BillingTier billingTier,
-        Instant createdAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

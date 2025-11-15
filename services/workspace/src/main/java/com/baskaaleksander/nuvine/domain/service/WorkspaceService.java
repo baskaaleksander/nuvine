@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.WorkspaceCreateResponse;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -50,7 +52,15 @@ public class WorkspaceService {
         workspaceMemberRepository.save(member);
 
         log.info("CREATE_WORKSPACE SUCCESS userId={} workspaceId={}", ownerUserId, savedWorkspace.getId());
-        
+
         return workspaceMapper.toWorkspaceCreateResponse(savedWorkspace);
+    }
+
+    public List<WorkspaceResponse> getWorkspaces(UUID uuid) {
+        List<UUID> workspaceIds = workspaceMemberRepository.findWorkspaceIdsByUserId(uuid);
+
+        return workspaceRepository.findAllByIdIn(workspaceIds).stream()
+                .map(workspaceMapper::toWorkspaceResponse)
+                .toList();
     }
 }

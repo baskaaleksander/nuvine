@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.mapper;
 
 import com.baskaaleksander.nuvine.application.dto.WorkspaceCreateResponse;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceResponse;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +13,20 @@ public class WorkspaceMapper {
                 workspace.getId(),
                 workspace.getName(),
                 workspace.getOwnerUserId(),
-                workspace.getBillingTier()
+                workspace.getBillingTier(),
+                workspace.getCreatedAt()
+        );
+    }
+
+    public WorkspaceResponse toWorkspaceResponse(Workspace workspace) {
+        return new WorkspaceResponse(
+                workspace.getId(),
+                workspace.getName(),
+                workspace.getOwnerUserId(),
+                workspace.getSubscriptionId() != null ? workspace.getSubscriptionId() : null,
+                workspace.getBillingTier(),
+                workspace.getCreatedAt(),
+                workspace.getUpdatedAt()
         );
     }
 }
