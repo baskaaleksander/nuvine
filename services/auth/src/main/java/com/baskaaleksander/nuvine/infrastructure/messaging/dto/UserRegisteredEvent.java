@@ -1,7 +1,5 @@
 package com.baskaaleksander.nuvine.infrastructure.messaging.dto;
 
-import java.util.UUID;
-
 public record UserRegisteredEvent(
         String firstName,
         String lastName,
@@ -10,3 +8,4 @@ public record UserRegisteredEvent(
         String userId
 ) {
 }
+
