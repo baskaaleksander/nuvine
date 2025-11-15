@@ -2,7 +2,6 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.AuthService;
-import com.baskaaleksander.nuvine.domain.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
@@ -48,11 +47,11 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(
-                    new TokenResponse(
-                        tokenRes.accessToken(),
-                        tokenRes.expiresIn()
-                    )
-        );
+                        new TokenResponse(
+                                tokenRes.accessToken(),
+                                tokenRes.expiresIn()
+                        )
+                );
     }
 
     @PostMapping("/refresh")
@@ -82,6 +81,14 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<MeResponse> getMe(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(authService.getMe(jwt));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<MeResponse> updateMe(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid UpdateMeRequest request
+    ) {
+        return ResponseEntity.ok(authService.updateMe(jwt, request));
     }
 
     @PostMapping("/logout")

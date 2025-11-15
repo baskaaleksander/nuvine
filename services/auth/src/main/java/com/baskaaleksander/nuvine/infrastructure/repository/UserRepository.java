@@ -18,6 +18,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     void updateEmailVerified(String email, boolean emailVerified);
 
     @Modifying
-    @Query("update User u set u.email = :email where u.email = :email")
-    void updateEmail(String email, String newEmail);
+    @Query("update User u set u.emailVerified = :emailVerified where u.id = :userId")
+    void updateEmailVerifiedByUserId(UUID userId, boolean emailVerified);
+
+    @Modifying
+    @Query("update User u set u.email = :newEmail where u.id = :userId")
+    void updateEmail(UUID userId, String newEmail);
 }

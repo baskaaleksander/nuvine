@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -265,5 +266,25 @@ public class AuthService {
                         : user.isEmailVerified(),
                 user.isOnboardingCompleted()
         );
+    }
+
+    @Transactional
+    public MeResponse updateMe(Jwt jwt, UpdateMeRequest request) {
+        log.info("UPDATE_ME START email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
+        User user = userRepository.findById(UUID.fromString(jwt.getSubject()))
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (request.firstName() != null && StringUtils.hasText(request.firstName()) && !user.getFirstName().equals(request.firstName())) {
+            user.setFirstName(request.firstName());
+        }
+        if (request.lastName() != null && StringUtils.hasText(request.firstName()) && !user.getLastName().equals(request.lastName())) {
+            user.setLastName(request.lastName());
+        }
+
+        userRepository.save(user);
+
+        log.info("UPDATE_ME SUCCESS email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
+
+        return getMe(jwt);
     }
 }

@@ -111,8 +111,8 @@ public class EmailVerificationService {
 
         updateKeycloakUserEmail(user.getId().toString(), newEmail);
 
-        userRepository.updateEmail(user.getId().toString(), newEmail);
-        userRepository.updateEmailVerified(user.getId().toString(), false);
+        userRepository.updateEmail(user.getId(), newEmail);
+        userRepository.updateEmailVerifiedByUserId(user.getId(), false);
 
         eventProducer.sendEmailVerificationEvent(
                 new EmailVerificationEvent(
@@ -137,6 +137,7 @@ public class EmailVerificationService {
         UserRepresentation user = userResource.toRepresentation();
 
         user.setEmailVerified(false);
+        user.setUsername(newEmail);
         user.setEmail(newEmail);
 
         userResource.update(user);
