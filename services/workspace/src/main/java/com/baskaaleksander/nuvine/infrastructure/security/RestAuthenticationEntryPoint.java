@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.infrastructure.security;
 
+import com.baskaaleksander.nuvine.domain.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
