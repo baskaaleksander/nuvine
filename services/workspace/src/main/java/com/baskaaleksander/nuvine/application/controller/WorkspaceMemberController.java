@@ -1,15 +1,15 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -27,5 +27,16 @@ public class WorkspaceMemberController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return workspaceMemberService.getWorkspaceMembers(workspaceId);
+    }
+
+    @PostMapping
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> addWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @RequestBody @Valid WorkspaceMemberRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceMemberService.addWorkspaceMember(workspaceId, request.userId(), request.role());
+        return ResponseEntity.ok().build();
     }
 }
