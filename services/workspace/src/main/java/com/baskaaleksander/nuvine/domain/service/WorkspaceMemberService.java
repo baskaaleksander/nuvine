@@ -3,8 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
-import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
-import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
@@ -54,12 +53,12 @@ public class WorkspaceMemberService {
             authClient.checkUserExists(userId);
         } catch (Exception ex) {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=user_not_found workspaceId={}, userId={}", workspaceId, userId);
-            throw new IllegalArgumentException("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         if (role == WorkspaceRole.OWNER) {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}, userId={}", workspaceId, userId);
-            throw new IllegalArgumentException("Owner role is not allowed");
+            throw new WorkspaceRoleConflictException("Owner role is not allowed");
         }
 
         WorkspaceMember existing = workspaceMemberRepository
@@ -76,7 +75,7 @@ public class WorkspaceMemberService {
             }
 
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=member_exists workspaceId={}, userId={}", workspaceId, userId);
-            throw new IllegalArgumentException("Member already exists");
+            throw new WorkspaceMemberExistsException("Member already exists");
         }
 
         WorkspaceMember member = WorkspaceMember.builder()
@@ -86,6 +85,8 @@ public class WorkspaceMemberService {
                 .build();
 
         workspaceMemberRepository.save(member);
+
+        // todo add here email to added user via kafka event
 
         log.info("ADD_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
@@ -114,7 +115,7 @@ public class WorkspaceMemberService {
 
             if (ownerId.equals(userId)) {
                 log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=user_already_owner workspaceId={}, userId={}", workspaceId, userId);
-                throw new IllegalArgumentException("User is already the owner");
+                throw new WorkspaceRoleConflictException("User is already the owner");
             }
 
             workspaceMemberRepository.updateMemberRole(userId, workspaceId, WorkspaceRole.OWNER);
@@ -122,11 +123,11 @@ public class WorkspaceMemberService {
         } else {
             if (member.getRole() == WorkspaceRole.OWNER) {
                 log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=owner_cannot_be_downgraded workspaceId={}, userId={}", workspaceId, userId);
-                throw new IllegalArgumentException("Owner cannot be downgraded");
+                throw new WorkspaceRoleConflictException("Owner cannot be downgraded");
             }
             if (member.getRole().equals(role)) {
                 log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=role_is_already_assigned workspaceId={} userId={}", workspaceId, userId);
-                throw new IllegalArgumentException("Cannot assign same role");
+                throw new WorkspaceRoleConflictException("Cannot assign same role");
             }
             workspaceMemberRepository.updateMemberRole(userId, workspaceId, role);
         }
@@ -151,7 +152,7 @@ public class WorkspaceMemberService {
 
         if (existing.getRole() == WorkspaceRole.OWNER) {
             log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=owner_cannot_be_removed workspaceId={}, userId={}", workspaceId, userId);
-            throw new IllegalArgumentException("Owner cannot be removed");
+            throw new WorkspaceOwnerRemovalException("Owner cannot be removed");
         }
 
         workspaceMemberRepository.updateDeletedById(existing.getId(), true);
