@@ -139,4 +139,21 @@ public class ProjectService {
 
         log.info("UPDATE_PROJECT END projectId={}", projectId);
     }
+
+    public void deleteProject(UUID projectId) {
+        log.info("DELETE_PROJECT START projectId={}", projectId);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found"));
+
+        if (project.isDeleted()) {
+            log.info("DELETE_PROJECT FAILED reason=project_not_found projectId={}", projectId);
+            throw new ProjectNotFoundException("Project not found");
+        }
+
+        project.setDeleted(true);
+        projectRepository.save(project);
+
+        log.info("DELETE_PROJECT END projectId={}", projectId);
+    }
 }

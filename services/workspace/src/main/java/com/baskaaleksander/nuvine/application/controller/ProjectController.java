@@ -67,4 +67,15 @@ public class ProjectController {
         projectService.updateProject(projectId, request);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{projectId}")
+    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID projectId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        projectService.deleteProject(projectId);
+        return ResponseEntity.ok().build();
+    }
 }
