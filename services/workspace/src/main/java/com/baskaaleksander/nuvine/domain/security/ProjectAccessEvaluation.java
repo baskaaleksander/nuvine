@@ -20,4 +20,8 @@ public class ProjectAccessEvaluation {
                 .orElseThrow(() -> new WorkspaceMemberNotFoundException("Workspace not found"));
         return workspaceMember.getRole().equals(WorkspaceRole.OWNER) || workspaceMember.getRole().equals(WorkspaceRole.MODERATOR);
     }
+
+    public boolean canGetProjects(UUID workspaceId, String userId) {
+        return workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, UUID.fromString(userId));
+    }
 }
