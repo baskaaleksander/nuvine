@@ -24,5 +24,8 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Modifying
     void deleteAllMembersByWorkspaceId(UUID workspaceId);
 
+    @Query("select wm from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.deleted = false")
+    List<WorkspaceMember> getWorkspaceMembersByWorkspaceId(UUID workspaceId);
+
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 }
