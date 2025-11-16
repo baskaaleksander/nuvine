@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
@@ -11,6 +12,7 @@ import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -64,5 +66,67 @@ public class WorkspaceMemberService {
         workspaceMemberRepository.save(member);
 
         log.info("ADD_WORKSPACE_MEMBER END workspaceId={}", workspaceId);
+    }
+
+    @Transactional
+    public void updateWorkspaceMemberRole(UUID workspaceId, UUID userId, WorkspaceRole role) {
+        log.info("UPDATE_WORKSPACE_MEMBER_ROLE START workspaceId={}, userId={}, role={}", workspaceId, userId, role);
+
+        WorkspaceMember member = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
+                .orElseThrow(() -> {
+                    log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=workspace_member_not_found workspaceId={}, userId={}", workspaceId, userId);
+                    return new WorkspaceMemberNotFoundException("Workspace member not found");
+                });
+
+        if (member.getRole() == WorkspaceRole.OWNER && role != WorkspaceRole.OWNER) {
+            log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=owner_cannot_be_downgraded workspaceId={}, userId={}", workspaceId, userId);
+            throw new IllegalArgumentException("Owner role cannot be downgraded");
+        }
+
+        if (role == WorkspaceRole.OWNER) {
+            UUID ownerUserId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
+                    .orElseThrow(() -> {
+                        log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=workspace_owner_not_found workspaceId={}", workspaceId);
+                        return new WorkspaceMemberNotFoundException("Owner not found");
+                    });
+
+            if (ownerUserId.equals(userId)) {
+                log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=user_already_owner workspaceId={}, userId={}", workspaceId, userId);
+                throw new IllegalArgumentException("User is already the owner");
+            }
+
+            workspaceMemberRepository.updateMemberRole(workspaceId, userId, WorkspaceRole.OWNER);
+            workspaceMemberRepository.updateMemberRole(workspaceId, ownerUserId, WorkspaceRole.MODERATOR);
+
+        } else {
+            workspaceMemberRepository.updateMemberRole(workspaceId, userId, role);
+        }
+
+        log.info("UPDATE_WORKSPACE_MEMBER_ROLE END workspaceId={}", workspaceId);
+    }
+
+    @Transactional
+    public void removeWorkspaceMember(UUID workspaceId, UUID userId) {
+        log.info("REMOVE_WORKSPACE_MEMBER START workspaceId={}, userId={}", workspaceId, userId);
+
+        UUID ownerUserId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_owner_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceMemberNotFoundException("Workspace owner not found");
+                });
+
+        if (userId.equals(ownerUserId)) {
+            log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=owner_cannot_be_removed workspaceId={}, userId={}", workspaceId, userId);
+            throw new IllegalArgumentException("Owner cannot be removed");
+        }
+
+        int affected = workspaceMemberRepository.deleteByWorkspaceIdAndUserId(workspaceId, userId);
+
+        if (affected == 0) {
+            log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={}, userId={}", workspaceId, userId);
+            throw new WorkspaceMemberNotFoundException("Workspace member not found");
+        }
+
+        log.info("REMOVE_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
 }

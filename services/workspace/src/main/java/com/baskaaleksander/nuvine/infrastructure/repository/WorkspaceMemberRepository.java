@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.repository;
 
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -26,6 +27,17 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
 
     @Query("select wm from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.deleted = false")
     List<WorkspaceMember> getWorkspaceMembersByWorkspaceId(UUID workspaceId);
+
+    @Query("select wm.userId from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.deleted = false and wm.role = 'OWNER'")
+    Optional<UUID> findOwnerUserIdByWorkspaceId(UUID workspaceId);
+
+    @Query("update WorkspaceMember wm set wm.role = :role where wm.workspaceId = :workspaceId and wm.userId = :userId")
+    @Modifying
+    void updateMemberRole(UUID userId, UUID workspaceId, WorkspaceRole role);
+
+    @Query("update WorkspaceMember wm set wm.deleted = true where wm.workspaceId = :workspaceId and wm.userId = :userId")
+    @Modifying
+    int deleteByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 }
