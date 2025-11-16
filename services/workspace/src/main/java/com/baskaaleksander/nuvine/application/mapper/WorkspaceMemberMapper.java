@@ -9,6 +9,7 @@ public class WorkspaceMemberMapper {
 
     public WorkspaceMemberResponse toWorkspaceMemberResponse(WorkspaceMember workspaceMember) {
         return new WorkspaceMemberResponse(
+                workspaceMember.getId(),
                 workspaceMember.getWorkspaceId(),
                 workspaceMember.getUserId(),
                 workspaceMember.getRole(),

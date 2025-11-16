@@ -9,6 +9,7 @@ public class ProjectMapper {
 
     public ProjectResponse toProjectResponse(Project project) {
         return new ProjectResponse(
+                project.getId(),
                 project.getName(),
                 project.getDescription(),
                 project.getWorkspaceId(),

@@ -82,6 +82,7 @@ public class ProjectService {
         Long documentCount = documentRepository.getDocumentCountByProjectId(projectId);
 
         return new ProjectDetailedResponse(
+                project.getId(),
                 project.getName(),
                 project.getDescription(),
                 project.getWorkspaceId(),

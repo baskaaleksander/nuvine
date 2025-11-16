@@ -21,7 +21,7 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @PostMapping
-    @PreAuthorize("@projectAccess.canCreateProject(#workspaceId, #jwt.getSubject())")
+    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
     public ResponseEntity<Void> createProject(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid CreateProjectRequest request,
@@ -54,5 +54,17 @@ public class ProjectController {
     ) {
         ProjectDetailedResponse project = projectService.getProjectById(projectId);
         return ResponseEntity.ok(project);
+    }
+
+    @PutMapping("/{projectId}")
+    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> updateProject(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID projectId,
+            @RequestBody @Valid UpdateProjectRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        projectService.updateProject(projectId, request);
+        return ResponseEntity.ok().build();
     }
 }

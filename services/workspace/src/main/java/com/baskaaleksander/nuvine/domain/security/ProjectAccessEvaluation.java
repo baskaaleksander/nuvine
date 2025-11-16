@@ -15,7 +15,7 @@ public class ProjectAccessEvaluation {
 
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
-    public boolean canCreateProject(UUID workspaceId, String userId) {
+    public boolean canManageProjects(UUID workspaceId, String userId) {
         WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, UUID.fromString(userId))
                 .orElseThrow(() -> new WorkspaceMemberNotFoundException("Workspace not found"));
         return workspaceMember.getRole().equals(WorkspaceRole.OWNER) || workspaceMember.getRole().equals(WorkspaceRole.MODERATOR);

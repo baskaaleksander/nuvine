@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record WorkspaceMemberResponse(
+        UUID id,
         UUID workspaceId,
         UUID userId,
         WorkspaceRole role,
