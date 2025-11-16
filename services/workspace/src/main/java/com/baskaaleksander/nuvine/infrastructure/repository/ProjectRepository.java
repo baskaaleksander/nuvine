@@ -10,4 +10,7 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
     @Query("select count(*) from Project p where p.workspaceId = :workspaceId")
     Long getProjectCountByWorkspaceId(UUID workspaceId);
+
+    @Query("select count(*) > 0 from Project p where p.name = :name and p.workspaceId = :workspaceId and p.deleted = false")
+    boolean existsByNameAndWorkspaceId(String name, UUID workspaceId);
 }

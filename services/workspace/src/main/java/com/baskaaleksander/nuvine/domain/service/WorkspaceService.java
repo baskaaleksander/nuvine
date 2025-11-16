@@ -81,10 +81,10 @@ public class WorkspaceService {
 
         return new PagedResponse<>(
                 content,
-                page.getNumber(),
+                page.getTotalPages(),
                 page.getTotalElements(),
                 page.getSize(),
-                page.getTotalPages(),
+                page.getNumber(),
                 page.isLast(),
                 page.hasNext()
         );

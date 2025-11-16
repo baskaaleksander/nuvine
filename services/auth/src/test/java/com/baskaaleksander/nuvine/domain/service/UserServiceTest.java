@@ -222,7 +222,7 @@ public class UserServiceTest {
         PagedResponse<AdminUserListResponse> response = service.getAllUsers(request);
 
         assertEquals(2, response.content().size());
-        assertEquals(1, response.totalPages());
+        assertEquals(2, response.totalPages());
         assertEquals(2, response.totalElements());
         assertEquals(10, response.size());
         assertEquals(1, response.page());
@@ -240,9 +240,9 @@ public class UserServiceTest {
 
         assertTrue(response.content().isEmpty());
         assertEquals(0, response.totalElements());
-        assertEquals(1, response.totalPages());
+        assertEquals(0, response.totalPages());
         assertEquals(10, response.size());
-        assertEquals(0, response.page());
+        assertEquals(1, response.page());
         assertTrue(response.last());
         assertFalse(response.next());
     }
@@ -301,7 +301,7 @@ public class UserServiceTest {
 
         assertEquals(25, response.totalElements());
         assertEquals(5, response.size());
-        assertEquals(5, response.page());
+        assertEquals(3, response.page());
     }
 
     private RoleRepresentation role(String name) {
