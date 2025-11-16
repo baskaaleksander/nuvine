@@ -89,4 +89,9 @@ public class UserService {
                 page.hasNext()
         );
     }
+
+    public void validateUserExists(UUID id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
 }

@@ -7,6 +7,7 @@ import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundExcept
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class WorkspaceMemberService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceMemberMapper workspaceMemberMapper;
     private final WorkspaceRepository workspaceRepository;
+    private final AuthClient authClient;
 
     public WorkspaceMembersResponse getWorkspaceMembers(UUID workspaceId) {
 
@@ -48,7 +50,12 @@ public class WorkspaceMemberService {
     public void addWorkspaceMember(UUID workspaceId, UUID userId, WorkspaceRole role) {
         log.info("ADD_WORKSPACE_MEMBER START workspaceId={}, userId={}, role={}", workspaceId, userId, role);
 
-        //call to auth service here
+        try {
+            authClient.checkUserExists(userId);
+        } catch (Exception ex) {
+            log.info("ADD_WORKSPACE_MEMBER FAILED reason=user_not_found workspaceId={}, userId={}", workspaceId, userId);
+            throw new IllegalArgumentException("User not found");
+        }
 
         if (role == WorkspaceRole.OWNER) {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}, userId={}", workspaceId, userId);

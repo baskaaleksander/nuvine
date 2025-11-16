@@ -15,5 +15,13 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
+keycloak:
+  auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
+  client-id: workspace-service
+  client-secret: ${KEYCLOAK_WORKSPACE_SERVICE_SECRET}
+
+application:
+  config:
+    auth-internal-url: http://localhost:8222/api/v1/auth/internal
 server:
   port: 8060
