@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.domain.service.WorkspaceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -46,5 +47,16 @@ public class WorkspaceController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return workspaceService.getWorkspace(workspaceId);
+    }
+
+    @PutMapping("/{workspaceId}")
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> updateWorkspace(
+            @PathVariable UUID workspaceId,
+            @RequestBody @Valid WorkspaceUpdateRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceService.updateWorkspace(workspaceId, request.name(), UUID.fromString(jwt.getSubject()));
+        return ResponseEntity.ok().build();
     }
 }

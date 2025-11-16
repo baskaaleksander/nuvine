@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -109,5 +110,19 @@ public class WorkspaceService {
                 memberCount,
                 projectCount
         );
+    }
+
+    @Transactional
+    public void updateWorkspace(UUID workspaceId, String name, UUID ownerUserId) {
+        log.info("UPDATE_WORKSPACE START workspaceId={}", workspaceId);
+
+        if (workspaceRepository.existsByNameAndOwnerId(name, ownerUserId)) {
+            log.info("CREATE_WORKSPACE FAILED reason=invalid_name userId={}", ownerUserId);
+            throw new InvalidWorkspaceNameException("Workspace with name " + name + " already exists");
+        }
+
+        workspaceRepository.updateWorkspaceName(workspaceId, name);
+
+        log.info("UPDATE_WORKSPACE SUCCESS workspaceId={}", workspaceId);
     }
 }
