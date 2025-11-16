@@ -12,12 +12,12 @@ import java.util.UUID;
 
 public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
 
-    @Query("SELECT COUNT(w) > 0 FROM Workspace w WHERE w.name = :name AND w.ownerUserId = :userId")
+    @Query("SELECT COUNT(w) > 0 FROM Workspace w WHERE w.name = :name AND w.ownerUserId = :userId and w.deleted = false")
     boolean existsByNameAndOwnerId(String name, UUID userId);
 
     @Modifying
     @Query("UPDATE Workspace w SET w.name = :name WHERE w.id = :workspaceId")
-    int updateWorkspaceName(UUID workspaceId, String name);
+    void updateWorkspaceName(UUID workspaceId, String name);
 
     Page<Workspace> findAllByIdIn(List<UUID> ids, Pageable pageable);
 }

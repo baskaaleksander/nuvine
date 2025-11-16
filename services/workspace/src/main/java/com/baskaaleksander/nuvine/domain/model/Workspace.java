@@ -36,6 +36,9 @@ public class Workspace {
     @Column
     private String subscriptionId;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @Column
     @CreatedDate
     private Instant createdAt;

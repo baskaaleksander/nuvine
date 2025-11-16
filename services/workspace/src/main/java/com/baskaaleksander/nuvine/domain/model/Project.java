@@ -33,6 +33,9 @@ public class Project {
     private UUID workspaceId;
 
     @Column(nullable = false)
+    private boolean deleted = false;
+
+    @Column(nullable = false)
     @CreatedDate
     private Instant createdAt;
 

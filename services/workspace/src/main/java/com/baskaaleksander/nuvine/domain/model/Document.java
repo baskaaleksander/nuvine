@@ -44,6 +44,9 @@ public class Document {
     private UUID createdBy;
 
     @Column(nullable = false)
+    private boolean deleted = false;
+
+    @Column(nullable = false)
     @CreatedDate
     private Instant createdAt;
 

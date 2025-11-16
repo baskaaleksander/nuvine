@@ -73,6 +73,7 @@ public class WorkspaceService {
         Page<Workspace> page = workspaceRepository.findAllByIdIn(workspaceIds, pageable);
 
         List<WorkspaceResponse> content = page.getContent().stream()
+                .filter(workspace -> !workspace.isDeleted())
                 .map(workspaceMapper::toWorkspaceResponse)
                 .toList();
 
@@ -96,6 +97,11 @@ public class WorkspaceService {
                     log.info("GET_WORKSPACES FAILED reason=workspace_not_found workspaceId={}", workspaceId);
                     return new WorkspaceNotFoundException("Workspace not found");
                 });
+
+        if (workspace.isDeleted()) {
+            log.info("GET_WORKSPACE FAILED reason=workspace_deleted workspaceId={}", workspaceId);
+            throw new WorkspaceNotFoundException("Workspace deleted");
+        }
 
         Long memberCount = workspaceMemberRepository.getWorkspaceMemberCountByWorkspaceId(workspaceId);
         Long projectCount = projectRepository.getProjectCountByWorkspaceId(workspaceId);
@@ -130,13 +136,19 @@ public class WorkspaceService {
     }
 
     public WorkspaceMemberResponse getSelfWorkspaceMember(UUID workspaceId, UUID userId) {
-        log.info("GET_SELF_WORKSPACE_MEMBER START workspaceId={}", workspaceId);
+        log.info("GET_SELF_WORKSPACE_MEMBER START workspaceId={} userId={}", workspaceId, userId);
         WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElseThrow(() -> {
-                    log.info("GET_SELF_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={}", workspaceId);
+                    log.info("GET_SELF_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={} userId={}", workspaceId, userId);
                     return new WorkspaceMemberNotFoundException("Workspace member not found");
                 });
-        log.info("GET_SELF_WORKSPACE_MEMBER SUCCESS workspaceId={}", workspaceId);
+
+        if (workspaceMember.isDeleted()) {
+            log.info("GET_SELF_WORKSPACE_MEMBER FAILED reason=workspace_member_deleted workspaceId={} userId={}", workspaceId, userId);
+            throw new WorkspaceMemberNotFoundException("Workspace member deleted");
+        }
+        
+        log.info("GET_SELF_WORKSPACE_MEMBER SUCCESS workspaceId={} userId={}", workspaceId, userId);
         return workspaceMemberMapper.toWorkspaceMemberResponse(workspaceMember);
     }
 }

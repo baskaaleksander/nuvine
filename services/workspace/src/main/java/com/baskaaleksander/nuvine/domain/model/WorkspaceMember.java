@@ -38,6 +38,9 @@ public class WorkspaceMember {
     @Enumerated(EnumType.STRING)
     private WorkspaceRole role;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @Column(nullable = false, updatable = false)
     @CreatedDate
     private Instant createdAt;
