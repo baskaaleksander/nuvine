@@ -68,4 +68,14 @@ public class WorkspaceController {
     ) {
         return workspaceService.getSelfWorkspaceMember(workspaceId, UUID.fromString(jwt.getSubject()));
     }
+
+    @DeleteMapping("/{workspaceId}")
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> deleteWorkspace(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceService.deleteWorkspace(workspaceId);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -100,7 +100,7 @@ public class WorkspaceService {
 
         if (workspace.isDeleted()) {
             log.info("GET_WORKSPACE FAILED reason=workspace_deleted workspaceId={}", workspaceId);
-            throw new WorkspaceNotFoundException("Workspace deleted");
+            throw new WorkspaceNotFoundException("Workspace not found");
         }
 
         Long memberCount = workspaceMemberRepository.getWorkspaceMemberCountByWorkspaceId(workspaceId);
@@ -126,8 +126,19 @@ public class WorkspaceService {
         log.info("UPDATE_WORKSPACE START workspaceId={}", workspaceId);
 
         if (workspaceRepository.existsByNameAndOwnerId(name, ownerUserId)) {
-            log.info("CREATE_WORKSPACE FAILED reason=invalid_name userId={}", ownerUserId);
+            log.info("UPDATE_WORKSPACE FAILED reason=invalid_name userId={}", ownerUserId);
             throw new InvalidWorkspaceNameException("Workspace with name " + name + " already exists");
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("UPDATE_WORKSPACE FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
+
+        if (workspace.isDeleted()) {
+            log.info("UPDATE_WORKSPACE FAILED reason=workspace_deleted workspaceId={}", workspaceId);
+            throw new WorkspaceNotFoundException("Workspace not found");
         }
 
         workspaceRepository.updateWorkspaceName(workspaceId, name);
@@ -145,10 +156,23 @@ public class WorkspaceService {
 
         if (workspaceMember.isDeleted()) {
             log.info("GET_SELF_WORKSPACE_MEMBER FAILED reason=workspace_member_deleted workspaceId={} userId={}", workspaceId, userId);
-            throw new WorkspaceMemberNotFoundException("Workspace member deleted");
+            throw new WorkspaceMemberNotFoundException("Workspace member not found");
         }
-        
+
         log.info("GET_SELF_WORKSPACE_MEMBER SUCCESS workspaceId={} userId={}", workspaceId, userId);
         return workspaceMemberMapper.toWorkspaceMemberResponse(workspaceMember);
+    }
+
+    @Transactional
+    public void deleteWorkspace(UUID workspaceId) {
+
+        if (!workspaceRepository.existsById(workspaceId)) {
+            log.info("DELETE_WORKSPACE FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+            throw new WorkspaceNotFoundException("Workspace not found");
+        }
+
+        workspaceMemberRepository.deleteAllMembersByWorkspaceId(workspaceId);
+
+        workspaceRepository.deleteWorkspace(workspaceId);
     }
 }
