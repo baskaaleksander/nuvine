@@ -13,8 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class ProjectService {
     private final ProjectMapper projectMapper;
     private final DocumentRepository documentRepository;
 
-    public void createProject(UUID workspaceId, CreateProjectRequest request) {
+    public ProjectResponse createProject(UUID workspaceId, CreateProjectRequest request) {
         log.info("CREATE_PROJECT START workspaceId={}", workspaceId);
         if (projectRepository.existsByNameAndWorkspaceId(request.name(), workspaceId)) {
             log.info("CREATE_PROJECT FAILED reason=project_already_exists workspaceId={}", workspaceId);
@@ -48,8 +50,8 @@ public class ProjectService {
                     .build();
         }
 
-        projectRepository.save(project);
         log.info("CREATE_PROJECT END workspaceId={}", workspaceId);
+        return projectMapper.toProjectResponse(projectRepository.save(project));
     }
 
     public PagedResponse<ProjectResponse> getProjects(UUID workspaceId, PaginationRequest request) {
@@ -91,5 +93,50 @@ public class ProjectService {
                 project.getUpdatedAt(),
                 project.getVersion()
         );
+    }
+
+    @Transactional
+    public void updateProject(UUID projectId, UpdateProjectRequest request) {
+        log.info("UPDATE_PROJECT START projectId={}", projectId);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found"));
+
+        if (project.isDeleted()) {
+            log.info("UPDATE_PROJECT FAILED reason=project_not_found projectId={}", projectId);
+            throw new ProjectNotFoundException("Project not found");
+        }
+
+        boolean updated = false;
+        boolean nameChanged = false;
+        boolean descriptionChanged = false;
+
+        if (request.name() != null) {
+            String trimmedName = request.name().trim();
+
+            if (!trimmedName.isEmpty() && !Objects.equals(project.getName(), trimmedName)) {
+                project.setName(trimmedName);
+                updated = true;
+                nameChanged = true;
+            }
+        }
+
+        if (request.description() != null
+                && !Objects.equals(project.getDescription(), request.description())) {
+            project.setDescription(request.description());
+            updated = true;
+            descriptionChanged = true;
+        }
+
+        if (updated) {
+            projectRepository.save(project);
+
+            log.info("UPDATE_PROJECT SUCCESS projectId={} nameChanged={} descriptionChanged={}",
+                    projectId, nameChanged, descriptionChanged);
+        } else {
+            log.info("UPDATE_PROJECT NO_CHANGES projectId={}", projectId);
+        }
+
+        log.info("UPDATE_PROJECT END projectId={}", projectId);
     }
 }

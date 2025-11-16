@@ -18,4 +18,5 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
     @Query("select p from Project p where p.workspaceId = :workspaceId and p.deleted = false")
     Page<Project> findAllByWorkspaceId(UUID workspaceId, Pageable pageable);
+
 }

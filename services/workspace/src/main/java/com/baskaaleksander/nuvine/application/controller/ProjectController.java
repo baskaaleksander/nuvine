@@ -22,13 +22,13 @@ public class ProjectController {
 
     @PostMapping
     @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
-    public ResponseEntity<Void> createProject(
+    public ResponseEntity<ProjectResponse> createProject(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid CreateProjectRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        projectService.createProject(workspaceId, request);
-        return ResponseEntity.ok().build();
+
+        return ResponseEntity.ok(projectService.createProject(workspaceId, request));
     }
 
     @GetMapping
