@@ -18,7 +18,7 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Query("select count(*) from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.deleted = false")
     Long getWorkspaceMemberCountByWorkspaceId(UUID workspaceId);
 
-    @Query("select count(wm) > 0 from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.userId = :userId")
+    @Query("select count(wm) > 0 from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.userId = :userId and wm.deleted = false")
     boolean existsByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
     @Query("update WorkspaceMember wm set wm.deleted = true where wm.workspaceId = :workspaceId")
@@ -35,9 +35,9 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Modifying
     void updateMemberRole(UUID userId, UUID workspaceId, WorkspaceRole role);
 
-    @Query("update WorkspaceMember wm set wm.deleted = true where wm.workspaceId = :workspaceId and wm.userId = :userId")
+    @Query("update WorkspaceMember wm set wm.deleted = :deleted where wm.id = :id")
     @Modifying
-    int deleteByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
+    void updateDeletedById(UUID id, boolean deleted);
 
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 }

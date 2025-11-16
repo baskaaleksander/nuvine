@@ -17,10 +17,7 @@ import java.util.UUID;
 @Builder
 @EntityListeners(AuditingEntityListener.class)
 @Table(
-        name = "workspace_members",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"workspace_id", "user_id"})
-        }
+        name = "workspace_members"
 )
 public class WorkspaceMember {
 

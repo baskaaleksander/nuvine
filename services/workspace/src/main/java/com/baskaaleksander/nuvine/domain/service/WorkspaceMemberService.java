@@ -44,28 +44,43 @@ public class WorkspaceMemberService {
         return new WorkspaceMembersResponse(members, count);
     }
 
-    public void addWorkspaceMember(UUID workspaceId, UUID uuid, WorkspaceRole role) {
-        log.info("ADD_WORKSPACE_MEMBER START workspaceId={}, uuid={}, role={}", workspaceId, uuid, role);
+    @Transactional
+    public void addWorkspaceMember(UUID workspaceId, UUID userId, WorkspaceRole role) {
+        log.info("ADD_WORKSPACE_MEMBER START workspaceId={}, userId={}, role={}", workspaceId, userId, role);
+
+        //call to auth service here
 
         if (role == WorkspaceRole.OWNER) {
-            log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}", workspaceId);
+            log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}, userId={}", workspaceId, userId);
             throw new IllegalArgumentException("Owner role is not allowed");
         }
 
-        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, uuid)) {
-            log.info("ADD_WORKSPACE_MEMBER FAILED reason=member_exists workspaceId={}", workspaceId);
+        WorkspaceMember existing = workspaceMemberRepository
+                .findByWorkspaceIdAndUserId(workspaceId, userId)
+                .orElse(null);
+
+        if (existing != null) {
+            if (existing.isDeleted()) {
+                workspaceMemberRepository.updateDeletedById(existing.getId(), false);
+                workspaceMemberRepository.updateMemberRole(userId, workspaceId, role);
+
+                log.info("ADD_WORKSPACE_MEMBER REACTIVATED workspaceId={}, userId={}, role={}", workspaceId, userId, role);
+                return;
+            }
+
+            log.info("ADD_WORKSPACE_MEMBER FAILED reason=member_exists workspaceId={}, userId={}", workspaceId, userId);
             throw new IllegalArgumentException("Member already exists");
         }
 
         WorkspaceMember member = WorkspaceMember.builder()
                 .workspaceId(workspaceId)
-                .userId(uuid)
+                .userId(userId)
                 .role(role)
                 .build();
 
         workspaceMemberRepository.save(member);
 
-        log.info("ADD_WORKSPACE_MEMBER END workspaceId={}", workspaceId);
+        log.info("ADD_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
 
     @Transactional
@@ -78,28 +93,35 @@ public class WorkspaceMemberService {
                     return new WorkspaceMemberNotFoundException("Workspace member not found");
                 });
 
-        if (member.getRole() == WorkspaceRole.OWNER && role != WorkspaceRole.OWNER) {
-            log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=owner_cannot_be_downgraded workspaceId={}, userId={}", workspaceId, userId);
-            throw new IllegalArgumentException("Owner role cannot be downgraded");
+        if (member.isDeleted()) {
+            log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=workspace_member_deleted workspaceId={}, userId={}", workspaceId, userId);
+            throw new WorkspaceMemberNotFoundException("Workspace member not found");
         }
 
         if (role == WorkspaceRole.OWNER) {
-            UUID ownerUserId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
+            UUID ownerId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
                     .orElseThrow(() -> {
                         log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=workspace_owner_not_found workspaceId={}", workspaceId);
-                        return new WorkspaceMemberNotFoundException("Owner not found");
+                        return new WorkspaceMemberNotFoundException("Workspace owner not found");
                     });
 
-            if (ownerUserId.equals(userId)) {
+            if (ownerId.equals(userId)) {
                 log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=user_already_owner workspaceId={}, userId={}", workspaceId, userId);
                 throw new IllegalArgumentException("User is already the owner");
             }
 
-            workspaceMemberRepository.updateMemberRole(workspaceId, userId, WorkspaceRole.OWNER);
-            workspaceMemberRepository.updateMemberRole(workspaceId, ownerUserId, WorkspaceRole.MODERATOR);
-
+            workspaceMemberRepository.updateMemberRole(userId, workspaceId, WorkspaceRole.OWNER);
+            workspaceMemberRepository.updateMemberRole(ownerId, workspaceId, WorkspaceRole.MODERATOR);
         } else {
-            workspaceMemberRepository.updateMemberRole(workspaceId, userId, role);
+            if (member.getRole() == WorkspaceRole.OWNER) {
+                log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=owner_cannot_be_downgraded workspaceId={}, userId={}", workspaceId, userId);
+                throw new IllegalArgumentException("Owner cannot be downgraded");
+            }
+            if (member.getRole().equals(role)) {
+                log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=role_is_already_assigned workspaceId={} userId={}", workspaceId, userId);
+                throw new IllegalArgumentException("Cannot assign same role");
+            }
+            workspaceMemberRepository.updateMemberRole(userId, workspaceId, role);
         }
 
         log.info("UPDATE_WORKSPACE_MEMBER_ROLE END workspaceId={}", workspaceId);
@@ -109,23 +131,23 @@ public class WorkspaceMemberService {
     public void removeWorkspaceMember(UUID workspaceId, UUID userId) {
         log.info("REMOVE_WORKSPACE_MEMBER START workspaceId={}, userId={}", workspaceId, userId);
 
-        UUID ownerUserId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
+        WorkspaceMember existing = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElseThrow(() -> {
-                    log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_owner_not_found workspaceId={}", workspaceId);
-                    return new WorkspaceMemberNotFoundException("Workspace owner not found");
+                    log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={}, userId={}", workspaceId, userId);
+                    return new WorkspaceMemberNotFoundException("Workspace member not found");
                 });
 
-        if (userId.equals(ownerUserId)) {
+        if (existing.isDeleted()) {
+            log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_member_deleted workspaceId={}, userId={}", workspaceId, userId);
+            throw new WorkspaceMemberNotFoundException("Workspace member not found");
+        }
+
+        if (existing.getRole() == WorkspaceRole.OWNER) {
             log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=owner_cannot_be_removed workspaceId={}, userId={}", workspaceId, userId);
             throw new IllegalArgumentException("Owner cannot be removed");
         }
 
-        int affected = workspaceMemberRepository.deleteByWorkspaceIdAndUserId(workspaceId, userId);
-
-        if (affected == 0) {
-            log.info("REMOVE_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={}, userId={}", workspaceId, userId);
-            throw new WorkspaceMemberNotFoundException("Workspace member not found");
-        }
+        workspaceMemberRepository.updateDeletedById(existing.getId(), true);
 
         log.info("REMOVE_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }

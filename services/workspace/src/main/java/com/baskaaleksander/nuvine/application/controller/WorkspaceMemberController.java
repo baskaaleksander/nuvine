@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRequest;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRoleRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberService;
 import jakarta.validation.Valid;
@@ -37,6 +38,38 @@ public class WorkspaceMemberController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         workspaceMemberService.addWorkspaceMember(workspaceId, request.userId(), request.role());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> removeWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceMemberService.removeWorkspaceMember(workspaceId, UUID.fromString(jwt.getSubject()));
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{userId}")
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> updateWorkspaceMemberRole(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID userId,
+            @RequestBody @Valid WorkspaceMemberRoleRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, request.role());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<Void> removeWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceMemberService.removeWorkspaceMember(workspaceId, userId);
         return ResponseEntity.ok().build();
     }
 }
