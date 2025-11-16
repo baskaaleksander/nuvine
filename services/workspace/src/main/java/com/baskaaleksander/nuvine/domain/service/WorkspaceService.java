@@ -2,8 +2,10 @@ package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
+import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
@@ -31,6 +33,7 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final ProjectRepository projectRepository;
     private final WorkspaceMapper workspaceMapper;
+    private final WorkspaceMemberMapper workspaceMemberMapper;
 
     public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId) {
 
@@ -124,5 +127,16 @@ public class WorkspaceService {
         workspaceRepository.updateWorkspaceName(workspaceId, name);
 
         log.info("UPDATE_WORKSPACE SUCCESS workspaceId={}", workspaceId);
+    }
+
+    public WorkspaceMemberResponse getSelfWorkspaceMember(UUID workspaceId, UUID userId) {
+        log.info("GET_SELF_WORKSPACE_MEMBER START workspaceId={}", workspaceId);
+        WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
+                .orElseThrow(() -> {
+                    log.info("GET_SELF_WORKSPACE_MEMBER FAILED reason=workspace_member_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceMemberNotFoundException("Workspace member not found");
+                });
+        log.info("GET_SELF_WORKSPACE_MEMBER SUCCESS workspaceId={}", workspaceId);
+        return workspaceMemberMapper.toWorkspaceMemberResponse(workspaceMember);
     }
 }

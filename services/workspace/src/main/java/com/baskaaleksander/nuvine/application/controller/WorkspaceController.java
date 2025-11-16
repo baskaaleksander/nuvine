@@ -59,4 +59,13 @@ public class WorkspaceController {
         workspaceService.updateWorkspace(workspaceId, request.name(), UUID.fromString(jwt.getSubject()));
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/{workspaceId}/me")
+    @PreAuthorize("@workspaceAccess.canViewWorkspace(#workspaceId, #jwt.getSubject())")
+    public WorkspaceMemberResponse getSelfWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return workspaceService.getSelfWorkspaceMember(workspaceId, UUID.fromString(jwt.getSubject()));
+    }
 }
