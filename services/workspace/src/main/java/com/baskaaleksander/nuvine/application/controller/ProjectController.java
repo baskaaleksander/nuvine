@@ -14,14 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/workspaces/{workspaceId}/projects")
 @RequiredArgsConstructor
 public class ProjectController {
 
     private final ProjectService projectService;
 
-    @PostMapping
-    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
+    @PostMapping("/api/v1/workspaces/{workspaceId}/projects")
+    @PreAuthorize("@projectAccess.canManageProjectsInWorkspace(#workspaceId, #jwt.getSubject())")
     public ResponseEntity<ProjectResponse> createProject(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid CreateProjectRequest request,
@@ -31,8 +30,8 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.createProject(workspaceId, request));
     }
 
-    @GetMapping
-    @PreAuthorize("@projectAccess.canGetProjects(#workspaceId, #jwt.getSubject())")
+    @GetMapping("/api/v1/workspaces/{workspaceId}/projects")
+    @PreAuthorize("@projectAccess.canGetProjectsInWorkspace(#workspaceId, #jwt.getSubject())")
     public ResponseEntity<PagedResponse<ProjectResponse>> getProjects(
             @PathVariable UUID workspaceId,
             @AuthenticationPrincipal Jwt jwt,
@@ -45,10 +44,9 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getProjects(workspaceId, request));
     }
 
-    @GetMapping("/{projectId}")
-    @PreAuthorize("@projectAccess.canGetProjects(#workspaceId, #jwt.getSubject())")
+    @GetMapping("/api/v1/projects/{projectId}")
+    @PreAuthorize("@projectAccess.canGetProject(#projectId, #jwt.getSubject())")
     public ResponseEntity<ProjectDetailedResponse> getProjectById(
-            @PathVariable UUID workspaceId,
             @PathVariable UUID projectId,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -56,10 +54,9 @@ public class ProjectController {
         return ResponseEntity.ok(project);
     }
 
-    @PutMapping("/{projectId}")
-    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
+    @PutMapping("/api/v1/projects/{projectId}")
+    @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     public ResponseEntity<Void> updateProject(
-            @PathVariable UUID workspaceId,
             @PathVariable UUID projectId,
             @RequestBody @Valid UpdateProjectRequest request,
             @AuthenticationPrincipal Jwt jwt
@@ -68,10 +65,9 @@ public class ProjectController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{projectId}")
-    @PreAuthorize("@projectAccess.canManageProjects(#workspaceId, #jwt.getSubject())")
+    @DeleteMapping("/api/v1/projects/{projectId}")
+    @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     public ResponseEntity<Void> deleteProject(
-            @PathVariable UUID workspaceId,
             @PathVariable UUID projectId,
             @AuthenticationPrincipal Jwt jwt
     ) {
