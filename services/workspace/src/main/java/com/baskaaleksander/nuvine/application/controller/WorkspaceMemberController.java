@@ -47,7 +47,7 @@ public class WorkspaceMemberController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         workspaceMemberService.removeWorkspaceMember(workspaceId, UUID.fromString(jwt.getSubject()));
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{userId}")

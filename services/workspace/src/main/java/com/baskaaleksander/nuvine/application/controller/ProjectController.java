@@ -72,6 +72,6 @@ public class ProjectController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         projectService.deleteProject(projectId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

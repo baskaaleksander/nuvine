@@ -76,6 +76,6 @@ public class WorkspaceController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         workspaceService.deleteWorkspace(workspaceId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }
