@@ -5,7 +5,7 @@ import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-public record DocumentResponse(
+public record DocumentPublicResponse(
         UUID id,
         UUID projectId,
         UUID workspaceId,

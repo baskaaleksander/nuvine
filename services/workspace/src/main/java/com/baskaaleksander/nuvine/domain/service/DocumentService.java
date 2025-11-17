@@ -1,10 +1,11 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.DocumentResponse;
+import com.baskaaleksander.nuvine.application.dto.DocumentPublicResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.ProjectNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
 import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
@@ -29,7 +30,7 @@ public class DocumentService {
     private final ProjectRepository projectRepository;
     private final DocumentMapper documentMapper;
 
-    public DocumentResponse createDocument(String name, UUID userId, UUID projectId) {
+    public DocumentPublicResponse createDocument(String name, UUID userId, UUID projectId) {
         log.info("CREATE_DOCUMENT START projectId={}", projectId);
 
         Project project = projectRepository.findById(projectId)
@@ -53,12 +54,12 @@ public class DocumentService {
         return documentMapper.toDocumentResponse(documentSaved);
     }
 
-    public PagedResponse<DocumentResponse> getDocuments(UUID projectId, PaginationRequest request) {
+    public PagedResponse<DocumentPublicResponse> getDocuments(UUID projectId, PaginationRequest request) {
         log.info("GET_DOCUMENTS START projectId={}", projectId);
         Pageable pageable = PaginationUtil.getPageable(request);
         Page<Document> page = documentRepository.findAllByProjectId(projectId, pageable);
 
-        List<DocumentResponse> content = page.getContent().stream()
+        List<DocumentPublicResponse> content = page.getContent().stream()
                 .map(documentMapper::toDocumentResponse)
                 .toList();
 
@@ -72,5 +73,19 @@ public class DocumentService {
                 page.isLast(),
                 page.hasNext()
         );
+    }
+
+    public DocumentPublicResponse getDocument(UUID documentId) {
+        log.info("GET_DOCUMENT START documentId={}", documentId);
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> {
+                    log.info("GET_DOCUMENT FAILED reason=document_not_found documentId={}", documentId);
+                    return new DocumentNotFoundException("Document not found");
+                });
+
+        log.info("GET_DOCUMENT END documentId={}", documentId);
+
+        return documentMapper.toDocumentResponse(document);
     }
 }

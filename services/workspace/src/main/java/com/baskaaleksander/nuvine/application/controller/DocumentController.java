@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.CreateDocumentRequest;
-import com.baskaaleksander.nuvine.application.dto.DocumentResponse;
+import com.baskaaleksander.nuvine.application.dto.DocumentPublicResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.domain.service.DocumentService;
@@ -24,7 +24,7 @@ public class DocumentController {
 
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     @PostMapping("/api/v1/projects/{projectId}/documents")
-    public ResponseEntity<DocumentResponse> createDocument(
+    public ResponseEntity<DocumentPublicResponse> createDocument(
             @RequestBody @Valid CreateDocumentRequest request,
             @PathVariable UUID projectId,
             @AuthenticationPrincipal Jwt jwt
@@ -36,7 +36,7 @@ public class DocumentController {
     //todo add filters
     @PreAuthorize("@projectAccess.canGetProject(#projectId, #jwt.getSubject())")
     @GetMapping("/api/v1/projects/{projectId}/documents")
-    public ResponseEntity<PagedResponse<DocumentResponse>> getDocuments(
+    public ResponseEntity<PagedResponse<DocumentPublicResponse>> getDocuments(
             @PathVariable UUID projectId,
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") Integer page,
@@ -46,5 +46,14 @@ public class DocumentController {
     ) {
         PaginationRequest request = new PaginationRequest(page, size, sortField, direction);
         return ResponseEntity.ok(documentService.getDocuments(projectId, request));
+    }
+
+    @PreAuthorize("@docAccess.canGetDocument(#documentId, #jwt.getSubject())")
+    @GetMapping("/api/v1/documents/{documentId}")
+    public ResponseEntity<DocumentPublicResponse> getDocument(
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(documentService.getDocument(documentId));
     }
 }
