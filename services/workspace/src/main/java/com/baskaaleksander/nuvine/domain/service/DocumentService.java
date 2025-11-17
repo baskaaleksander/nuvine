@@ -1,7 +1,10 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.DocumentResponse;
+import com.baskaaleksander.nuvine.application.dto.PagedResponse;
+import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
+import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.ProjectNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
 import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
@@ -10,8 +13,11 @@ import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -24,9 +30,13 @@ public class DocumentService {
     private final DocumentMapper documentMapper;
 
     public DocumentResponse createDocument(String name, UUID userId, UUID projectId) {
+        log.info("CREATE_DOCUMENT START projectId={}", projectId);
 
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ProjectNotFoundException("Project not found"));
+                .orElseThrow(() -> {
+                    log.info("CREATE_DOCUMENT FAILED reason=project_not_found projectId={}", projectId);
+                    return new ProjectNotFoundException("Project not found");
+                });
 
         Document document = Document.builder()
                 .projectId(projectId)
@@ -37,6 +47,30 @@ public class DocumentService {
                 .projectId(projectId)
                 .build();
 
-        return documentMapper.toDocumentResponse(documentRepository.save(document));
+        Document documentSaved = documentRepository.save(document);
+        log.info("CREATE_DOCUMENT END documentId={} projectId={}", documentSaved.getId(), projectId);
+
+        return documentMapper.toDocumentResponse(documentSaved);
+    }
+
+    public PagedResponse<DocumentResponse> getDocuments(UUID projectId, PaginationRequest request) {
+        log.info("GET_DOCUMENTS START projectId={}", projectId);
+        Pageable pageable = PaginationUtil.getPageable(request);
+        Page<Document> page = documentRepository.findAllByProjectId(projectId, pageable);
+
+        List<DocumentResponse> content = page.getContent().stream()
+                .map(documentMapper::toDocumentResponse)
+                .toList();
+
+        log.info("GET_DOCUMENTS END projectId={}", projectId);
+        return new PagedResponse<>(
+                content,
+                page.getTotalPages(),
+                page.getTotalElements(),
+                page.getSize(),
+                page.getNumber(),
+                page.isLast(),
+                page.hasNext()
+        );
     }
 }
