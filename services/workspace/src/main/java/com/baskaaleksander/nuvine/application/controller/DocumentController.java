@@ -1,9 +1,6 @@
 package com.baskaaleksander.nuvine.application.controller;
 
-import com.baskaaleksander.nuvine.application.dto.CreateDocumentRequest;
-import com.baskaaleksander.nuvine.application.dto.DocumentPublicResponse;
-import com.baskaaleksander.nuvine.application.dto.PagedResponse;
-import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.DocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +52,25 @@ public class DocumentController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.ok(documentService.getDocument(documentId));
+    }
+
+    @PreAuthorize("@docAccess.canManageDocument(#documentId, #jwt.getSubject())")
+    @PatchMapping("/api/v1/documents/{documentId}")
+    public ResponseEntity<DocumentPublicResponse> updateDocument(
+            @PathVariable UUID documentId,
+            @RequestBody @Valid UpdateDocumentRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(documentService.updateDocument(documentId, request.name()));
+    }
+
+    @PreAuthorize("@docAccess.canManageDocument(#documentId, #jwt.getSubject())")
+    @DeleteMapping("/api/v1/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        documentService.deleteDocument(documentId);
+        return ResponseEntity.noContent().build();
     }
 }

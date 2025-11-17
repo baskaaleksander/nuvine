@@ -19,4 +19,10 @@ public class DocumentAccessEvaluation {
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
         return projectAccessEvaluation.canGetProject(document.getProjectId(), userId);
     }
+
+    public boolean canManageDocument(UUID documentId, String userId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+        return projectAccessEvaluation.canManageProject(document.getProjectId(), userId);
+    }
 }

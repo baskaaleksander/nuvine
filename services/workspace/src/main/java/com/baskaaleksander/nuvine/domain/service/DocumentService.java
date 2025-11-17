@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.DocumentConflictException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.ProjectNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
@@ -84,8 +85,59 @@ public class DocumentService {
                     return new DocumentNotFoundException("Document not found");
                 });
 
+        if (document.isDeleted()) {
+            log.info("GET_DOCUMENT FAILED reason=document_deleted documentId={}", documentId);
+            throw new DocumentNotFoundException("Document not found");
+        }
+
         log.info("GET_DOCUMENT END documentId={}", documentId);
 
         return documentMapper.toDocumentResponse(document);
+    }
+
+    public DocumentPublicResponse updateDocument(UUID documentId, String name) {
+        log.info("UPDATE_DOCUMENT START documentId={}", documentId);
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> {
+                    log.info("UPDATE_DOCUMENT FAILED reason=document_not_found documentId={}", documentId);
+                    return new DocumentNotFoundException("Document not found");
+                });
+
+        if (document.isDeleted()) {
+            log.info("UPDATE_DOCUMENT FAILED reason=document_deleted documentId={}", documentId);
+            throw new DocumentNotFoundException("Document not found");
+        }
+
+        if (document.getName().equals(name)) {
+            log.info("UPDATE_DOCUMENT FAILED reason=document_name_not_changed documentId={}", documentId);
+            throw new DocumentConflictException("Document is already named like that");
+        }
+
+        document.setName(name);
+        Document documentSaved = documentRepository.save(document);
+        log.info("UPDATE_DOCUMENT END documentId={}", documentId);
+
+        return documentMapper.toDocumentResponse(documentSaved);
+    }
+
+    public void deleteDocument(UUID documentId) {
+        log.info("DELETE_DOCUMENT START documentId={}", documentId);
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> {
+                    log.info("DELETE_DOCUMENT FAILED reason=document_not_found documentId={}", documentId);
+                    return new DocumentNotFoundException("Document not found");
+                });
+
+        if (document.isDeleted()) {
+            log.info("DELETE_DOCUMENT FAILED reason=document_deleted documentId={}", documentId);
+            throw new DocumentNotFoundException("Document not found");
+        }
+
+        document.setDeleted(true);
+        documentRepository.save(document);
+        
+        log.info("DELETE_DOCUMENT END documentId={}", documentId);
     }
 }

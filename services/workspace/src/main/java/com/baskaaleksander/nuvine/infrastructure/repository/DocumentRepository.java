@@ -13,5 +13,6 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     @Query("select count(*) from Document d where d.projectId = :projectId")
     Long getDocumentCountByProjectId(UUID projectId);
 
+    @Query("select d from Document d where d.projectId = :projectId and d.deleted = false")
     Page<Document> findAllByProjectId(UUID projectId, Pageable pageable);
 }
