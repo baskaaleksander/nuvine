@@ -83,7 +83,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.getMe(jwt));
     }
 
-    @PutMapping("/me")
+    @PatchMapping("/me")
     public ResponseEntity<MeResponse> updateMe(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody @Valid UpdateMeRequest request

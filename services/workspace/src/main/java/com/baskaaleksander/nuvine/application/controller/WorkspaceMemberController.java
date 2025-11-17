@@ -50,7 +50,7 @@ public class WorkspaceMemberController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{userId}")
+    @PatchMapping("/{userId}")
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     public ResponseEntity<Void> updateWorkspaceMemberRole(
             @PathVariable UUID workspaceId,

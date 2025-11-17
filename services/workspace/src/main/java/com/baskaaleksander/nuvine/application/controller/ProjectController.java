@@ -54,7 +54,7 @@ public class ProjectController {
         return ResponseEntity.ok(project);
     }
 
-    @PutMapping("/api/v1/projects/{projectId}")
+    @PatchMapping("/api/v1/projects/{projectId}")
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     public ResponseEntity<Void> updateProject(
             @PathVariable UUID projectId,

@@ -22,6 +22,6 @@ keycloak:
 
 application:
   config:
-    auth-internal-url: http://localhost:8222/api/v1/auth/internal
+    auth-internal-url: http://localhost:8222/api/v1/internal/auth
 server:
   port: 8060

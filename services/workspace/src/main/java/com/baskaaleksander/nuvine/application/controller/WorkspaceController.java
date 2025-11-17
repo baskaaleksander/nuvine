@@ -49,7 +49,7 @@ public class WorkspaceController {
         return workspaceService.getWorkspace(workspaceId);
     }
 
-    @PutMapping("/{workspaceId}")
+    @PatchMapping("/{workspaceId}")
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     public ResponseEntity<Void> updateWorkspace(
             @PathVariable UUID workspaceId,
