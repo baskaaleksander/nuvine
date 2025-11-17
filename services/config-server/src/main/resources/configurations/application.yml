@@ -27,6 +27,7 @@ topics:
   email-verification-topic: email-verification-topic
   password-reset-topic: password-reset-topic
   user-registered-topic: user-registered-topic
+  workspace-member-added-topic: workspace-member-added-topic
 
 crypto:
   notifications:

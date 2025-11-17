@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.domain.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +21,8 @@ public class InternalUserController {
 
     @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @GetMapping("/{id}")
-    public ResponseEntity<Void> checkInternalUser(@PathVariable UUID id) {
-        userService.validateUserExists(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<UserInternalResponse> checkInternalUser(@PathVariable UUID id) {
+        
+        return ResponseEntity.ok(userService.checkInternalUser(id));
     }
 }

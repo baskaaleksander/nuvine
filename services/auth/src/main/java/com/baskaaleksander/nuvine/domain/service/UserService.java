@@ -1,9 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.AdminUserListResponse;
-import com.baskaaleksander.nuvine.application.dto.AdminUserResponse;
-import com.baskaaleksander.nuvine.application.dto.PagedResponse;
-import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapping.AdminUserListMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
@@ -90,8 +87,13 @@ public class UserService {
         );
     }
 
-    public void validateUserExists(UUID id) {
-        userRepository.findById(id)
+    public UserInternalResponse checkInternalUser(UUID id) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return new UserInternalResponse(
+                user.getId().toString(),
+                user.getEmail()
+        );
     }
 }

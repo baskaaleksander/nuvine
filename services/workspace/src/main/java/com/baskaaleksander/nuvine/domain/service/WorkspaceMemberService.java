@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
@@ -7,6 +8,8 @@ import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
+import com.baskaaleksander.nuvine.infrastructure.messaging.WorkspaceMemberAddedEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ public class WorkspaceMemberService {
     private final WorkspaceMemberMapper workspaceMemberMapper;
     private final WorkspaceRepository workspaceRepository;
     private final AuthClient authClient;
+    private final WorkspaceMemberAddedEventProducer workspaceMemberAddedEventProducer;
 
     public WorkspaceMembersResponse getWorkspaceMembers(UUID workspaceId) {
 
@@ -48,9 +52,9 @@ public class WorkspaceMemberService {
     @Transactional
     public void addWorkspaceMember(UUID workspaceId, UUID userId, WorkspaceRole role) {
         log.info("ADD_WORKSPACE_MEMBER START workspaceId={}, userId={}, role={}", workspaceId, userId, role);
-
+        UserInternalResponse user;
         try {
-            authClient.checkUserExists(userId);
+            user = authClient.checkInternalUser(userId);
         } catch (Exception ex) {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=user_not_found workspaceId={}, userId={}", workspaceId, userId);
             throw new UserNotFoundException("User not found");
@@ -86,7 +90,14 @@ public class WorkspaceMemberService {
 
         workspaceMemberRepository.save(member);
 
-        // todo add here email to added user via kafka event
+
+        workspaceMemberAddedEventProducer.sendWorkspaceMemberAddedEvent(
+                new WorkspaceMemberAddedEvent(
+                        user.email(),
+                        workspaceId.toString(),
+                        role.toString()
+                )
+        );
 
         log.info("ADD_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
