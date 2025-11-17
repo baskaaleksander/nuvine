@@ -2,6 +2,8 @@ package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
 import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
+import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.Document;
 import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,11 @@ public class DocumentInternalService {
     private final DocumentMapper documentMapper;
 
     public DocumentInternalResponse getDocumentById(UUID id) {
-        return documentMapper.toInternalResponse(documentRepository.findById(id).orElseThrow());
+        Document document = documentRepository.findById(id).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+        if (document.isDeleted()) {
+            throw new DocumentNotFoundException("Document not found");
+        }
+        return documentMapper.toInternalResponse(document);
     }
 
     public DocumentInternalResponse uploadCompleted(
@@ -28,7 +34,10 @@ public class DocumentInternalService {
             String mimeType,
             Long sizeBytes
     ) {
-        var document = documentRepository.findById(documentId).orElseThrow();
+        var document = documentRepository.findById(documentId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+        if (document.isDeleted()) {
+            throw new DocumentNotFoundException("Document not found");
+        }
         document.setStorageKey(storageKey);
         document.setMimeType(mimeType);
         document.setSizeBytes(sizeBytes);
@@ -41,7 +50,12 @@ public class DocumentInternalService {
             UUID documentId,
             DocumentStatus status
     ) {
-        var document = documentRepository.findById(documentId).orElseThrow();
+        var document = documentRepository.findById(documentId).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
+
+        if (document.isDeleted()) {
+            throw new DocumentNotFoundException("Document not found");
+        }
+        
         document.setStatus(status);
         documentRepository.save(document);
         return documentMapper.toInternalResponse(document);
