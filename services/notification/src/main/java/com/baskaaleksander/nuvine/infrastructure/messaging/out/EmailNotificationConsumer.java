@@ -7,6 +7,7 @@ import com.baskaaleksander.nuvine.domain.service.NotificationEntityService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class EmailNotificationConsumer {
 
     @KafkaListener(topics = "${topics.email-verification-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
     public void onEmailVerification(EmailVerificationEvent event) throws MessagingException {
-        log.info("Email verification event received: {}", event.toString());
+        log.info("EMAIL_VERIFICATION_EVENT RECEIVED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()));
         try {
             emailSender.sendEmailVerificationEmail(event.email(), frontendUrl + "/verify-email?token=" + event.token());
             service.createNotification(
@@ -36,14 +37,14 @@ public class EmailNotificationConsumer {
                             event.toString()
                     ));
         } catch (Exception e) {
-            log.error("Failed to send email verification email to email={}", MaskingUtil.maskEmail(event.email()), e);
+            log.info("EMAIL_VERIFICATION_EVENT FAILED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()), e);
             throw e;
         }
     }
 
     @KafkaListener(topics = "${topics.password-reset-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
     public void onPasswordReset(PasswordResetEvent event) throws MessagingException {
-        log.info("Password reset event received: {}", event.toString());
+        log.info("PASSWORD_RESET_EVENT RECEIVED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()));
         try {
             emailSender.sendPasswordResetEmail(event.email(), frontendUrl + "/reset-password?token=" + event.token());
             service.createNotification(
@@ -53,14 +54,14 @@ public class EmailNotificationConsumer {
                             event.toString()
                     ));
         } catch (Exception e) {
-            log.error("Failed to send password reset email to email={}", MaskingUtil.maskEmail(event.email()), e);
+            log.error("PASSWORD_RESET_EVENT FAILED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()), e);
             throw e;
         }
     }
 
-    @KafkaListener(topics = "${topics.user-registered-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "${topics.user-registered-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
     public void onUserRegistered(UserRegisteredEvent event) throws MessagingException {
-        log.info("User registered event received: {}", event.toString());
+        log.info("USER_REGISTERED_EVENT RECEIVED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()));
         try {
             emailSender.sendWelcomeEmail(event.email(), event.firstName(), event.lastName(), frontendUrl + "/verify-email?token=" + event.emailVerificationToken());
             service.createNotification(
@@ -70,7 +71,24 @@ public class EmailNotificationConsumer {
                             event.toString()
                     ));
         } catch (Exception e) {
-            log.error("Failed to send welcome email to email={}", MaskingUtil.maskEmail(event.email()), e);
+            log.error("USER_REGISTERED_EVENT FAILED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()), e);
+            throw e;
+        }
+    }
+
+    @KafkaListener(topics = "${topics.workspace-member-added-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
+    public void onWorkspaceMemberAdded(WorkspaceMemberAddedEvent event) throws MessagingException {
+        log.info("WORKSPACE_MEMBER_ADDED_EVENT RECEIVED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()));
+        try {
+            emailSender.sendMemberAddedEmail(event.email(), event.role(), frontendUrl + "/workspaces/" + event.workspaceId());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.userId(),
+                            NotificationType.WORKSPACE_MEMBER_ADDED,
+                            event.toString()
+                    ));
+        } catch (Exception e) {
+            log.error("WORKSPACE_MEMBER_ADDED_EVENT FAILED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()), e);
             throw e;
         }
     }

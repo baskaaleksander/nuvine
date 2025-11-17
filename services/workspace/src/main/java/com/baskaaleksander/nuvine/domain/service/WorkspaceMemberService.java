@@ -94,6 +94,7 @@ public class WorkspaceMemberService {
         workspaceMemberAddedEventProducer.sendWorkspaceMemberAddedEvent(
                 new WorkspaceMemberAddedEvent(
                         user.email(),
+                        userId.toString(),
                         workspaceId.toString(),
                         role.toString()
                 )

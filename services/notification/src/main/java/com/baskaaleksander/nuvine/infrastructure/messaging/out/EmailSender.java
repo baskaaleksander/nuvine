@@ -156,4 +156,52 @@ public class EmailSender {
             throw e;
         }
     }
+
+    public void sendMemberAddedEmail(String to, String role, String workspaceUrl) throws MessagingException {
+        log.info("SEND_MEMBER_ADDED_EMAIL START to={}", MaskingUtil.maskEmail(to));
+
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+        messageHelper.setFrom(senderEmail);
+
+        final String templateName = EmailTemplates.WORKSPACE_MEMBER_ADDED.getTemplateName();
+        final String subject = EmailTemplates.WORKSPACE_MEMBER_ADDED.getSubject();
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("email", to);
+        variables.put("role", role);
+        variables.put("openWorkspaceUrl", workspaceUrl);
+
+        Context context = new Context();
+        context.setVariables(variables);
+        messageHelper.setSubject(subject);
+
+        try {
+            String htmlContent = templateEngine.process(templateName, context);
+            String plainContent = String.format(
+                    """
+                            You have been added to a workspace on Nuvine.
+                            Your assigned role: %s
+                            
+                            You can open the workspace using the link below:
+                            %s
+                            
+                            If you didn't expect this change, you can safely ignore this email.
+                            
+                            Visit us at https://nuvine.org
+                            """,
+                    role,
+                    workspaceUrl
+            );
+            messageHelper.setText(plainContent, htmlContent);
+
+            messageHelper.setTo(to);
+            sender.send(message);
+            log.info("SEND_MEMBER_ADDED_EMAIL SUCCESS email={}", MaskingUtil.maskEmail(to));
+        } catch (Exception e) {
+            log.error("SEND_MEMBER_ADDED_EMAIL FAILED to={}", MaskingUtil.maskEmail(to), e);
+            throw e;
+        }
+
+    }
 }
