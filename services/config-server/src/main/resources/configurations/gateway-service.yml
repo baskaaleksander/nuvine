@@ -41,5 +41,9 @@ spring:
               uri: lb://file-storage-service
               predicates:
                 - Path=/api/v1/files/**
+            - id: file-storage-service-internal
+              uri: lb://file-storage-service
+              predicates:
+                - Path=/api/v1/internal/file-storage/**
 server:
   port: 8222
