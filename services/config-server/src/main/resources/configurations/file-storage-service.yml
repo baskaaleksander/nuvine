@@ -8,8 +8,8 @@ s3:
   internal-url: ${MINIO_INTERNAL_URL}
   external-url: ${MINIO_EXTERNAL_URL}
   access:
-    secret: ${MINIO_ACCESS_NAME}
-    key: ${MINIO_ACCESS_SECRET}
+    name: ${MINIO_ACCESS_NAME}
+    secret: ${MINIO_ACCESS_SECRET}
 
 
 server:

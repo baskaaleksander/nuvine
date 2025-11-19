@@ -23,6 +23,10 @@ public class FileStorageController {
     public ResponseEntity<URL> generatePresignedUploadUrl(
             @RequestBody @Valid UploadUrlRequest request
     ) {
-        return ResponseEntity.ok(uploadService.generatePresignedUploadUrl(request.documentId(), request.contentType(), request.sizeBytes()));
+        return ResponseEntity.ok(uploadService.generatePresignedUploadUrl(
+                request.documentId(),
+                request.contentType(),
+                request.sizeBytes()
+        ));
     }
 }

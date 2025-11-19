@@ -15,19 +15,19 @@ import java.net.URI;
 @Configuration
 public class S3Config {
 
-    @Value("${s3.access.secret}")
-    private String secret;
-    @Value("${s3.access.key}")
-    private String accessKey;
     @Value("${s3.external-url}")
     private String externalUrl;
+    @Value("${s3.access.name}")
+    private String accessName;
+    @Value("${s3.access.secret}")
+    private String accessSecret;
     @Value("${s3.internal-url}")
     private String internalUrl;
 
 
     @Bean
     public S3Presigner s3Presigner() {
-        AwsBasicCredentials creds = AwsBasicCredentials.create(secret, accessKey);
+        AwsBasicCredentials creds = AwsBasicCredentials.create(accessName, accessSecret);
 
         return S3Presigner.builder()
                 .endpointOverride(URI.create(externalUrl))
@@ -43,7 +43,7 @@ public class S3Config {
 
     @Bean
     public S3Client s3Client() {
-        AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(secret, accessKey);
+        AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(accessName, accessSecret);
 
         return S3Client.builder()
                 .endpointOverride(URI.create(internalUrl))

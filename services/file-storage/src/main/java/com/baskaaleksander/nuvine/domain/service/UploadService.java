@@ -17,23 +17,25 @@ import java.time.Duration;
 @Service
 public class UploadService {
     private final S3Presigner s3Presigner;
+
     @Value("${s3.bucket-name}")
     private String bucket;
 
     public URL generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
 
-        // todo call to internal workspace service to retrieve document data
-        String objectKey = String.format(documentId);
+        //todo call to workspaces api to gather document data
 
-        PutObjectRequest objectRequest = PutObjectRequest.builder()
+        String key = documentId; // todo change that
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .contentType(contentType)
                 .contentLength(sizeBytes)
-                .key(objectKey)
+                .key(key)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .putObjectRequest(objectRequest)
+                .putObjectRequest(putObjectRequest)
                 .signatureDuration(Duration.ofMinutes(15))
                 .build();
 
