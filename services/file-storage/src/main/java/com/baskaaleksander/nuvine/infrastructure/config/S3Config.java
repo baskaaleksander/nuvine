@@ -23,8 +23,6 @@ public class S3Config {
     private String externalUrl;
     @Value("${s3.internal-url}")
     private String internalUrl;
-    @Value("${s3.bucket-name}")
-    private String bucket;
 
 
     @Bean
