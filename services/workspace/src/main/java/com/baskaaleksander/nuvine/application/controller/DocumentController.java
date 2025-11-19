@@ -29,7 +29,6 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.createDocument(request.name(), UUID.fromString(jwt.getSubject()), projectId));
     }
 
-
     //todo add filters
     @PreAuthorize("@projectAccess.canGetProject(#projectId, #jwt.getSubject())")
     @GetMapping("/api/v1/projects/{projectId}/documents")
