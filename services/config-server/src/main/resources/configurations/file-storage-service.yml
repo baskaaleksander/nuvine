@@ -3,5 +3,14 @@ keycloak:
   client-id: file-storage-service
   client-secret: ${KEYCLOAK_FILE_STORAGE_SERVICE_SECRET}
 
+s3:
+  bucket-name:
+  internal-url:
+  external-url:
+  access:
+    secret: ${MINIO_ACCESS_NAME}
+    key: ${MINIO_ACCESS_SECRET}
+
+
 server:
   port: 8070
