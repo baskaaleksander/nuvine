@@ -28,6 +28,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +47,13 @@ class ProjectServiceTest {
     private UUID workspaceId;
     private UUID projectId;
     private Project savedProject;
+    private Project deletedProject;
     private ProjectResponse projectResponse;
+    private ProjectDetailedResponse detailedResponse;
+    private UpdateProjectRequest updateNameRequest;
+    private UpdateProjectRequest updateDescriptionRequest;
+    private UpdateProjectRequest updateBothRequest;
+    private UpdateProjectRequest updateNoChangesRequest;
     private CreateProjectRequest createRequestWithDescription;
     private CreateProjectRequest createRequestWithoutDescription;
 
@@ -72,6 +79,32 @@ class ProjectServiceTest {
                 savedProject.getWorkspaceId(),
                 savedProject.getCreatedAt()
         );
+
+        deletedProject = Project.builder()
+                .id(projectId)
+                .name("Deleted Project")
+                .description("Desc")
+                .workspaceId(workspaceId)
+                .deleted(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        detailedResponse = new ProjectDetailedResponse(
+                savedProject.getId(),
+                savedProject.getName(),
+                savedProject.getDescription(),
+                savedProject.getWorkspaceId(),
+                5L,
+                savedProject.getCreatedAt(),
+                savedProject.getUpdatedAt(),
+                savedProject.getVersion()
+        );
+
+        updateNameRequest = new UpdateProjectRequest("New Name", null);
+        updateDescriptionRequest = new UpdateProjectRequest(null, "New Desc");
+        updateBothRequest = new UpdateProjectRequest("New Name", "New Desc");
+        updateNoChangesRequest = new UpdateProjectRequest("   ", savedProject.getDescription());
 
         createRequestWithDescription = new CreateProjectRequest("Project Name", "Desc");
         createRequestWithoutDescription = new CreateProjectRequest("Project Name", null);
@@ -175,5 +208,136 @@ class ProjectServiceTest {
         assertEquals(0, response.totalElements());
         assertEquals(0, response.totalPages());
         verifyNoInteractions(projectMapper);
+    }
+
+    @Test
+    void getProjectById_whenNotFound_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.getProjectById(projectId));
+
+        verify(projectRepository).findById(projectId);
+        verifyNoInteractions(documentRepository);
+    }
+
+    @Test
+    void getProjectById_whenDeleted_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(deletedProject));
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.getProjectById(projectId));
+
+        verify(projectRepository).findById(projectId);
+        verifyNoInteractions(documentRepository);
+    }
+
+    @Test
+    void getProjectById_returnsDetailedResponseWithDocumentCount() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+        when(documentRepository.getDocumentCountByProjectId(projectId)).thenReturn(5L);
+
+        ProjectDetailedResponse response = projectService.getProjectById(projectId);
+
+        assertEquals(detailedResponse, response);
+        verify(projectRepository).findById(projectId);
+        verify(documentRepository).getDocumentCountByProjectId(projectId);
+    }
+
+    @Test
+    void updateProject_whenNotFound_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.updateProject(projectId, updateNameRequest));
+
+        verify(projectRepository).findById(projectId);
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void updateProject_whenDeleted_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(deletedProject));
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.updateProject(projectId, updateNameRequest));
+
+        verify(projectRepository).findById(projectId);
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void updateProject_updatesOnlyNameWhenChangedAndNotBlank() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+
+        projectService.updateProject(projectId, updateNameRequest);
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(projectCaptor.capture());
+        Project updated = projectCaptor.getValue();
+        assertEquals(updateNameRequest.name(), updated.getName());
+        assertEquals(savedProject.getDescription(), updated.getDescription());
+    }
+
+    @Test
+    void updateProject_updatesOnlyDescriptionWhenChanged() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+
+        projectService.updateProject(projectId, updateDescriptionRequest);
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(projectCaptor.capture());
+        Project updated = projectCaptor.getValue();
+        assertEquals(savedProject.getName(), updated.getName());
+        assertEquals(updateDescriptionRequest.description(), updated.getDescription());
+    }
+
+    @Test
+    void updateProject_updatesNameAndDescriptionWhenBothChanged() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+
+        projectService.updateProject(projectId, updateBothRequest);
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(projectCaptor.capture());
+        Project updated = projectCaptor.getValue();
+        assertEquals(updateBothRequest.name(), updated.getName());
+        assertEquals(updateBothRequest.description(), updated.getDescription());
+    }
+
+    @Test
+    void updateProject_whenNoChanges_doesNotSave() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+
+        projectService.updateProject(projectId, updateNoChangesRequest);
+
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteProject_whenNotFound_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.deleteProject(projectId));
+
+        verify(projectRepository).findById(projectId);
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteProject_whenAlreadyDeleted_throwsProjectNotFoundException() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(deletedProject));
+
+        assertThrows(ProjectNotFoundException.class, () -> projectService.deleteProject(projectId));
+
+        verify(projectRepository).findById(projectId);
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteProject_setsDeletedTrueAndSaves() {
+        when(projectRepository.findById(projectId)).thenReturn(java.util.Optional.of(savedProject));
+
+        projectService.deleteProject(projectId);
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(projectCaptor.capture());
+        assertTrue(projectCaptor.getValue().isDeleted());
     }
 }
