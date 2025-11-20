@@ -6,8 +6,10 @@ import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberExistsException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceRoleConflictException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceOwnerRemovalException;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
@@ -53,13 +55,16 @@ class WorkspaceMemberServiceTest {
     private UUID userId;
     private WorkspaceMember activeMember;
     private WorkspaceMember deletedMember;
+    private WorkspaceMember ownerMember;
     private WorkspaceMemberResponse memberResponse;
     private UserInternalResponse userInternal;
+    private UUID ownerId;
 
     @BeforeEach
     void setUp() {
         workspaceId = UUID.randomUUID();
         userId = UUID.randomUUID();
+        ownerId = UUID.randomUUID();
 
         activeMember = WorkspaceMember.builder()
                 .id(UUID.randomUUID())
@@ -88,6 +93,16 @@ class WorkspaceMemberServiceTest {
                 activeMember.getRole(),
                 activeMember.getCreatedAt()
         );
+
+        ownerMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .userId(ownerId)
+                .role(WorkspaceRole.OWNER)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
 
         userInternal = new UserInternalResponse(userId.toString(), "user@example.com");
     }
@@ -214,5 +229,155 @@ class WorkspaceMemberServiceTest {
                 workspaceId.toString(),
                 WorkspaceRole.VIEWER.toString()
         ), eventCaptor.getValue());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_whenMemberNotFound_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.MODERATOR));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_whenMemberDeleted_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(deletedMember));
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.MODERATOR));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_toOwner_whenOwnerMissing_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(activeMember));
+        when(workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.OWNER));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository).findOwnerUserIdByWorkspaceId(workspaceId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_toOwner_whenUserAlreadyOwner_throwsConflict() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(ownerMember));
+        when(workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)).thenReturn(java.util.Optional.of(userId));
+
+        assertThrows(WorkspaceRoleConflictException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.OWNER));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository).findOwnerUserIdByWorkspaceId(workspaceId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_promotesToOwner_andDowngradesPreviousOwner() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(activeMember));
+        when(workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)).thenReturn(java.util.Optional.of(ownerId));
+
+        workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.OWNER);
+
+        InOrder inOrder = inOrder(workspaceMemberRepository);
+        inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        inOrder.verify(workspaceMemberRepository).findOwnerUserIdByWorkspaceId(workspaceId);
+        inOrder.verify(workspaceMemberRepository).updateMemberRole(userId, workspaceId, WorkspaceRole.OWNER);
+        inOrder.verify(workspaceMemberRepository).updateMemberRole(ownerId, workspaceId, WorkspaceRole.MODERATOR);
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_whenMemberIsOwner_andDowngradeAttempt_throwsConflict() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(ownerMember));
+
+        assertThrows(WorkspaceRoleConflictException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.MODERATOR));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_whenRoleUnchanged_throwsConflict() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(activeMember));
+
+        assertThrows(WorkspaceRoleConflictException.class,
+                () -> workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, activeMember.getRole()));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateMemberRole(any(), any(), any());
+    }
+
+    @Test
+    void updateWorkspaceMemberRole_updatesRoleWhenValid() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(activeMember));
+
+        workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.VIEWER);
+
+        InOrder inOrder = inOrder(workspaceMemberRepository);
+        inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        inOrder.verify(workspaceMemberRepository).updateMemberRole(userId, workspaceId, WorkspaceRole.VIEWER);
+    }
+
+    @Test
+    void removeWorkspaceMember_whenNotFound_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceMemberService.removeWorkspaceMember(workspaceId, userId));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateDeletedById(any(), anyBoolean());
+    }
+
+    @Test
+    void removeWorkspaceMember_whenAlreadyDeleted_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(deletedMember));
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceMemberService.removeWorkspaceMember(workspaceId, userId));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateDeletedById(any(), anyBoolean());
+    }
+
+    @Test
+    void removeWorkspaceMember_whenOwner_throwsWorkspaceOwnerRemovalException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(ownerMember));
+
+        assertThrows(WorkspaceOwnerRemovalException.class,
+                () -> workspaceMemberService.removeWorkspaceMember(workspaceId, userId));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository, never()).updateDeletedById(any(), anyBoolean());
+    }
+
+    @Test
+    void removeWorkspaceMember_setsDeletedTrue() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+                .thenReturn(java.util.Optional.of(activeMember));
+
+        workspaceMemberService.removeWorkspaceMember(workspaceId, userId);
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        verify(workspaceMemberRepository).updateDeletedById(activeMember.getId(), true);
     }
 }
