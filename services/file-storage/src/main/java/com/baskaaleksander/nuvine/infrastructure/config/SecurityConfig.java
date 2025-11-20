@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
+import com.baskaaleksander.nuvine.infrastructure.security.RestAccessDeniedHandler;
+import com.baskaaleksander.nuvine.infrastructure.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,8 +26,8 @@ import java.util.Map;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-//    private final RestAccessDeniedHandler accessDeniedHandler;
-//    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
 
     @Bean
@@ -51,11 +53,11 @@ public class SecurityConfig {
                 )
                 .oauth2ResourceServer(resourceServer ->
                         resourceServer.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
-//                .exceptionHandling(ex -> ex
-//                        .authenticationEntryPoint(restAuthenticationEntryPoint)
-//                        .accessDeniedHandler(accessDeniedHandler)
-//                );
         return http.build();
     }
 
