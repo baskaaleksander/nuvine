@@ -1,4 +1,4 @@
 package com.baskaaleksander.nuvine.infrastructure.client;
 
-public interface WorkspaceClient {
+public interface WorkspaceServiceUserClient {
 }
