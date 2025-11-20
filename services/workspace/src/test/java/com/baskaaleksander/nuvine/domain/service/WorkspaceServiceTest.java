@@ -1,9 +1,11 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.WorkspaceCreateResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
+import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
@@ -19,8 +21,13 @@ import org.mockito.InjectMocks;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +55,10 @@ public class WorkspaceServiceTest {
     private String workspaceName;
     private Workspace savedWorkspace;
     private WorkspaceCreateResponse workspaceCreateResponse;
+    private UUID workspaceId;
+    private Workspace activeWorkspace;
+    private Workspace deletedWorkspace;
+    private WorkspaceResponse workspaceResponse;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +77,38 @@ public class WorkspaceServiceTest {
                 savedWorkspace.getOwnerUserId(),
                 savedWorkspace.getBillingTier(),
                 Instant.now()
+        );
+
+        workspaceId = UUID.randomUUID();
+
+        activeWorkspace = Workspace.builder()
+                .id(workspaceId)
+                .name(workspaceName)
+                .ownerUserId(ownerUserId)
+                .billingTier(BillingTier.FREE)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        deletedWorkspace = Workspace.builder()
+                .id(UUID.randomUUID())
+                .name("Deleted Workspace")
+                .ownerUserId(ownerUserId)
+                .billingTier(BillingTier.FREE)
+                .deleted(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        workspaceResponse = new WorkspaceResponse(
+                activeWorkspace.getId(),
+                activeWorkspace.getName(),
+                activeWorkspace.getOwnerUserId(),
+                activeWorkspace.getSubscriptionId(),
+                activeWorkspace.getBillingTier(),
+                activeWorkspace.getCreatedAt(),
+                activeWorkspace.getUpdatedAt()
         );
     }
 
@@ -113,5 +156,98 @@ public class WorkspaceServiceTest {
         inOrder.verify(workspaceMapper).toWorkspaceCreateResponse(savedWorkspace);
         assertEquals(workspaceCreateResponse, result);
         verifyNoMoreInteractions(workspaceRepository, workspaceMemberRepository, workspaceMapper);
+    }
+
+    @Test
+    void getWorkspaces_filtersDeletedAndMapsActive_withPaginationMeta() {
+        PaginationRequest request = new PaginationRequest(0, 5, "name", Sort.Direction.ASC);
+        Pageable expectedPageable = PaginationUtil.getPageable(request);
+
+        List<UUID> workspaceIds = List.of(activeWorkspace.getId(), deletedWorkspace.getId());
+        Page<Workspace> page = new PageImpl<>(List.of(activeWorkspace, deletedWorkspace), expectedPageable, workspaceIds.size());
+
+        when(workspaceMemberRepository.findWorkspaceIdsByUserId(ownerUserId)).thenReturn(workspaceIds);
+        when(workspaceRepository.findAllByIdIn(workspaceIds, expectedPageable)).thenReturn(page);
+        when(workspaceMapper.toWorkspaceResponse(activeWorkspace)).thenReturn(workspaceResponse);
+
+        PagedResponse<WorkspaceResponse> response = workspaceService.getWorkspaces(ownerUserId, request);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(workspaceRepository).findAllByIdIn(eq(workspaceIds), pageableCaptor.capture());
+        assertEquals(expectedPageable, pageableCaptor.getValue());
+
+        assertEquals(1, response.content().size());
+        assertEquals(workspaceResponse, response.content().iterator().next());
+        assertEquals(page.getTotalPages(), response.totalPages());
+        assertEquals(page.getTotalElements(), response.totalElements());
+        assertEquals(page.getSize(), response.size());
+        assertEquals(page.getNumber(), response.page());
+        assertEquals(page.isLast(), response.last());
+        assertEquals(page.hasNext(), response.next());
+        verify(workspaceMapper, times(1)).toWorkspaceResponse(activeWorkspace);
+        verifyNoMoreInteractions(workspaceMapper);
+    }
+
+    @Test
+    void getWorkspaces_whenNoMemberships_returnsEmptyPagedResponse() {
+        PaginationRequest request = new PaginationRequest(0, 5, "name", Sort.Direction.ASC);
+        Pageable expectedPageable = PaginationUtil.getPageable(request);
+
+        when(workspaceMemberRepository.findWorkspaceIdsByUserId(ownerUserId)).thenReturn(List.of());
+        when(workspaceRepository.findAllByIdIn(List.of(), expectedPageable))
+                .thenReturn(new PageImpl<>(List.of(), expectedPageable, 0));
+
+        PagedResponse<WorkspaceResponse> response = workspaceService.getWorkspaces(ownerUserId, request);
+
+        assertEquals(0, response.content().size());
+        assertEquals(0, response.totalElements());
+        assertEquals(0, response.totalPages());
+        verifyNoInteractions(workspaceMapper);
+    }
+
+    @Test
+    void getWorkspace_whenNotFound_throwsWorkspaceNotFoundException() {
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceNotFoundException.class, () -> workspaceService.getWorkspace(workspaceId));
+
+        verify(workspaceRepository).findById(workspaceId);
+        verifyNoInteractions(workspaceMemberRepository, projectRepository);
+    }
+
+    @Test
+    void getWorkspace_whenDeleted_throwsWorkspaceNotFoundException() {
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(deletedWorkspace));
+
+        assertThrows(WorkspaceNotFoundException.class, () -> workspaceService.getWorkspace(workspaceId));
+
+        verify(workspaceRepository).findById(workspaceId);
+        verifyNoInteractions(workspaceMemberRepository, projectRepository);
+    }
+
+    @Test
+    void getWorkspace_returnsWorkspaceWithStats() {
+        WorkspaceResponseWithStats expectedResponse = new WorkspaceResponseWithStats(
+                activeWorkspace.getId(),
+                activeWorkspace.getName(),
+                activeWorkspace.getOwnerUserId(),
+                activeWorkspace.getSubscriptionId(),
+                activeWorkspace.getBillingTier(),
+                activeWorkspace.getCreatedAt(),
+                activeWorkspace.getUpdatedAt(),
+                3L,
+                7L
+        );
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(activeWorkspace));
+        when(workspaceMemberRepository.getWorkspaceMemberCountByWorkspaceId(workspaceId)).thenReturn(3L);
+        when(projectRepository.getProjectCountByWorkspaceId(workspaceId)).thenReturn(7L);
+
+        WorkspaceResponseWithStats response = workspaceService.getWorkspace(workspaceId);
+
+        assertEquals(expectedResponse, response);
+        verify(workspaceRepository).findById(workspaceId);
+        verify(workspaceMemberRepository).getWorkspaceMemberCountByWorkspaceId(workspaceId);
+        verify(projectRepository).getProjectCountByWorkspaceId(workspaceId);
     }
 }
