@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
@@ -17,8 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.InOrder;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -59,6 +60,11 @@ public class WorkspaceServiceTest {
     private Workspace activeWorkspace;
     private Workspace deletedWorkspace;
     private WorkspaceResponse workspaceResponse;
+    private UUID memberUserId;
+    private WorkspaceMember activeMember;
+    private WorkspaceMember deletedMember;
+    private WorkspaceMemberResponse memberResponse;
+    private String updatedWorkspaceName;
 
     @BeforeEach
     void setUp() {
@@ -110,6 +116,37 @@ public class WorkspaceServiceTest {
                 activeWorkspace.getCreatedAt(),
                 activeWorkspace.getUpdatedAt()
         );
+
+        memberUserId = UUID.randomUUID();
+        activeMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .userId(memberUserId)
+                .role(WorkspaceRole.MEMBER)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        deletedMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .userId(memberUserId)
+                .role(WorkspaceRole.MEMBER)
+                .deleted(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        memberResponse = new WorkspaceMemberResponse(
+                activeMember.getId(),
+                activeMember.getWorkspaceId(),
+                activeMember.getUserId(),
+                activeMember.getRole(),
+                activeMember.getCreatedAt()
+        );
+
+        updatedWorkspaceName = "Updated Workspace";
     }
 
     @Test
@@ -249,5 +286,119 @@ public class WorkspaceServiceTest {
         verify(workspaceRepository).findById(workspaceId);
         verify(workspaceMemberRepository).getWorkspaceMemberCountByWorkspaceId(workspaceId);
         verify(projectRepository).getProjectCountByWorkspaceId(workspaceId);
+    }
+
+    @Test
+    void updateWorkspace_whenNameAlreadyExists_throwsInvalidWorkspaceNameException() {
+        when(workspaceRepository.existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId)).thenReturn(true);
+
+        assertThrows(InvalidWorkspaceNameException.class,
+                () -> workspaceService.updateWorkspace(workspaceId, updatedWorkspaceName, ownerUserId));
+
+        verify(workspaceRepository).existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId);
+        verify(workspaceRepository, never()).findById(any());
+        verify(workspaceRepository, never()).updateWorkspaceName(any(), any());
+    }
+
+    @Test
+    void updateWorkspace_whenWorkspaceNotFound_throwsWorkspaceNotFoundException() {
+        when(workspaceRepository.existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId)).thenReturn(false);
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceNotFoundException.class,
+                () -> workspaceService.updateWorkspace(workspaceId, updatedWorkspaceName, ownerUserId));
+
+        verify(workspaceRepository).existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId);
+        verify(workspaceRepository).findById(workspaceId);
+        verify(workspaceRepository, never()).updateWorkspaceName(any(), any());
+    }
+
+    @Test
+    void updateWorkspace_whenWorkspaceDeleted_throwsWorkspaceNotFoundException() {
+        when(workspaceRepository.existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId)).thenReturn(false);
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(deletedWorkspace));
+
+        assertThrows(WorkspaceNotFoundException.class,
+                () -> workspaceService.updateWorkspace(workspaceId, updatedWorkspaceName, ownerUserId));
+
+        verify(workspaceRepository).existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId);
+        verify(workspaceRepository).findById(workspaceId);
+        verify(workspaceRepository, never()).updateWorkspaceName(any(), any());
+    }
+
+    @Test
+    void updateWorkspace_updatesNameWhenValid() {
+        when(workspaceRepository.existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId)).thenReturn(false);
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(activeWorkspace));
+
+        workspaceService.updateWorkspace(workspaceId, updatedWorkspaceName, ownerUserId);
+
+        InOrder inOrder = inOrder(workspaceRepository);
+        inOrder.verify(workspaceRepository).existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId);
+        inOrder.verify(workspaceRepository).findById(workspaceId);
+        inOrder.verify(workspaceRepository).updateWorkspaceName(workspaceId, updatedWorkspaceName);
+        verifyNoMoreInteractions(workspaceRepository);
+        verifyNoInteractions(workspaceMemberRepository, projectRepository, workspaceMapper, workspaceMemberMapper);
+    }
+
+    @Test
+    void getSelfWorkspaceMember_whenNotFound_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, memberUserId))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceService.getSelfWorkspaceMember(workspaceId, memberUserId));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, memberUserId);
+        verifyNoInteractions(workspaceMemberMapper);
+    }
+
+    @Test
+    void getSelfWorkspaceMember_whenDeleted_throwsWorkspaceMemberNotFoundException() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, memberUserId))
+                .thenReturn(java.util.Optional.of(deletedMember));
+
+        assertThrows(WorkspaceMemberNotFoundException.class,
+                () -> workspaceService.getSelfWorkspaceMember(workspaceId, memberUserId));
+
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, memberUserId);
+        verifyNoInteractions(workspaceMemberMapper);
+    }
+
+    @Test
+    void getSelfWorkspaceMember_returnsMappedResponse() {
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, memberUserId))
+                .thenReturn(java.util.Optional.of(activeMember));
+        when(workspaceMemberMapper.toWorkspaceMemberResponse(activeMember)).thenReturn(memberResponse);
+
+        WorkspaceMemberResponse response = workspaceService.getSelfWorkspaceMember(workspaceId, memberUserId);
+
+        assertEquals(memberResponse, response);
+        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, memberUserId);
+        verify(workspaceMemberMapper).toWorkspaceMemberResponse(activeMember);
+    }
+
+    @Test
+    void deleteWorkspace_whenNotFound_throwsWorkspaceNotFoundException() {
+        when(workspaceRepository.existsById(workspaceId)).thenReturn(false);
+
+        assertThrows(WorkspaceNotFoundException.class, () -> workspaceService.deleteWorkspace(workspaceId));
+
+        verify(workspaceRepository).existsById(workspaceId);
+        verify(workspaceMemberRepository, never()).deleteAllMembersByWorkspaceId(any());
+        verify(workspaceRepository, never()).deleteWorkspace(any());
+    }
+
+    @Test
+    void deleteWorkspace_deletesMembersThenWorkspace() {
+        when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
+
+        workspaceService.deleteWorkspace(workspaceId);
+
+        InOrder inOrder = inOrder(workspaceMemberRepository, workspaceRepository);
+        inOrder.verify(workspaceRepository).existsById(workspaceId);
+        inOrder.verify(workspaceMemberRepository).deleteAllMembersByWorkspaceId(workspaceId);
+        inOrder.verify(workspaceRepository).deleteWorkspace(workspaceId);
+        verifyNoMoreInteractions(workspaceMemberRepository, workspaceRepository);
     }
 }
