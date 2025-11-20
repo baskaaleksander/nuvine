@@ -1,8 +1,10 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
+import com.baskaaleksander.nuvine.application.dto.UploadUrlResponse;
 import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
 import com.baskaaleksander.nuvine.domain.exception.DocumentAccessForbiddenException;
+import com.baskaaleksander.nuvine.domain.exception.DocumentConflictException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceUserClient;
 import feign.FeignException;
@@ -15,7 +17,6 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.net.URL;
 import java.time.Duration;
 
 @Slf4j
@@ -28,7 +29,11 @@ public class UploadService {
     @Value("${s3.bucket-name}")
     private String bucket;
 
-    public URL generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
+    private final String UPLOADING_STATUS = "UPLOADING";
+
+    public UploadUrlResponse generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
+
+        log.info("GENERATE_UPLOAD_URL STARTED documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
 
         DocumentInternalResponse documentInternalResponse;
 
@@ -39,12 +44,20 @@ public class UploadService {
 
             switch (status) {
                 case 404:
+                    log.info("GENERATE_UPLOAD_URL FAILED reason=document_not_found documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
                     throw new DocumentNotFoundException("Document not found");
                 case 403:
+                    log.info("GENERATE_UPLOAD_URL FAILED reason=access_forbidden documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
                     throw new DocumentAccessForbiddenException("Access forbidden");
                 default:
+                    log.error("GENERATE_UPLOAD_URL FAILED documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes, ex);
                     throw new RuntimeException(ex);
             }
+        }
+
+        if (!documentInternalResponse.status().equals(UPLOADING_STATUS)) {
+            log.info("GENERATE_UPLOAD_URL FAILED reason=document_not_uploading documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
+            throw new DocumentConflictException("Document already uploaded");
         }
 
         String key = StorageKeyUtil.generate(
@@ -68,7 +81,9 @@ public class UploadService {
         PresignedPutObjectRequest presignedRequest =
                 s3Presigner.presignPutObject(presignRequest);
 
-        return presignedRequest.url();
+        log.info("GENERATE_UPLOAD_URL END documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
+
+        return new UploadUrlResponse(presignedRequest.url(), "PUT");
     }
 
 }
