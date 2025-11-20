@@ -26,10 +26,6 @@ public class KeycloakClientCredentialsTokenProvider {
     private long expiresAt = 0;
 
     public synchronized String getAccessToken() {
-        log.info(">>> CONFIG CHECK: clientId={}, clientSecret={}...",
-                properties.getClientId(),
-                properties.getClientSecret().substring(0, 3) + "***");
-        
         long now = System.currentTimeMillis();
 
         if (cachedToken != null && now < expiresAt) {

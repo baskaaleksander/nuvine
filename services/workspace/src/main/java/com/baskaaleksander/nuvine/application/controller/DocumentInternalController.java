@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -31,17 +30,12 @@ public class DocumentInternalController {
         return ResponseEntity.ok(documentInternalService.getDocumentById(documentId));
     }
 
-    //    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @PatchMapping("/{documentId}/upload-completed")
     public ResponseEntity<DocumentInternalResponse> uploadCompleted(
             @RequestBody @Valid UploadCompletedRequest request,
-            @PathVariable UUID documentId,
-            @AuthenticationPrincipal Jwt jwt,
-            Authentication auth
+            @PathVariable UUID documentId
     ) {
-        System.out.println(jwt.getClaimAsString("azp"));
-        System.out.println(auth.getAuthorities());
-//        return ResponseEntity.badRequest().build();
         return ResponseEntity.ok(documentInternalService.uploadCompleted(documentId, request.storageKey(), request.mimeType(), request.sizeBytes()));
     }
 
