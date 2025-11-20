@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.DocumentConflictException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.ProjectNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +53,7 @@ class DocumentServiceTest {
     private UUID userId;
     private Project project;
     private Document savedDocument;
+    private Document deletedDocument;
     private DocumentPublicResponse documentResponse;
 
     @BeforeEach
@@ -91,6 +94,18 @@ class DocumentServiceTest {
                 savedDocument.getCreatedBy(),
                 savedDocument.getCreatedAt()
         );
+
+        deletedDocument = Document.builder()
+                .id(documentId)
+                .projectId(projectId)
+                .workspaceId(workspaceId)
+                .name("Doc")
+                .status(DocumentStatus.UPLOADING)
+                .createdBy(userId)
+                .deleted(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
     }
 
     @Test
@@ -167,5 +182,117 @@ class DocumentServiceTest {
         assertEquals(0, response.totalElements());
         assertEquals(0, response.totalPages());
         verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void getDocument_whenNotFound_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.getDocument(documentId));
+
+        verify(documentRepository).findById(documentId);
+        verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void getDocument_whenDeleted_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(deletedDocument));
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.getDocument(documentId));
+
+        verify(documentRepository).findById(documentId);
+        verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void getDocument_returnsMappedResponse() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(savedDocument));
+        when(documentMapper.toDocumentResponse(savedDocument)).thenReturn(documentResponse);
+
+        DocumentPublicResponse response = documentService.getDocument(documentId);
+
+        assertEquals(documentResponse, response);
+        verify(documentRepository).findById(documentId);
+        verify(documentMapper).toDocumentResponse(savedDocument);
+    }
+
+    @Test
+    void updateDocument_whenNotFound_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.updateDocument(documentId, "New Name"));
+
+        verify(documentRepository).findById(documentId);
+        verify(documentRepository, never()).save(any());
+        verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void updateDocument_whenDeleted_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(deletedDocument));
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.updateDocument(documentId, "New Name"));
+
+        verify(documentRepository).findById(documentId);
+        verify(documentRepository, never()).save(any());
+        verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void updateDocument_whenNameUnchanged_throwsDocumentConflictException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(savedDocument));
+
+        assertThrows(DocumentConflictException.class, () -> documentService.updateDocument(documentId, savedDocument.getName()));
+
+        verify(documentRepository).findById(documentId);
+        verify(documentRepository, never()).save(any());
+        verifyNoInteractions(documentMapper);
+    }
+
+    @Test
+    void updateDocument_updatesNameAndMapsResponse() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(savedDocument));
+        when(documentRepository.save(any(Document.class))).thenReturn(savedDocument);
+        when(documentMapper.toDocumentResponse(savedDocument)).thenReturn(documentResponse);
+
+        DocumentPublicResponse response = documentService.updateDocument(documentId, "New Name");
+
+        ArgumentCaptor<Document> docCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(documentRepository).save(docCaptor.capture());
+        Document updated = docCaptor.getValue();
+
+        assertEquals("New Name", updated.getName());
+        assertEquals(documentResponse, response);
+    }
+
+    @Test
+    void deleteDocument_whenNotFound_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.deleteDocument(documentId));
+
+        verify(documentRepository).findById(documentId);
+        verify(documentRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteDocument_whenDeleted_throwsDocumentNotFoundException() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(deletedDocument));
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.deleteDocument(documentId));
+
+        verify(documentRepository).findById(documentId);
+        verify(documentRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteDocument_setsDeletedTrueAndSaves() {
+        when(documentRepository.findById(documentId)).thenReturn(java.util.Optional.of(savedDocument));
+
+        documentService.deleteDocument(documentId);
+
+        ArgumentCaptor<Document> docCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(documentRepository).save(docCaptor.capture());
+        assertTrue(docCaptor.getValue().isDeleted());
     }
 }
