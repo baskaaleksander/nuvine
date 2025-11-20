@@ -33,6 +33,8 @@ public class DownloadService {
 
     public DocumentDownloadUrlResponse getDownloadUrl(String documentId) {
 
+        log.info("GENERATE_DOWNLOAD_URL START documentId={}", documentId);
+
         DocumentInternalResponse documentInternalResponse;
 
         try {
@@ -54,10 +56,18 @@ public class DownloadService {
         }
 
         if (documentInternalResponse.status().equalsIgnoreCase(UPLOADING_STATUS)) {
+            log.info("GENERATE_DOWNLOAD_URL FAILED reason=document_not_uploaded documentId={}", documentId);
             throw new DocumentNotUploadedException("Document is not uploaded yet");
         }
 
-        var url = presignDownloadUrl(documentInternalResponse.storageKey(), documentInternalResponse.mimeType(), documentInternalResponse.name());
+        URL url;
+        try {
+            url = presignDownloadUrl(documentInternalResponse.storageKey(), documentInternalResponse.mimeType(), documentInternalResponse.name());
+        } catch (Exception ex) {
+            log.error("GENERATE_DOWNLOAD_URL FAILED documentId={}", documentId, ex);
+            throw new RuntimeException("Failed to generate download URL");
+        }
+        log.info("GENERATE_DOWNLOAD_URL END documentId={}", documentId);
 
         return new DocumentDownloadUrlResponse(
                 url.toString()
