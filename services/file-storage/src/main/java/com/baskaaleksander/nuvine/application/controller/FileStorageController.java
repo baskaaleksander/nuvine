@@ -1,15 +1,14 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.DocumentDownloadUrlResponse;
 import com.baskaaleksander.nuvine.application.dto.UploadUrlRequest;
 import com.baskaaleksander.nuvine.application.dto.UploadUrlResponse;
+import com.baskaaleksander.nuvine.domain.service.DownloadService;
 import com.baskaaleksander.nuvine.domain.service.UploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class FileStorageController {
 
     private final UploadService uploadService;
+    private final DownloadService downloadService;
 
     @PostMapping("/upload-url")
     public ResponseEntity<UploadUrlResponse> generatePresignedUploadUrl(
@@ -27,6 +27,13 @@ public class FileStorageController {
                 request.contentType(),
                 request.sizeBytes()
         ));
+    }
+
+    @GetMapping("/{documentId}/download-url")
+    public ResponseEntity<DocumentDownloadUrlResponse> getDownloadUrl(
+            @PathVariable String documentId
+    ) {
+        return ResponseEntity.ok(downloadService.getDownloadUrl(documentId));
     }
 
 }
