@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.UUID;
+
 @FeignClient(
         name = "workspace-service",
         url = "${application.config.api-base-url}",
@@ -16,5 +18,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface WorkspaceServiceServiceClient {
 
     @PostMapping("/internal/documents/{documentId}/upload-completed")
-    void uploadCompleted(@PathVariable String documentId, @RequestBody UploadCompletedRequest request);
+    void uploadCompleted(@PathVariable UUID documentId, @RequestBody UploadCompletedRequest request);
 }

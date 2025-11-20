@@ -1,7 +1,9 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.UploadCompletedRequest;
 import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
 import com.baskaaleksander.nuvine.domain.exception.UnauthorizedWebhookException;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceServiceClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,8 @@ public class UploadInternalService {
 
     @Value("${s3.webhook.secret}")
     private String webhookSecret;
+
+    private final WorkspaceServiceServiceClient client;
 
 
     public void handleMinioEvent(JsonNode body, String authHeader) {
@@ -33,6 +37,17 @@ public class UploadInternalService {
         log.info("MINIO_EVENT RECEIVED bucket={}, key={}, size={}, contentType={}", bucket, key, size, contentType);
 
         var docInfo = StorageKeyUtil.parse(key);
+
+        client.uploadCompleted(
+                docInfo.documentId(),
+                new UploadCompletedRequest(
+                        key,
+                        contentType,
+                        size
+                )
+        );
+
+        log.info("MINIO_EVENT HANDLED documentId={}", docInfo.documentId());
 
     }
 }
