@@ -1,8 +1,6 @@
 package com.baskaaleksander.nuvine.application.exception;
 
-import com.baskaaleksander.nuvine.domain.exception.DocumentConflictException;
-import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
-import com.baskaaleksander.nuvine.domain.exception.ErrorResponse;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +17,30 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DocumentAccessForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentAccessForbiddenException(DocumentAccessForbiddenException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                403,
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(DocumentNotUploadedException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentNotUploadedException(DocumentNotUploadedException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                409,
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
 
     @ExceptionHandler(DocumentConflictException.class)
     public ResponseEntity<ErrorResponse> handleDocumentConflictException(DocumentConflictException ex, HttpServletRequest request) {
