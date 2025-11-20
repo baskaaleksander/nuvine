@@ -6,6 +6,7 @@ import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
 import com.baskaaleksander.nuvine.domain.exception.DocumentAccessForbiddenException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentConflictException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceUserClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,6 @@ public class UploadService {
 
     @Value("${s3.bucket-name}")
     private String bucket;
-
-    private final String UPLOADING_STATUS = "UPLOADING";
 
     public UploadUrlResponse generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
 
@@ -56,7 +55,7 @@ public class UploadService {
             }
         }
 
-        if (!documentInternalResponse.status().equals(UPLOADING_STATUS)) {
+        if (documentInternalResponse.status() != DocumentStatus.UPLOADING) {
             log.info("GENERATE_UPLOAD_URL FAILED reason=document_not_uploading documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes);
             throw new DocumentConflictException("Document already uploaded");
         }
@@ -70,7 +69,7 @@ public class UploadService {
         URL url;
 
         try {
-            url = presignedUploadUrl(key, contentType, sizeBytes);
+            url = presignUploadUrl(key, contentType, sizeBytes);
         } catch (Exception ex) {
             log.error("GENERATE_UPLOAD_URL FAILED documentId={} contentType={} sizeBytes={}", documentId, contentType, sizeBytes, ex);
             throw new RuntimeException("Failed to generate upload URL");
@@ -82,7 +81,7 @@ public class UploadService {
         return new UploadUrlResponse(url, "PUT");
     }
 
-    private URL presignedUploadUrl(String key, String contentType, Long sizeBytes) {
+    private URL presignUploadUrl(String key, String contentType, Long sizeBytes) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .contentType(contentType)

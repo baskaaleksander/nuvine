@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.application.dto;
 
+import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -8,7 +10,7 @@ public record DocumentInternalResponse(
         UUID projectId,
         UUID workspaceId,
         String name,
-        String status,
+        DocumentStatus status,
         String storageKey,
         String mimeType,
         Long sizeBytes,

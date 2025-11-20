@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
 import com.baskaaleksander.nuvine.domain.exception.DocumentAccessForbiddenException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotUploadedException;
+import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceUserClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,6 @@ public class DownloadService {
 
     @Value("${s3.bucket-name}")
     private String bucketName;
-    private final String UPLOADING_STATUS = "UPLOADING";
 
     public DocumentDownloadUrlResponse getDownloadUrl(String documentId) {
 
@@ -55,7 +55,7 @@ public class DownloadService {
             }
         }
 
-        if (documentInternalResponse.status().equalsIgnoreCase(UPLOADING_STATUS)) {
+        if (documentInternalResponse.status() == DocumentStatus.UPLOADING || documentInternalResponse.status() == DocumentStatus.FAILED) {
             log.info("GENERATE_DOWNLOAD_URL FAILED reason=document_not_uploaded documentId={}", documentId);
             throw new DocumentNotUploadedException("Document is not uploaded yet");
         }
