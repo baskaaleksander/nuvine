@@ -10,6 +10,8 @@ s3:
   access:
     name: ${MINIO_ACCESS_NAME}
     secret: ${MINIO_ACCESS_SECRET}
+  webhook:
+    secret: ${MINIO_WEBHOOK_SECRET}
 
 server:
   port: 8070

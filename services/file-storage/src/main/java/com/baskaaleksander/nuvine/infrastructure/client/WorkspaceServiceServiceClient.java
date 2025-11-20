@@ -1,7 +1,11 @@
 package com.baskaaleksander.nuvine.infrastructure.client;
 
+import com.baskaaleksander.nuvine.application.dto.UploadCompletedRequest;
 import com.baskaaleksander.nuvine.infrastructure.config.InternalFeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
         name = "workspace-service",
@@ -10,4 +14,7 @@ import org.springframework.cloud.openfeign.FeignClient;
         configuration = InternalFeignConfig.class
 )
 public interface WorkspaceServiceServiceClient {
+
+    @PostMapping("/internal/documents/{documentId}/upload-completed")
+    void uploadCompleted(@PathVariable String documentId, @RequestBody UploadCompletedRequest request);
 }
