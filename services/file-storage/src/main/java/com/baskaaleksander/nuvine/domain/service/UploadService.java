@@ -1,7 +1,11 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
+import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
+import com.baskaaleksander.nuvine.domain.exception.DocumentAccessForbiddenException;
+import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceUserClient;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,11 +30,28 @@ public class UploadService {
 
     public URL generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
 
-        DocumentInternalResponse documentInternalResponse = workspaceServiceUserClient.getInternalDocument(documentId);
+        DocumentInternalResponse documentInternalResponse;
 
-        String key = String.format("ws/%s/proj/%s/docs/%s", documentInternalResponse.workspaceId(), documentInternalResponse.projectId(), documentInternalResponse.id());
+        try {
+            documentInternalResponse = workspaceServiceUserClient.getInternalDocument(documentId);
+        } catch (FeignException ex) {
+            int status = ex.status();
 
-        System.out.println(key);
+            switch (status) {
+                case 404:
+                    throw new DocumentNotFoundException("Document not found");
+                case 403:
+                    throw new DocumentAccessForbiddenException("Access forbidden");
+                default:
+                    throw new RuntimeException(ex);
+            }
+        }
+
+        String key = StorageKeyUtil.generate(
+                documentInternalResponse.workspaceId(),
+                documentInternalResponse.projectId(),
+                documentInternalResponse.id()
+        );
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
