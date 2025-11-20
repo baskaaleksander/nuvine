@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceUserClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,15 +19,18 @@ import java.time.Duration;
 @Service
 public class UploadService {
     private final S3Presigner s3Presigner;
+    private final WorkspaceServiceUserClient workspaceServiceUserClient;
 
     @Value("${s3.bucket-name}")
     private String bucket;
 
     public URL generatePresignedUploadUrl(String documentId, String contentType, Long sizeBytes) {
 
-        //todo call to workspaces api to gather document data
+        DocumentInternalResponse documentInternalResponse = workspaceServiceUserClient.getInternalDocument(documentId);
 
-        String key = documentId; // todo change that
+        String key = String.format("ws/%s/proj/%s/docs/%s", documentInternalResponse.workspaceId(), documentInternalResponse.projectId(), documentInternalResponse.id());
+
+        System.out.println(key);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)

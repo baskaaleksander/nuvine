@@ -11,6 +11,5 @@ s3:
     name: ${MINIO_ACCESS_NAME}
     secret: ${MINIO_ACCESS_SECRET}
 
-
 server:
   port: 8070
