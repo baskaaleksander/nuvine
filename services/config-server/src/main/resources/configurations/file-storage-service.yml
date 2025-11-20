@@ -1,7 +1,8 @@
-keycloak:
-  auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
-  client-id: file-storage-service
-  client-secret: ${KEYCLOAK_FILE_STORAGE_SERVICE_SECRET}
+file-storage:
+  keycloak:
+    auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
+    client-id: file-storage-service
+    client-secret: ${KEYCLOAK_FILE_STORAGE_SERVICE_SECRET}
 
 s3:
   bucket-name: ${MINIO_BUCKET_NAME}
@@ -12,6 +13,11 @@ s3:
     secret: ${MINIO_ACCESS_SECRET}
   webhook:
     secret: ${MINIO_WEBHOOK_SECRET}
+spring:
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
 
 server:
   port: 8070

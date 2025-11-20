@@ -1,8 +1,8 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.ParsedStorageKey;
 import com.baskaaleksander.nuvine.application.dto.UploadCompletedRequest;
 import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
-import com.baskaaleksander.nuvine.domain.exception.UnauthorizedWebhookException;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceServiceClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,8 @@ public class UploadInternalService {
     public void handleMinioEvent(JsonNode body, String authHeader) {
 
         if (authHeader == null || !authHeader.equals("Bearer " + webhookSecret)) {
-            throw new UnauthorizedWebhookException("Unauthorized webhook");
+            log.info("MINIO_EVENT FAILED reason=invalid_webhook_secret");
+            return;
         }
 
         JsonNode record = body.path("Records").get(0);
@@ -36,7 +37,13 @@ public class UploadInternalService {
 
         log.info("MINIO_EVENT RECEIVED bucket={}, key={}, size={}, contentType={}", bucket, key, size, contentType);
 
-        var docInfo = StorageKeyUtil.parse(key);
+        ParsedStorageKey docInfo;
+        try {
+            docInfo = StorageKeyUtil.parse(key);
+        } catch (Exception e) {
+            log.error("MINIO_EVENT FAILED reason=invalid_key_format key={}", key, e);
+            return;
+        }
 
         client.uploadCompleted(
                 docInfo.documentId(),

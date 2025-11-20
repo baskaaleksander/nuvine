@@ -37,10 +37,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()
                 );
-        // UWAGA: brak oauth2ResourceServer tutaj
         return http.build();
     }
-    
+
     @Bean
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

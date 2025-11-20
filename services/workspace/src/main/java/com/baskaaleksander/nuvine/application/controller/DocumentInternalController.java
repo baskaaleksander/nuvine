@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -30,22 +31,27 @@ public class DocumentInternalController {
         return ResponseEntity.ok(documentInternalService.getDocumentById(documentId));
     }
 
-    @PreAuthorize("hasAnyRole('INTERNAL_SERVICE')")
+    //    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @PatchMapping("/{documentId}/upload-completed")
-    public DocumentInternalResponse uploadCompleted(
+    public ResponseEntity<DocumentInternalResponse> uploadCompleted(
             @RequestBody @Valid UploadCompletedRequest request,
-            @PathVariable UUID documentId
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal Jwt jwt,
+            Authentication auth
     ) {
-        return documentInternalService.uploadCompleted(documentId, request.storageKey(), request.mimeType(), request.sizeBytes());
+        System.out.println(jwt.getClaimAsString("azp"));
+        System.out.println(auth.getAuthorities());
+//        return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok(documentInternalService.uploadCompleted(documentId, request.storageKey(), request.mimeType(), request.sizeBytes()));
     }
 
-    @PreAuthorize("hasAnyRole('INTERNAL_SERVICE')")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @PatchMapping("/{documentId}/status")
-    public DocumentInternalResponse updateStatus(
+    public ResponseEntity<DocumentInternalResponse> updateStatus(
             @RequestBody @Valid UpdateDocumentStatusRequest request,
             @PathVariable UUID documentId
     ) {
-        return documentInternalService.updateStatus(documentId, request.status());
+        return ResponseEntity.ok(documentInternalService.updateStatus(documentId, request.status()));
     }
 
 }

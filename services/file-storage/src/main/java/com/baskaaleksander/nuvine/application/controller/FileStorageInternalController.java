@@ -17,6 +17,7 @@ public class FileStorageInternalController {
             @RequestBody JsonNode body,
             @RequestHeader(name = "Authorization", required = false) String authHeader
     ) {
+        System.out.println(authHeader);
         service.handleMinioEvent(body, authHeader);
     }
 }
