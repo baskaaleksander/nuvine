@@ -2,8 +2,6 @@ package com.baskaaleksander.nuvine.application.util;
 
 import com.baskaaleksander.nuvine.application.dto.ParsedStorageKey;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public final class StorageKeyUtil {
@@ -21,9 +19,7 @@ public final class StorageKeyUtil {
 
     public static ParsedStorageKey parse(String key) {
 
-        String decodedKey = URLDecoder.decode(key, StandardCharsets.UTF_8);
-
-        String[] parts = decodedKey.split("/");
+        String[] parts = key.split("/");
 
         if (parts.length != 6 ||
                 !parts[0].equals("ws") ||

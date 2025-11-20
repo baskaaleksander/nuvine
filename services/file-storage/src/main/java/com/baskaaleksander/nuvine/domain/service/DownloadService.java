@@ -17,8 +17,6 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Slf4j
@@ -69,11 +67,9 @@ public class DownloadService {
 
     private URL presignDownloadUrl(String key, String mimeType, String name) {
 
-        String decodedKey = URLDecoder.decode(key, StandardCharsets.UTF_8);
-
         GetObjectRequest getReq = GetObjectRequest.builder()
                 .bucket(bucketName)
-                .key(decodedKey)
+                .key(key)
                 .responseContentType(mimeType)
                 .responseContentDisposition("attachment; filename=\"" + name + "\"")
                 .build();

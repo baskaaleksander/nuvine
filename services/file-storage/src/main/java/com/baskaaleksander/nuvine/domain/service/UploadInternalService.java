@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -37,9 +40,11 @@ public class UploadInternalService {
 
         log.info("MINIO_EVENT RECEIVED bucket={}, key={}, size={}, contentType={}", bucket, key, size, contentType);
 
+        String decodedKey = URLDecoder.decode(key, StandardCharsets.UTF_8);
+
         ParsedStorageKey docInfo;
         try {
-            docInfo = StorageKeyUtil.parse(key);
+            docInfo = StorageKeyUtil.parse(decodedKey);
         } catch (Exception e) {
             log.error("MINIO_EVENT FAILED reason=invalid_key_format key={}", key, e);
             return;
@@ -48,7 +53,7 @@ public class UploadInternalService {
         client.uploadCompleted(
                 docInfo.documentId(),
                 new UploadCompletedRequest(
-                        key,
+                        decodedKey,
                         contentType,
                         size
                 )
