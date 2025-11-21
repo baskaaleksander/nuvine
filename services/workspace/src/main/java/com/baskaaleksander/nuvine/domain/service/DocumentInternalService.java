@@ -5,6 +5,8 @@ import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
 import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
+import com.baskaaleksander.nuvine.infrastructure.messaging.DocumentUploadedEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ public class DocumentInternalService {
 
     private final DocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
+    private final DocumentUploadedEventProducer eventProducer;
 
     public DocumentInternalResponse getDocumentById(UUID id) {
         Document document = documentRepository.findById(id).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
@@ -43,6 +46,18 @@ public class DocumentInternalService {
         document.setSizeBytes(sizeBytes);
         document.setStatus(DocumentStatus.UPLOADED);
         documentRepository.save(document);
+
+        eventProducer.sendDocumentUploadedEvent(
+                new DocumentUploadedEvent(
+                        documentId.toString(),
+                        document.getWorkspaceId().toString(),
+                        document.getProjectId().toString(),
+                        storageKey,
+                        mimeType,
+                        sizeBytes
+                )
+        );
+
         return documentMapper.toInternalResponse(document);
     }
 
@@ -55,7 +70,7 @@ public class DocumentInternalService {
         if (document.isDeleted()) {
             throw new DocumentNotFoundException("Document not found");
         }
-        
+
         document.setStatus(status);
         documentRepository.save(document);
         return documentMapper.toInternalResponse(document);
