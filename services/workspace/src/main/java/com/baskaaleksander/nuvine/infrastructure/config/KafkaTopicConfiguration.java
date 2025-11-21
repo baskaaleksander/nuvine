@@ -12,10 +12,20 @@ public class KafkaTopicConfiguration {
     @Value("${topics.workspace-member-added-topic}")
     private String workspaceMemberAddedTopic;
 
+    @Value("${topics.document-uploaded-topic}")
+    private String documentUploadedTopic;
+
     @Bean
     public NewTopic memberAddedTopic() {
         return TopicBuilder
                 .name(workspaceMemberAddedTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic documentUploadedTopic() {
+        return TopicBuilder
+                .name(documentUploadedTopic)
                 .build();
     }
 
