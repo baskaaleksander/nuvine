@@ -15,7 +15,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @Setter
-@Table(name = "ingestion_jobs")
+@Table(
+        name = "ingestion_jobs",
+        indexes = {
+                @Index(name = "idx_ingestion_jobs_document_id", columnList = "documentId"),
+                @Index(name = "idx_ingestion_jobs_workspace_project", columnList = "workspaceId, projectId"),
+                @Index(name = "idx_ingestion_jobs_status_stage_created_at", columnList = "status, stage, createdAt"),
+                @Index(name = "idx_ingestion_jobs_created_at", columnList = "createdAt")
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 public class IngestionJob {
 
@@ -32,7 +40,7 @@ public class IngestionJob {
     @Column(nullable = false)
     private UUID projectId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 512)
     private String storageKey;
 
     @Column(nullable = false)
