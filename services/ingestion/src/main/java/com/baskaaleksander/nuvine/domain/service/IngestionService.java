@@ -43,7 +43,7 @@ public class IngestionService {
             return;
         }
 
-        log.info("INGESTION_PROCESS EXTRACTION_SUCCESS text={}", extractedDocument.text());
+        log.info("INGESTION_PROCESS EXTRACTION_SUCCESS documentId={}", event.documentId());
 
 
         log.info("INGESTION_PROCESS END documentId={}", event.documentId());
