@@ -21,6 +21,8 @@ public class DocumentUploadedEventProducer {
     private final KafkaTemplate<String, DocumentUploadedEvent> kafkaTemplate;
 
     public void sendDocumentUploadedEvent(DocumentUploadedEvent event) {
+        log.info("DOCUMENT_UPLOADED EVENT START documentId={}", event.documentId());
+
         Message<DocumentUploadedEvent> message = MessageBuilder
                 .withPayload(event)
                 .setHeader(KafkaHeaders.TOPIC, topic)
@@ -28,6 +30,6 @@ public class DocumentUploadedEventProducer {
 
         kafkaTemplate.send(message);
 
-        log.info("DOCUMENT_UPLOADED EVENT SENT documentId={}", event.documentId());
+        log.info("DOCUMENT_UPLOADED EVENT END documentId={}", event.documentId());
     }
 }

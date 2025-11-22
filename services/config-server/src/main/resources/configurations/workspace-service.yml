@@ -10,13 +10,13 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:
+    bootstrap-servers: ${KAFKA_HOST}
     producer:
-      bootstrap-servers: ${KAFKA_HOST}
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.type.mapping: >
-          workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent
+          workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
           documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent
 keycloak:
   auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token

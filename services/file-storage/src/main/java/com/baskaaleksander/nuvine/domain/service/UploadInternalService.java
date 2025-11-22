@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.dto.UploadCompletedRequest;
 import com.baskaaleksander.nuvine.application.util.StorageKeyUtil;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceServiceClient;
 import com.fasterxml.jackson.databind.JsonNode;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,14 +51,22 @@ public class UploadInternalService {
             return;
         }
 
-        client.uploadCompleted(
-                docInfo.documentId(),
-                new UploadCompletedRequest(
-                        decodedKey,
-                        contentType,
-                        size
-                )
-        );
+        try {
+            log.info("[MINIO-HANDLER] Calling workspace uploadCompleted docId={} ...", docInfo.documentId());
+
+            client.uploadCompleted(
+                    docInfo.documentId(),
+                    new UploadCompletedRequest(
+                            decodedKey,
+                            contentType,
+                            size
+                    )
+            );
+            log.info("[MINIO-HANDLER] Workspace uploadCompleted OK docId={}", docInfo.documentId());
+
+        } catch (FeignException e) {
+            log.error("[MINIO-HANDLER] Workspace uploadCompleted FAILED docId={}", docInfo.documentId(), e);
+        }
 
         log.info("MINIO_EVENT HANDLED documentId={}", docInfo.documentId());
 
