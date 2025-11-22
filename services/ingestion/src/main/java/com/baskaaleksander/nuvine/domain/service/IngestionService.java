@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static java.util.UUID.fromString;
 
@@ -31,48 +32,33 @@ public class IngestionService {
         job = updateIngestionJobStatus(job, IngestionStatus.PROCESSING);
         job = updateIngestionJobStage(job, IngestionStage.FETCH);
 
-        byte[] document;
+        byte[] document = executeStage(
+                job,
+                IngestionStage.FETCH,
+                "FETCHING",
+                true,
+                () -> documentFetcher.fetch(event.storageKey())
+        );
 
-        try {
-            document = documentFetcher.fetch(event.storageKey());
-        } catch (Exception e) {
-            log.error("INGESTION_PROCESS FETCHING_FAILED documentId={}", event.documentId(), e);
-            updateIngestionJobStatus(job, IngestionStatus.FAILED);
-            throw e;
-        }
+        ExtractedDocument extractedDocument = executeStage(
+                job,
+                IngestionStage.PARSE,
+                "EXTRACTION",
+                false,
+                () -> extractionService.extract(document, event.mimeType())
+        );
 
-        job = updateIngestionJobStage(job, IngestionStage.PARSE);
-        log.info("INGESTION_PROCESS DOCUMENT_FETCHED size={}", document.length);
+        List<Chunk> chunks = executeStage(
+                job,
+                IngestionStage.CHUNK,
+                "CHUNKING",
+                false,
+                () -> chunkerService.chunkDocument(extractedDocument, UUID.fromString(event.documentId()))
+        );
 
-        ExtractedDocument extractedDocument;
-        try {
-            log.info("INGESTION_PROCESS EXTRACTION_START documentId={}", event.documentId());
-            extractedDocument = extractionService.extract(document, event.mimeType());
-        } catch (Exception e) {
-            log.error("INGESTION_PROCESS EXTRACTION_FAILED documentId={}", event.documentId(), e);
-            updateIngestionJobStatus(job, IngestionStatus.FAILED);
-            return;
-        }
-
-        job = updateIngestionJobStage(job, IngestionStage.CHUNK);
-        log.info("INGESTION_PROCESS EXTRACTION_SUCCESS documentId={} text-length={}", event.documentId(), extractedDocument.text().length());
-
-        List<Chunk> chunks;
-
-        try {
-            log.info("INGESTION_PROCESS CHUNKING_START documentId={}", event.documentId());
-            chunks = chunkerService.chunkDocument(extractedDocument, UUID.fromString(event.documentId()));
-        } catch (Exception e) {
-            log.error("INGESTION_PROCESS CHUNKING_FAILED documentId={}", event.documentId(), e);
-            updateIngestionJobStatus(job, IngestionStatus.FAILED);
-            return;
-        }
-
-        log.info("INGESTION_PROCESS CHUNKING_SUCCESS documentId={} chunk-count={}", event.documentId(), chunks.size());
-
+        job = updateIngestionJobStatus(job, IngestionStatus.COMPLETED);
 
         log.info("INGESTION_PROCESS END documentId={}", event.documentId());
-
     }
 
     private IngestionJob createIngestionJob(DocumentUploadedEvent event) {
@@ -98,5 +84,34 @@ public class IngestionService {
     private IngestionJob updateIngestionJobStage(IngestionJob job, IngestionStage stage) {
         job.setStage(stage);
         return ingestionJobRepository.save(job);
+    }
+
+    private <T> T executeStage(
+            IngestionJob job,
+            IngestionStage stage,
+            String actionName,
+            boolean retryable,
+            Supplier<T> supplier
+    ) {
+        job = updateIngestionJobStage(job, stage);
+        log.info("INGESTION_PROCESS {}_START documentId={}", actionName, job.getDocumentId());
+
+        try {
+            T result = supplier.get();
+            log.info("INGESTION_PROCESS {}_SUCCESS documentId={}", actionName, job.getDocumentId());
+            return result;
+        } catch (Exception e) {
+            log.error("INGESTION_PROCESS {}_FAILED documentId={}", actionName, job.getDocumentId(), e);
+
+            if (!retryable) {
+                updateIngestionJobStatus(job, IngestionStatus.FAILED);
+            }
+
+            if (retryable) {
+                throw e;
+            } else {
+                return null;
+            }
+        }
     }
 }
