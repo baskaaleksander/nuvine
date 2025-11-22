@@ -17,8 +17,17 @@ import static java.util.UUID.fromString;
 public class IngestionService {
 
     private final IngestionJobRepository ingestionJobRepository;
+    private final DocumentFetcher documentFetcher;
 
     public void process(DocumentUploadedEvent event) {
+        log.info("INGESTION_PROCESS START documentId={}", event.documentId());
+
+        byte[] document = documentFetcher.fetch(event.storageKey());
+
+        log.info("INGESTION_PROCESS DOCUMENT_FETCHED size={}", document.length);
+
+        log.info("INGESTION_PROCESS END documentId={}", event.documentId());
+
         IngestionJob job = IngestionJob.builder()
                 .documentId(fromString(event.documentId()))
                 .workspaceId(fromString(event.workspaceId()))
