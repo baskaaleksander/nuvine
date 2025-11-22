@@ -40,7 +40,7 @@ public class IngestionService {
         } catch (Exception e) {
             log.error("INGESTION_PROCESS EXTRACTION_FAILED documentId={}", event.documentId(), e);
             updateIngestionJobStatus(job, IngestionStatus.FAILED);
-            throw e;
+            return;
         }
 
         log.info("INGESTION_PROCESS EXTRACTION_SUCCESS text={}", extractedDocument.text());
