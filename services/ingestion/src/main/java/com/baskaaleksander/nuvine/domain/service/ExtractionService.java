@@ -19,12 +19,19 @@ public class ExtractionService {
 
     public ExtractedDocument extract(byte[] document, String mimeType) {
 
+        log.info("EXTRACTION START");
+
         IngestionDocumentType type = typeResolver.resolve(mimeType);
+
+        log.info("EXTRACTION TYPE RESOLVED type={}", type);
 
         return extractors.stream()
                 .filter(extractor -> extractor.supports(type))
                 .findFirst()
                 .map(extractor -> extractor.extractText(document, mimeType))
-                .orElseThrow(() -> new IllegalArgumentException("Unsupported document type: " + type));
+                .orElseThrow(() -> {
+                    log.info("EXTRACTION FAILED reason=unsupported_filetype");
+                    return new IllegalArgumentException("Unsupported document type: " + type);
+                });
     }
 }
