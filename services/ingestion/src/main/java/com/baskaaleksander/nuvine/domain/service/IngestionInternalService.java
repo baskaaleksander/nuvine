@@ -30,6 +30,7 @@ public class IngestionInternalService {
     private final IngestionJobMapper mapper;
 
     public PagedResponse<IngestionJobConciseResponse> getAllJobs(String workspaceId, String projectId, IngestionStatus status, PaginationRequest request) {
+        log.info("GET_ALL_JOBS START workspaceId={} projectId={} status={}", workspaceId, projectId, status);
         Pageable pageable = PaginationUtil.getPageable(request);
 
         UUID workspaceUuid = workspaceId != null ? UUID.fromString(workspaceId) : null;
@@ -42,6 +43,8 @@ public class IngestionInternalService {
         );
 
         Page<IngestionJob> page = ingestionJobRepository.findAll(spec, pageable);
+
+        log.info("GET_ALL_JOBS END workspaceId={} projectId={} status={}", workspaceId, projectId, status);
 
         List<IngestionJobConciseResponse> content = page.getContent().stream().map(mapper::toConciseResponse).toList();
 
@@ -57,9 +60,13 @@ public class IngestionInternalService {
     }
 
     public IngestionJobResponse getJobByDocId(UUID docId) {
-        return mapper.toResponse(
-                ingestionJobRepository.findByDocumentId(docId)
-                        .orElseThrow(() -> new IngestionJobNotFoundException("Job not found"))
-        );
+        log.info("GET_JOB_BY_DOC_ID START docId={}", docId);
+        IngestionJob job = ingestionJobRepository.findByDocumentId(docId)
+                .orElseThrow(() -> {
+                    log.info("GET_JOB_BY_DOC_ID FAILED reason=job_not_found");
+                    return new IngestionJobNotFoundException("Job not found");
+                });
+        return mapper.toResponse(job);
+
     }
 }

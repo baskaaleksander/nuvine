@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.messaging;
+package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 
 import com.baskaaleksander.nuvine.domain.exception.IngestionJobNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;

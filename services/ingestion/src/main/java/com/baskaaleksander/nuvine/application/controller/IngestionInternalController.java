@@ -1,7 +1,11 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.IngestionJobConciseResponse;
+import com.baskaaleksander.nuvine.application.dto.IngestionJobResponse;
+import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
+import com.baskaaleksander.nuvine.domain.service.IngestionCommandService;
 import com.baskaaleksander.nuvine.domain.service.IngestionInternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -17,9 +21,10 @@ import java.util.UUID;
 public class IngestionInternalController {
 
     private final IngestionInternalService service;
+    private final IngestionCommandService commandService;
 
     @GetMapping
-    public ResponseEntity<?> getAllJobs(
+    public ResponseEntity<PagedResponse<IngestionJobConciseResponse>> getAllJobs(
             @RequestParam(value = "workspaceId", required = false) String workspaceId,
             @RequestParam(value = "projectId", required = false) String projectId,
             @RequestParam(value = "status", required = false) IngestionStatus status,
@@ -34,15 +39,18 @@ public class IngestionInternalController {
     }
 
     @GetMapping("/{documentId}")
-    public ResponseEntity<?> getJobByDocumentId(
+    public ResponseEntity<IngestionJobResponse> getJobByDocumentId(
             @PathVariable UUID documentId
     ) {
         return ResponseEntity.ok(service.getJobByDocId(documentId));
     }
 
     @PostMapping("/{documentId}/start")
-    public ResponseEntity<?> startJob() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> startJob(
+            @PathVariable("documentId") String documentId
+    ) {
+        commandService.startIngestionJob(documentId);
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/{documentId}/retry")

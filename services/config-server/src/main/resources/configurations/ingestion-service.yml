@@ -31,8 +31,9 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
-        spring.json.type.mapping:
-
+        spring.json.type.mapping: >
+          documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent
+          
 s3:
   bucket-name: ${MINIO_BUCKET_NAME}
   internal-url: ${MINIO_INTERNAL_URL}
