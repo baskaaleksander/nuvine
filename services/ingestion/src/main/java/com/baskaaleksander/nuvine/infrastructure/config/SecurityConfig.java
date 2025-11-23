@@ -33,8 +33,8 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/internal/ingestion/**").hasRole("INTERNAL_SERVICE")
-                        .anyRequest().authenticated()
+//                        .requestMatchers("/api/v1/internal/ingestion/**").hasRole("INTERNAL_SERVICE")
+                                .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->
                         resourceServer.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

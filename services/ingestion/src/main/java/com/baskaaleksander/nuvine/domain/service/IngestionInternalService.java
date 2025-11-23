@@ -1,7 +1,9 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.IngestionJobConciseResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
+import com.baskaaleksander.nuvine.application.mapper.IngestionJobMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,8 +25,9 @@ import java.util.UUID;
 public class IngestionInternalService {
 
     private final IngestionJobRepository ingestionJobRepository;
+    private final IngestionJobMapper mapper;
 
-    public PagedResponse<IngestionJob> getAllJobs(String workspaceId, String projectId, IngestionStatus status, PaginationRequest request) {
+    public PagedResponse<IngestionJobConciseResponse> getAllJobs(String workspaceId, String projectId, IngestionStatus status, PaginationRequest request) {
         Pageable pageable = PaginationUtil.getPageable(request);
 
         UUID workspaceUuid = workspaceId != null ? UUID.fromString(workspaceId) : null;
@@ -37,6 +41,16 @@ public class IngestionInternalService {
 
         Page<IngestionJob> page = ingestionJobRepository.findAll(spec, pageable);
 
+        List<IngestionJobConciseResponse> content = page.getContent().stream().map(mapper::toConciseResponse).toList();
 
+        return new PagedResponse<>(
+                content,
+                page.getTotalPages(),
+                page.getTotalElements(),
+                page.getSize(),
+                page.getNumber(),
+                page.isLast(),
+                page.hasNext()
+        );
     }
 }
