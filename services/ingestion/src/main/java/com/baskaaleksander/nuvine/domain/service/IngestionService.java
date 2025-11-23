@@ -30,7 +30,6 @@ public class IngestionService {
         log.info("INGESTION_PROCESS START documentId={}", event.documentId());
 
         job = updateIngestionJobStatus(job, IngestionStatus.PROCESSING);
-        job = updateIngestionJobStage(job, IngestionStage.FETCH);
 
         byte[] document = executeStage(
                 job,
@@ -48,6 +47,10 @@ public class IngestionService {
                 () -> extractionService.extract(document, event.mimeType())
         );
 
+        if (extractedDocument == null) {
+            return;
+        }
+
         List<Chunk> chunks = executeStage(
                 job,
                 IngestionStage.CHUNK,
@@ -63,17 +66,20 @@ public class IngestionService {
 
     private IngestionJob createIngestionJob(DocumentUploadedEvent event) {
 
-        IngestionJob job = IngestionJob.builder()
-                .documentId(fromString(event.documentId()))
-                .workspaceId(fromString(event.workspaceId()))
-                .projectId(fromString(event.projectId()))
-                .storageKey(event.storageKey())
-                .mimeType(event.mimeType())
-                .status(IngestionStatus.QUEUED)
-                .stage(IngestionStage.QUEUED)
-                .build();
-
-        return ingestionJobRepository.save(job);
+        return ingestionJobRepository.findByDocumentId(UUID.fromString(event.documentId()))
+                .orElseGet(() -> {
+                            IngestionJob job = IngestionJob.builder()
+                                    .documentId(fromString(event.documentId()))
+                                    .workspaceId(fromString(event.workspaceId()))
+                                    .projectId(fromString(event.projectId()))
+                                    .storageKey(event.storageKey())
+                                    .mimeType(event.mimeType())
+                                    .status(IngestionStatus.QUEUED)
+                                    .stage(IngestionStage.QUEUED)
+                                    .build();
+                            return ingestionJobRepository.save(job);
+                        }
+                );
     }
 
     private IngestionJob updateIngestionJobStatus(IngestionJob job, IngestionStatus status) {
@@ -84,6 +90,18 @@ public class IngestionService {
     private IngestionJob updateIngestionJobStage(IngestionJob job, IngestionStage stage) {
         job.setStage(stage);
         return ingestionJobRepository.save(job);
+    }
+
+    private void saveError(IngestionJob job, String message, boolean incrementRetryCount) {
+        job.setLastError(message);
+
+        if (incrementRetryCount) {
+            job.setRetryCount(job.getRetryCount() + 1);
+        } else {
+            job.setStatus(IngestionStatus.FAILED);
+        }
+
+        ingestionJobRepository.save(job);
     }
 
     private <T> T executeStage(
@@ -103,13 +121,12 @@ public class IngestionService {
         } catch (Exception e) {
             log.error("INGESTION_PROCESS {}_FAILED documentId={}", actionName, job.getDocumentId(), e);
 
-            if (!retryable) {
-                updateIngestionJobStatus(job, IngestionStatus.FAILED);
-            }
-
             if (retryable) {
+                saveError(job, e.getMessage(), true);
                 throw e;
             } else {
+                updateIngestionJobStatus(job, IngestionStatus.FAILED);
+                saveError(job, e.getMessage(), false);
                 return null;
             }
         }
