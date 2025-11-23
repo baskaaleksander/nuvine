@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.infrastructure.messaging;
 
+import com.baskaaleksander.nuvine.domain.exception.IngestionJobNotFound;
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
@@ -33,7 +34,7 @@ public class DocumentUploadDlqConsumer {
         UUID documentId = UUID.fromString(event.documentId());
 
         IngestionJob job = jobRepository.findByDocumentId(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new IngestionJobNotFound("Document not found"));
 
         job.setStatus(IngestionStatus.FAILED);
         job.setLastError("FAILED_AFTER_MAX_RETRIES (attempts=" + deliveryAttempt + ")");
