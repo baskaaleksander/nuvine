@@ -59,6 +59,10 @@ public class IngestionService {
                 () -> chunkerService.chunkDocument(extractedDocument, UUID.fromString(event.documentId()))
         );
 
+        if (chunks == null) {
+            return;
+        }
+
         job = updateIngestionJobStatus(job, IngestionStatus.COMPLETED);
 
         log.info("INGESTION_PROCESS END documentId={}", event.documentId());
