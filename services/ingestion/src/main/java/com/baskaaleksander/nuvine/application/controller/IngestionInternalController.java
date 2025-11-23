@@ -18,9 +18,9 @@ public class IngestionInternalController {
 
     @GetMapping
     public ResponseEntity<?> getAllJobs(
-            @RequestParam("workspaceId") String workspaceId,
-            @RequestParam("projectId") String projectId,
-            @RequestParam("status") IngestionStatus status,
+            @RequestParam(value = "workspaceId", required = false) String workspaceId,
+            @RequestParam(value = "projectId", required = false) String projectId,
+            @RequestParam(value = "status", required = false) IngestionStatus status,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(defaultValue = "id") String sortField,
