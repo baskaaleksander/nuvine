@@ -1,10 +1,12 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.IngestionJobConciseResponse;
+import com.baskaaleksander.nuvine.application.dto.IngestionJobResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.application.mapper.IngestionJobMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.IngestionJobNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
 import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobRepository;
@@ -51,6 +53,13 @@ public class IngestionInternalService {
                 page.getNumber(),
                 page.isLast(),
                 page.hasNext()
+        );
+    }
+
+    public IngestionJobResponse getJobByDocId(UUID docId) {
+        return mapper.toResponse(
+                ingestionJobRepository.findByDocumentId(docId)
+                        .orElseThrow(() -> new IngestionJobNotFoundException("Job not found"))
         );
     }
 }

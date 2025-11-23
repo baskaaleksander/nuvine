@@ -8,6 +8,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/internal/ingestion/jobs")
 @RequiredArgsConstructor
@@ -32,8 +34,10 @@ public class IngestionInternalController {
     }
 
     @GetMapping("/{documentId}")
-    public ResponseEntity<?> getJobByDocumentId() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> getJobByDocumentId(
+            @PathVariable UUID documentId
+    ) {
+        return ResponseEntity.ok(service.getJobByDocId(documentId));
     }
 
     @PostMapping("/{documentId}/start")
