@@ -54,8 +54,11 @@ public class IngestionInternalController {
     }
 
     @PostMapping("/{documentId}/retry")
-    public ResponseEntity<?> retryJob() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> retryJob(
+            @PathVariable String documentId
+    ) {
+        commandService.retryIngestionJob(documentId);
+        return ResponseEntity.accepted().build();
     }
 
 }
