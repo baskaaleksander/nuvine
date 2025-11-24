@@ -21,6 +21,7 @@ public class ChunkerService {
 
     public List<Chunk> chunkDocument(ExtractedDocument extractedDocument, UUID documentId) {
         String rawText = extractedDocument.text();
+        System.out.println("rawText:" + rawText);
         if (rawText == null || rawText.isBlank()) {
             return List.of();
         }
