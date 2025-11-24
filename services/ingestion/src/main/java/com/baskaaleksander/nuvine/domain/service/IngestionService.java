@@ -95,20 +95,24 @@ public class IngestionService {
                 );
     }
 
-    private IngestionJob updateIngestionJobStatus(IngestionJob job, IngestionStatus status) {
-        IngestionJob currentJob = ingestionJobRepository.findById(job.getId())
-                .orElseThrow(() -> new IllegalStateException("Job not found: " + job.getId()));
+    private IngestionJob updateIngestionJobStage(IngestionJob job, IngestionStage stage) {
+        job.setStage(stage);
 
-        currentJob.setStatus(status);
-        return ingestionJobRepository.save(currentJob);
+        IngestionJob savedJob = ingestionJobRepository.save(job);
+
+        job.setVersion(savedJob.getVersion());
+        job.setUpdatedAt(savedJob.getUpdatedAt());
+
+        return savedJob;
     }
 
-    private IngestionJob updateIngestionJobStage(IngestionJob job, IngestionStage stage) {
-        IngestionJob currentJob = ingestionJobRepository.findById(job.getId())
-                .orElseThrow(() -> new IllegalStateException("Job not found: " + job.getId()));
+    private IngestionJob updateIngestionJobStatus(IngestionJob job, IngestionStatus status) {
+        job.setStatus(status);
+        IngestionJob savedJob = ingestionJobRepository.save(job);
 
-        currentJob.setStage(stage);
-        return ingestionJobRepository.save(currentJob);
+        job.setVersion(savedJob.getVersion());
+
+        return savedJob;
     }
 
     private void saveError(IngestionJob job, String message, boolean incrementRetryCount) {
