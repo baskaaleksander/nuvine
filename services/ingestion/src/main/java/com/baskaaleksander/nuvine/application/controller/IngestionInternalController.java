@@ -47,7 +47,7 @@ public class IngestionInternalController {
 
     @PostMapping("/{documentId}/start")
     public ResponseEntity<Void> startJob(
-            @PathVariable("documentId") String documentId
+            @PathVariable String documentId
     ) {
         commandService.startIngestionJob(documentId);
         return ResponseEntity.accepted().build();

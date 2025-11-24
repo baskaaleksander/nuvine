@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.Arrays;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,6 +29,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+        System.out.println(ex.getMessage());
+        System.out.println(ex.getClass());
+        System.out.println(Arrays.toString(ex.getStackTrace()));
         ErrorResponse errorResponse = new ErrorResponse(
                 500,
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),

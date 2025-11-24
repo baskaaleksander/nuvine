@@ -22,8 +22,7 @@ public class DocumentInternalController {
     private final DocumentInternalService documentInternalService;
 
     @PreAuthorize(
-            "@docAccess.canManageDocument(#documentId, #jwt.subject) " +
-                    "or hasRole('INTERNAL_SERVICE')"
+            "@docAccess.canManageDocument(#documentId, #jwt.subject)"
     )
     @GetMapping("/{documentId}")
     public ResponseEntity<DocumentInternalResponse> getDocumentById(

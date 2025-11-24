@@ -22,7 +22,7 @@ public class IngestionCommandService {
 
     public void startIngestionJob(String documentId) {
         DocumentInternalResponse document = fetchDocumentOrThrow(documentId);
-        
+
         DocumentUploadedEvent event = new DocumentUploadedEvent(
                 document.id().toString(),
                 document.workspaceId().toString(),
@@ -40,6 +40,8 @@ public class IngestionCommandService {
             return workspaceServiceClient.getInternalDocument(documentId);
         } catch (FeignException ex) {
             int status = ex.status();
+            String message = ex.getMessage();
+            log.info(message);
             if (status == 404) {
                 throw new DocumentNotFoundException("Document not found");
             } else if (status == 401 || status == 403) {
