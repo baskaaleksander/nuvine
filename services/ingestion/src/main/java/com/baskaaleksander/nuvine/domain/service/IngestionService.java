@@ -27,6 +27,11 @@ public class IngestionService {
     public void process(DocumentUploadedEvent event) {
         IngestionJob job = createIngestionJob(event);
 
+        if (job.getStatus() == IngestionStatus.COMPLETED) {
+            log.info("INGESTION_PROCESS END reason=job_completed documentId={}", event.documentId());
+            return;
+        }
+
         log.info("INGESTION_PROCESS START documentId={}", event.documentId());
 
         job = updateIngestionJobStatus(job, IngestionStatus.PROCESSING);
@@ -48,6 +53,7 @@ public class IngestionService {
         );
 
         if (extractedDocument == null) {
+            log.info("INGESTION_PROCESS FAILED reason=extracted_document_null documentId={}", event.documentId());
             return;
         }
 
@@ -60,8 +66,11 @@ public class IngestionService {
         );
 
         if (chunks == null) {
+            log.error("INGESTION_PROCESS CHUNKING_SKIPPED chunks_null documentId={}", event.documentId());
             return;
         }
+
+        log.info("INGESTION_PROCESS CHUNKING_RESULT size={} documentId={}", chunks.size(), event.documentId());
 
         job = updateIngestionJobStatus(job, IngestionStatus.COMPLETED);
 
@@ -86,14 +95,24 @@ public class IngestionService {
                 );
     }
 
-    private IngestionJob updateIngestionJobStatus(IngestionJob job, IngestionStatus status) {
-        job.setStatus(status);
-        return ingestionJobRepository.save(job);
-    }
-
     private IngestionJob updateIngestionJobStage(IngestionJob job, IngestionStage stage) {
         job.setStage(stage);
-        return ingestionJobRepository.save(job);
+
+        IngestionJob savedJob = ingestionJobRepository.save(job);
+
+        job.setVersion(savedJob.getVersion());
+        job.setUpdatedAt(savedJob.getUpdatedAt());
+
+        return savedJob;
+    }
+
+    private IngestionJob updateIngestionJobStatus(IngestionJob job, IngestionStatus status) {
+        job.setStatus(status);
+        IngestionJob savedJob = ingestionJobRepository.save(job);
+
+        job.setVersion(savedJob.getVersion());
+
+        return savedJob;
     }
 
     private void saveError(IngestionJob job, String message, boolean incrementRetryCount) {
@@ -115,15 +134,16 @@ public class IngestionService {
             boolean retryable,
             Supplier<T> supplier
     ) {
-        job = updateIngestionJobStage(job, stage);
-        log.info("INGESTION_PROCESS {}_START documentId={}", actionName, job.getDocumentId());
-
         try {
+            job = updateIngestionJobStage(job, stage);
+            log.info("INGESTION_PROCESS {}_START documentId={}", actionName, job.getDocumentId());
+
             T result = supplier.get();
             log.info("INGESTION_PROCESS {}_SUCCESS documentId={}", actionName, job.getDocumentId());
             return result;
         } catch (Exception e) {
-            log.error("INGESTION_PROCESS {}_FAILED documentId={}", actionName, job.getDocumentId(), e);
+            log.error("INGESTION_PROCESS {}_FAILED stage={} documentId={}",
+                    actionName, stage, job != null ? job.getDocumentId() : null, e);
 
             if (retryable) {
                 saveError(job, e.getMessage(), true);

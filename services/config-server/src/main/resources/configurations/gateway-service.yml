@@ -45,5 +45,9 @@ spring:
               uri: lb://file-storage-service
               predicates:
                 - Path=/api/v1/internal/file-storage/**
+            - id: ingestion-service-internal
+              uri: lb://ingestion-service
+              predicates:
+                - Path=/api/v1/internal/ingestion/**
 server:
   port: 8222
