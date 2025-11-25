@@ -49,5 +49,9 @@ spring:
               uri: lb://ingestion-service
               predicates:
                 - Path=/api/v1/internal/ingestion/**
+            - id: llm-router-service-internal
+              uri: lb://llm-router-service
+              predicates:
+                - Path=/api/v1/internal/llm/**
 server:
   port: 8222

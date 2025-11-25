@@ -1,2 +1,17 @@
+spring:
+  datasource:
+    url: ${POSTGRES_LLM_ROUTER_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
 server:
   port: 8090
+
+api-key:
+  openai: ${OPENAI_API_KEY}
