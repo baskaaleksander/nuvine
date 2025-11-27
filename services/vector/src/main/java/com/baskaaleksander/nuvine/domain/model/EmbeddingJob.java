@@ -56,6 +56,9 @@ public class EmbeddingJob {
     @Column(nullable = false)
     private int processedChunks;
 
+    @Column(length = 50)
+    private String modelUsed;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
