@@ -1,5 +1,8 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
+import io.grpc.Grpc;
+import io.grpc.InsecureChannelCredentials;
+import io.grpc.ManagedChannel;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,8 +14,15 @@ public class QdrantConfig {
 
     @Bean
     public QdrantClient qdrantClient(QdrantProperties props) {
+
+        ManagedChannel channel = Grpc.newChannelBuilderForAddress(
+                props.host(),
+                props.port(),
+                InsecureChannelCredentials.create()
+        ).build();
+
         QdrantGrpcClient.Builder builder = QdrantGrpcClient
-                .newBuilder(props.host(), props.port());
+                .newBuilder(channel);
 
         if (props.apiKey() != null) {
             builder = builder.withApiKey(props.apiKey());

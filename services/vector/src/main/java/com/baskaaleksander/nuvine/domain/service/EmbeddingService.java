@@ -23,6 +23,7 @@ public class EmbeddingService {
 
     private final EmbeddingRequestEventProducer embeddingRequestEventProducer;
     private final EmbeddingJobRepository jobRepository;
+    private final VectorStorageService vectorStorageService;
 
     public void process(VectorProcessingRequestEvent event) {
         int totalChunks = event.chunks().size();
@@ -56,9 +57,12 @@ public class EmbeddingService {
         EmbeddingJob job = jobRepository.findById(UUID.fromString(event.ingestionJobId()))
                 .orElseThrow(() -> new RuntimeException("Job not found"));
 
+        vectorStorageService.upsert(event.embeddedChunks());
+
         job.setProcessedChunks(job.getProcessedChunks() + event.embeddedChunks().size());
         if (job.getProcessedChunks() == job.getTotalChunks()) {
             job.setStatus(EmbeddingStatus.COMPLETED);
+            job.setModelUsed(event.model());
         }
         jobRepository.save(job);
     }
