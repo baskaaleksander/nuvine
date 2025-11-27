@@ -3,6 +3,8 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.domain.service.chunker.ChunkerService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.VectorProcessingEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ public class IngestionService {
     private final DocumentFetcher documentFetcher;
     private final ExtractionService extractionService;
     private final ChunkerService chunkerService;
+    private final VectorProcessingEventProducer vectorProcessingEventProducer;
 
     public void process(DocumentUploadedEvent event) {
         IngestionJob job = createIngestionJob(event);
@@ -72,9 +75,17 @@ public class IngestionService {
 
         log.info("INGESTION_PROCESS CHUNKING_RESULT size={} documentId={}", chunks.size(), event.documentId());
 
-        job = updateIngestionJobStatus(job, IngestionStatus.COMPLETED);
+        vectorProcessingEventProducer.sendVectorProcessingRequestEvent(
+                new VectorProcessingRequestEvent(
+                        job.getId().toString(),
+                        event.documentId(),
+                        event.projectId(),
+                        event.workspaceId(),
+                        chunks
+                )
+        );
 
-        log.info("INGESTION_PROCESS END documentId={}", event.documentId());
+        updateIngestionJobStage(job, IngestionStage.EMBED);
     }
 
     private IngestionJob createIngestionJob(DocumentUploadedEvent event) {

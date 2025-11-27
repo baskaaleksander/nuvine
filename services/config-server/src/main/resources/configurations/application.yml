@@ -29,6 +29,9 @@ topics:
   user-registered-topic: user-registered-topic
   workspace-member-added-topic: workspace-member-added-topic
   document-uploaded-topic: document-uploaded-topic
+  embedding-request-topic: embedding-request-topic
+  embedding-completed-topic: embedding-completed-topic
+  vector-processing-request-topic: vector-processing-request-topic
 
 crypto:
   notifications:
