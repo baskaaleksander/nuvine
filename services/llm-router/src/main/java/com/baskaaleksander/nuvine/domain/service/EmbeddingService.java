@@ -19,9 +19,9 @@ public class EmbeddingService {
     private final OpenAIEmbeddingClient embeddingClient;
 
     public List<EmbeddedChunk> createEmbeddings(List<Chunk> chunks) {
-        List<List<Float>> embeddings = createEmbedding(chunks.stream().map(Chunk::content).toList());
+//        List<List<Float>> embeddings = createEmbedding(chunks.stream().map(Chunk::content).toList());
         return chunks.stream()
-                .map(chunk -> new EmbeddedChunk(chunk.documentId(), chunk.page(), chunk.startOffset(), chunk.endOffset(), embeddings.get(chunk.index()), chunk.index()))
+                .map(chunk -> new EmbeddedChunk(chunk.documentId(), chunk.page(), chunk.startOffset(), chunk.endOffset(), List.of(0.0f), chunk.index()))
                 .toList();
     }
 
