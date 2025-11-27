@@ -17,14 +17,14 @@ public class EmbeddingService {
     private final OpenAIEmbeddingClient embeddingClient;
 
     public EmbeddingResponse createEmbeddings(EmbeddingRequest request) {
-        List<List<Float>> embeddings = createEmbedding(request.texts(), request.model());
+        List<List<Float>> embeddings = createEmbedding(request.texts());
         return new EmbeddingResponse(
                 embeddings,
                 request.model()
         );
     }
 
-    private List<List<Float>> createEmbedding(List<String> input, String model) {
+    private List<List<Float>> createEmbedding(List<String> input) {
         List<List<Float>> embeddings;
         try {
             embeddings = embeddingClient.embed(input);

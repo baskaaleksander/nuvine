@@ -37,22 +37,13 @@ public class EmbeddingService {
                 .build();
 
         job = jobRepository.save(job);
-        
+
         List<List<Chunk>> partitionedChunks = partition(event.chunks(), 10);
 
         for (var batch : partitionedChunks) {
-            List<Integer> indexes = batch.stream()
-                    .map(Chunk::index)
-                    .toList();
-
-            List<String> texts = batch.stream()
-                    .map(Chunk::content)
-                    .toList();
-
             EmbeddingRequestEvent batchEvent = new EmbeddingRequestEvent(
                     job.getId().toString(),
-                    texts,
-                    indexes,
+                    batch,
                     "text-embedding-3-small"
             );
 
