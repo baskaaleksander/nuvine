@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 
+import com.baskaaleksander.nuvine.domain.service.EmbeddingService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +12,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class VectorProcessingRequestEventConsumer {
 
+    private final EmbeddingService embeddingService;
+
     @KafkaListener(topics = "${topics.vector-processing-request-topic}")
     public void consumeVectorProcessingRequestEvent(VectorProcessingRequestEvent event) {
         log.info("VECTOR_PROCESSING_REQUEST_EVENT received ingestionJobId={}", event.ingestionJobId());
+        embeddingService.process(event);
+        log.info("VECTOR_PROCESSING_REQUEST_EVENT processed ingestionJobId={}", event.ingestionJobId());
     }
 }

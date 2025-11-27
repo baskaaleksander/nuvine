@@ -6,6 +6,7 @@ import com.baskaaleksander.nuvine.domain.model.EmbeddingStatus;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.EmbeddingRequestEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.repository.EmbeddingJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class EmbeddingService {
 
     private final EmbeddingRequestEventProducer embeddingRequestEventProducer;
+    private final EmbeddingJobRepository jobRepository;
 
     public void process(VectorProcessingRequestEvent event) {
         int totalChunks = event.chunks().size();
@@ -34,6 +36,8 @@ public class EmbeddingService {
                 .status(EmbeddingStatus.IN_PROGRESS)
                 .build();
 
+        job = jobRepository.save(job);
+        
         List<List<Chunk>> partitionedChunks = partition(event.chunks(), 10);
 
         for (var batch : partitionedChunks) {
