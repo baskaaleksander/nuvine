@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.domain.model.Chunk;
 import com.baskaaleksander.nuvine.domain.model.EmbeddingJob;
 import com.baskaaleksander.nuvine.domain.model.EmbeddingStatus;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.EmbeddingRequestEventProducer;
@@ -37,27 +38,29 @@ public class EmbeddingService {
                 .build();
 
         job = jobRepository.save(job);
-        
+
         List<List<Chunk>> partitionedChunks = partition(event.chunks(), 10);
 
         for (var batch : partitionedChunks) {
-            List<Integer> indexes = batch.stream()
-                    .map(Chunk::index)
-                    .toList();
-
-            List<String> texts = batch.stream()
-                    .map(Chunk::content)
-                    .toList();
-
             EmbeddingRequestEvent batchEvent = new EmbeddingRequestEvent(
                     job.getId().toString(),
-                    texts,
-                    indexes,
+                    batch,
                     "text-embedding-3-small"
             );
 
             embeddingRequestEventProducer.sendEmbeddingRequestEvent(batchEvent);
         }
+    }
+
+    public void processEmbeddingCompletedEvent(EmbeddingCompletedEvent event) {
+        EmbeddingJob job = jobRepository.findById(UUID.fromString(event.ingestionJobId()))
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        job.setProcessedChunks(job.getProcessedChunks() + event.embeddedChunks().size());
+        if (job.getProcessedChunks() == job.getTotalChunks()) {
+            job.setStatus(EmbeddingStatus.COMPLETED);
+        }
+        jobRepository.save(job);
     }
 
     private static <T> List<List<T>> partition(List<T> list, int size) {
