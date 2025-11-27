@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class VectorProcessingRequestEventConsumer {
 
     @KafkaListener(topics = "${topics.vector-processing-request-topic}")
-    public void listen(VectorProcessingRequestEvent event) {
+    public void consumeVectorProcessingRequestEvent(VectorProcessingRequestEvent event) {
         log.info("VECTOR_PROCESSING_REQUEST_EVENT received ingestionJobId={}", event.ingestionJobId());
     }
 }

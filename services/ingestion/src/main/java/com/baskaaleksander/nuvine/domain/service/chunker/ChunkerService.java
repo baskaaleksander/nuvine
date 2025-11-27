@@ -45,17 +45,18 @@ public class ChunkerService {
 
         List<SentenceSpan> current = new ArrayList<>();
         int currentTokens = 0;
+        int chunkIndex = 0;
 
         for (SentenceSpan s : sentences) {
             int sTokens = tokenizer.count(s.text());
 
             if (sTokens > maxTokens) {
                 if (!current.isEmpty()) {
-                    Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar);
+                    Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar, chunkIndex++);
                     out.add(ch);
                 }
 
-                out.addAll(splitLongSentenceToChunks(rawText, documentId, page, s, maxTokens, overlapTokens));
+                out.addAll(splitLongSentenceToChunks(rawText, documentId, page, s, maxTokens, overlapTokens, chunkIndex++));
 
                 chunkStartChar = s.end();
                 continue;
@@ -66,7 +67,7 @@ public class ChunkerService {
                 current.add(s);
                 currentTokens += sTokens;
             } else {
-                Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar);
+                Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar, chunkIndex++);
                 out.add(ch);
 
                 int overlapStart = computeOverlapStartChar(rawText, current, overlapTokens);
@@ -77,7 +78,7 @@ public class ChunkerService {
                 currentTokens = tokenizer.count(concatText(rawText, overlapped, overlapStart, overlapped.get(overlapped.size() - 1).end()));
 
                 if (currentTokens + sTokens > maxTokens) {
-                    Chunk ch2 = buildChunkFromSpans(rawText, documentId, page, current, overlapStart);
+                    Chunk ch2 = buildChunkFromSpans(rawText, documentId, page, current, overlapStart, chunkIndex++);
                     out.add(ch2);
                     chunkStartChar = s.start();
                     current = new ArrayList<>(List.of(s));
@@ -92,7 +93,7 @@ public class ChunkerService {
         }
 
         if (!current.isEmpty()) {
-            Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar);
+            Chunk ch = buildChunkFromSpans(rawText, documentId, page, current, chunkStartChar, chunkIndex++);
             out.add(ch);
         }
 
@@ -146,11 +147,11 @@ public class ChunkerService {
         return (e - 1) - i;
     }
 
-    private Chunk buildChunkFromSpans(String text, UUID docId, int page, List<SentenceSpan> spans, int chunkStartChar) {
+    private Chunk buildChunkFromSpans(String text, UUID docId, int page, List<SentenceSpan> spans, int chunkStartChar, int chunkIndex) {
         int end = spans.get(spans.size() - 1).end();
         String content = text.substring(chunkStartChar, end);
 
-        return new Chunk(docId, page, chunkStartChar, end, content);
+        return new Chunk(docId, page, chunkStartChar, end, content, chunkIndex);
     }
 
     private int computeOverlapStartChar(String text, List<SentenceSpan> spans, int overlapTokens) {
@@ -192,7 +193,7 @@ public class ChunkerService {
         return out;
     }
 
-    private List<Chunk> splitLongSentenceToChunks(String text, UUID docId, int page, SentenceSpan longSentence, int maxTokens, int overlapTokens) {
+    private List<Chunk> splitLongSentenceToChunks(String text, UUID docId, int page, SentenceSpan longSentence, int maxTokens, int overlapTokens, int chunkIndex) {
 
         List<Chunk> out = new ArrayList<>();
         List<WordSpan> words = wordSpans(longSentence.text(), longSentence.start());
@@ -213,7 +214,7 @@ public class ChunkerService {
                 int hardStart = words.get(startIdx).start();
                 int hardEnd = Math.min(longSentence.end(), hardStart + Math.min(2000, maxTokens * 4));
                 String content = text.substring(hardStart, hardEnd);
-                out.add(new Chunk(docId, page, hardStart, hardEnd, content));
+                out.add(new Chunk(docId, page, hardStart, hardEnd, content, chunkIndex));
                 startIdx++;
                 continue;
             }
@@ -221,7 +222,7 @@ public class ChunkerService {
             int segEnd = words.get(endIdx - 1).end();
 
             String content = text.substring(segStart, segEnd);
-            out.add(new Chunk(docId, page, segStart, segEnd, content));
+            out.add(new Chunk(docId, page, segStart, segEnd, content, chunkIndex));
 
             if (endIdx >= n) break;
 

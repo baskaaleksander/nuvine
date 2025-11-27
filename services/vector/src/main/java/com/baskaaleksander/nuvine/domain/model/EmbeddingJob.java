@@ -44,6 +44,8 @@ public class EmbeddingJob {
     private UUID projectId;
     @Column(nullable = false)
     private UUID documentId;
+    @Column(nullable = false)
+    private UUID ingestionJobId;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
