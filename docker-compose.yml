@@ -91,6 +91,20 @@ services:
       - microservices-net
     restart: unless-stopped
 
+  qdrant:
+    container_name: ms_qdrant
+    image: qdrant/qdrant:latest
+    env_file:
+      - .env
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant:/qdrant/storage
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
 networks:
   microservices-net:
     driver: bridge
@@ -100,3 +114,4 @@ volumes:
   mongodb:
   keycloak:
   minio:
+  qdrant:
