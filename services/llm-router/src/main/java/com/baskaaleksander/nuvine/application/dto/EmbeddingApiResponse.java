@@ -8,7 +8,7 @@ public record EmbeddingApiResponse(
 ) {
     public record EmbeddingData(
             int index,
-            List<Double> embedding
+            List<Float> embedding
     ) {
     }
 }
