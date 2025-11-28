@@ -22,17 +22,17 @@ public class ChatService {
     private final LlmRouterServiceClient llmRouterServiceClient;
     private final ConversationMessageRepository conversationMessageRepository;
 
-    public CompletionResponse completion(CompletionRequest request) {
+    public CompletionResponse completion(CompletionRequest request, String userId) {
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;
         if (request.conversationId() == null) {
             convoId = UUID.randomUUID();
         } else {
             convoId = request.conversationId();
-            messages = conversationMessageRepository.findByConversationId(convoId, request.memorySize() * 2).stream().map(
-                    message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
-            ).toList();
+            messages = buildChatMemory(convoId, request.memorySize());
         }
+
+        UUID ownerUUID = UUID.fromString(userId);
 
         log.info("CHAT_COMPLETION START convoId={}", convoId);
 
@@ -41,6 +41,7 @@ public class ChatService {
                 .content(request.message())
                 .role(ConversationRole.USER)
                 .modelUsed(request.model())
+                .ownerId(ownerUUID)
                 .cost(0)
                 .build();
 
@@ -66,11 +67,22 @@ public class ChatService {
                         .role(ConversationRole.ASSISTANT)
                         .modelUsed(request.model())
                         .tokensCost(completion.tokensOut())
+                        .ownerId(ownerUUID)
                         .cost(0)
                         .build()
         );
 
         log.info("CHAT_COMPLETION END convoId={}", convoId);
         return completion;
+    }
+
+    private List<CompletionLlmRouterRequest.Message> buildChatMemory(UUID convoId, int memorySize) {
+        return conversationMessageRepository.findByConversationId(convoId, memorySize * 2).stream().map(
+                message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
+        ).toList();
+    }
+
+    private List<String> buildRagContext() {
+        return null;
     }
 }

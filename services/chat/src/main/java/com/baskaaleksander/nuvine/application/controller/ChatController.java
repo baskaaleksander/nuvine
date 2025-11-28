@@ -6,6 +6,9 @@ import com.baskaaleksander.nuvine.domain.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,10 +21,12 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    @PreAuthorize("@chatAccess.canCreateMessage(#request.conversationId, #jwt.getSubject())")
     @PostMapping("/completions")
     public ResponseEntity<CompletionResponse> completions(
-            @RequestBody @Valid CompletionRequest request
+            @RequestBody @Valid CompletionRequest request,
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return ResponseEntity.ok(chatService.completion(request));
+        return ResponseEntity.ok(chatService.completion(request, jwt.getSubject()));
     }
 }
