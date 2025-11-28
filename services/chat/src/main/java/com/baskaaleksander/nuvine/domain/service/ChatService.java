@@ -33,18 +33,31 @@ public class ChatService {
                     message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
             ).toList();
         }
-        var completion = llmRouterServiceClient.completion(new CompletionLlmRouterRequest(request.message(), request.model(), messages));
 
-        conversationMessageRepository.save(
-                ConversationMessage.builder()
-                        .conversationId(convoId)
-                        .content(request.message())
-                        .role(ConversationRole.USER)
-                        .modelUsed(request.model())
-                        .tokensCost(completion.tokensIn())
-                        .cost(0)
-                        .build()
-        );
+        log.info("CHAT_COMPLETION START convoId={}", convoId);
+
+        ConversationMessage userMessage = ConversationMessage.builder()
+                .conversationId(convoId)
+                .content(request.message())
+                .role(ConversationRole.USER)
+                .modelUsed(request.model())
+                .cost(0)
+                .build();
+
+        conversationMessageRepository.save(userMessage);
+
+        CompletionResponse completion;
+
+        try {
+            completion = llmRouterServiceClient.completion(new CompletionLlmRouterRequest(request.message(), request.model(), messages));
+        } catch (Exception e) {
+            log.error("CHAT_COMPLETION FAILED convoId={}", convoId, e);
+            throw new RuntimeException("CHAT_COMPLETION FAILED", e);
+        }
+
+        userMessage.setTokensCost(completion.tokensIn());
+
+        conversationMessageRepository.save(userMessage);
 
         conversationMessageRepository.save(
                 ConversationMessage.builder()
@@ -57,6 +70,7 @@ public class ChatService {
                         .build()
         );
 
+        log.info("CHAT_COMPLETION END convoId={}", convoId);
         return completion;
     }
 }

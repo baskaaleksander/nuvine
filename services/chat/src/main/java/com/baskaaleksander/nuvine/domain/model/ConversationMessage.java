@@ -45,8 +45,11 @@ public class ConversationMessage {
     @Column(name = "model_used", nullable = false, length = 100)
     private String modelUsed;
 
-    @Column(name = "tokens_cost", nullable = false)
+    @Column(name = "tokens_cost")
     private int tokensCost;
+
+    @Column(nullable = false)
+    private UUID ownerId;
 
     @Column(nullable = false)
     private double cost;
