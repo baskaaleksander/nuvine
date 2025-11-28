@@ -29,6 +29,8 @@ public class EmbeddingService {
     public void process(VectorProcessingRequestEvent event) {
         int totalChunks = event.chunks().size();
 
+        log.info("EMBEDDING_SERVICE PROCESS START projectId={} documentId={} totalChunks={}", event.projectId(), event.documentId(), totalChunks);
+
         EmbeddingJob job = EmbeddingJob.builder()
                 .ingestionJobId(UUID.fromString(event.ingestionJobId()))
                 .documentId(UUID.fromString(event.documentId()))
@@ -41,6 +43,8 @@ public class EmbeddingService {
 
         job = jobRepository.save(job);
 
+        log.info("EMBEDDING_SERVICE PROCESS SAVED jobId={} projectId={} documentId={} totalChunks={}", job.getId(), event.projectId(), event.documentId(), totalChunks);
+
         List<List<Chunk>> partitionedChunks = partition(event.chunks(), 10);
 
         for (var batch : partitionedChunks) {
@@ -52,12 +56,18 @@ public class EmbeddingService {
 
             embeddingRequestEventProducer.sendEmbeddingRequestEvent(batchEvent);
         }
+
+        log.info("EMBEDDING_SERVICE PROCESS END jobId={} projectId={} documentId={} totalChunks={}", job.getId(), event.projectId(), event.documentId(), totalChunks);
     }
 
     public void processEmbeddingCompletedEvent(EmbeddingCompletedEvent event) {
+        log.info("EMBEDDING_SERVICE PROCESS EMBEDDING_COMPLETED_EVENT START jobId={} totalChunks={}", event.ingestionJobId(), event.embeddedChunks().size());
         EmbeddingJob job = jobRepository.findById(UUID.fromString(event.ingestionJobId()))
-                .orElseThrow(() -> new RuntimeException("Job not found"));
-        
+                .orElseThrow(() -> {
+                    log.error("EMBEDDING_SERVICE PROCESS EMBEDDING_COMPLETED_EVENT FAILED reason=job_not_found jobId={} totalChunks={}", event.ingestionJobId(), event.embeddedChunks().size());
+                    return new RuntimeException("Job not found");
+                });
+
         ChunkMetadata metadata = new ChunkMetadata(
                 job.getWorkspaceId(),
                 job.getProjectId()
@@ -65,10 +75,13 @@ public class EmbeddingService {
 
         vectorStorageService.upsert(event.embeddedChunks(), metadata);
 
+        log.info("EMBEDDING_SERVICE PROCESS EMBEDDING_COMPLETED_EVENT END jobId={} totalChunks={}", event.ingestionJobId(), event.embeddedChunks().size());
+
         job.setProcessedChunks(job.getProcessedChunks() + event.embeddedChunks().size());
         if (job.getProcessedChunks() == job.getTotalChunks()) {
             job.setStatus(EmbeddingStatus.COMPLETED);
             job.setModelUsed(event.model());
+            log.info("EMBEDDING_SERVICE PROCESS EMBEDDING_COMPLETED_EVENT COMPLETED jobId={} totalChunks={}", event.ingestionJobId(), event.embeddedChunks().size());
         }
         jobRepository.save(job);
     }

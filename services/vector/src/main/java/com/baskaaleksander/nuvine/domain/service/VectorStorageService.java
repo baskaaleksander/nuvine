@@ -30,13 +30,16 @@ public class VectorStorageService {
 
     public void upsert(List<EmbeddedChunk> chunks, ChunkMetadata metadata) {
 
+        log.info("VECTOR_STORAGE UPSERT START projectId={} chunksCount={}", metadata.projectId(), chunks.size());
         List<Points.PointStruct> points = chunks.stream()
                 .map(c -> toPoint(c, metadata))
                 .toList();
 
         try {
             qdrantClient.upsertAsync(props.collection(), points).get();
+            log.info("VECTOR_STORAGE UPSERT END projectId={} chunksCount={}", metadata.projectId(), chunks.size());
         } catch (Exception ex) {
+            log.error("VECTOR_STORAGE UPSERT FAILED projectId={} chunksCount={}", metadata.projectId(), chunks.size(), ex);
             throw new RuntimeException("Failed to upsert embeddings to Qdrant", ex);
         }
     }
@@ -64,12 +67,14 @@ public class VectorStorageService {
             int topK,
             Float scoreThreshold
     ) throws Exception {
+        log.info("VECTOR_STORAGE SEARCH START projectId={} documentIds={} topK={} scoreThreshold={}", projectId, documentIds, topK, scoreThreshold);
 
         Common.Filter.Builder filterBuilder = Common.Filter.newBuilder()
                 .addMust(matchKeyword("workspaceId", workspaceId.toString()))
                 .addMust(matchKeyword("projectId", projectId.toString()));
 
         if (documentIds != null && !documentIds.isEmpty()) {
+            log.info("VECTOR_STORAGE SEARCH FILTER documentIds={}", documentIds);
             for (UUID docId : documentIds) {
                 filterBuilder.addShould(matchKeyword("documentId", docId.toString()));
             }
@@ -87,8 +92,6 @@ public class VectorStorageService {
                                 .setEnable(true)
                                 .build()
                 );
-        ;
-
         if (scoreThreshold != null) {
             searchBuilder.setScoreThreshold(scoreThreshold);
         }
@@ -96,6 +99,8 @@ public class VectorStorageService {
         Points.SearchPoints searchRequest = searchBuilder.build();
 
         List<Points.ScoredPoint> results = qdrantClient.searchAsync(searchRequest).get();
+
+        log.info("VECTOR_STORAGE SEARCH END projectId={} documentIds={} topK={} scoreThreshold={} resultsCount={}", projectId, documentIds, topK, scoreThreshold, results.size());
 
         return results;
     }

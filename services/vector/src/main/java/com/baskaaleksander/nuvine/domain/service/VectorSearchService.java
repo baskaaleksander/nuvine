@@ -24,6 +24,7 @@ public class VectorSearchService {
         EmbeddingResponse embeddingResponse = llmRouterInternalClient.embed(
                 new EmbeddingRequest(List.of(request.query()), "text-embedding-3-small")
         );
+
         List<Float> queryVector = embeddingResponse.embeddings().get(0);
 
         return search(
@@ -39,6 +40,7 @@ public class VectorSearchService {
     }
 
     public VectorSearchResponse search(VectorSearchRequest req) {
+        log.info("VECTOR_SEARCH START projectId={}", req.projectId());
         List<Points.ScoredPoint> searchResults = storageService.search(
                 req.workspaceId(),
                 req.projectId(),
@@ -47,6 +49,8 @@ public class VectorSearchService {
                 req.topK(),
                 req.threshold()
         );
+
+        log.info("VECTOR_SEARCH POINTS_RETRIEVED projectId={} pointsCount={}", req.projectId(), searchResults.size());
 
         List<VectorSearchResponse.VectorSearchMatch> matches = new ArrayList<>();
 
@@ -70,6 +74,8 @@ public class VectorSearchService {
                     )
             );
         }
+
+        log.info("VECTOR_SEARCH END projectId={} matchesCount={}", req.projectId(), matches.size());
         return new VectorSearchResponse(matches);
     }
 }
