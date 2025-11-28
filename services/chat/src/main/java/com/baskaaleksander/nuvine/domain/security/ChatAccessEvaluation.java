@@ -12,7 +12,7 @@ public class ChatAccessEvaluation {
 
     private final ConversationMessageRepository conversationMessageRepository;
 
-    public boolean canCreateMessage(UUID chatId, String userId) {
+    public boolean canAccessChat(UUID chatId, String userId) {
         if (chatId == null) {
             return true;
         }

@@ -1,18 +1,17 @@
 package com.baskaaleksander.nuvine.application.controller;
 
-import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
-import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,12 +20,26 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    @PreAuthorize("@chatAccess.canCreateMessage(#request.conversationId, #jwt.getSubject())")
+    @PreAuthorize("@chatAccess.canAccessChat(#request.conversationId, #jwt.getSubject())")
     @PostMapping("/completions")
     public ResponseEntity<CompletionResponse> completions(
             @RequestBody @Valid CompletionRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.ok(chatService.completion(request, jwt.getSubject()));
+    }
+
+    @PreAuthorize("@chatAccess.canAccessChat(#conversationId, #jwt.getSubject())")
+    @GetMapping("/{conversationId}")
+    public ResponseEntity<PagedResponse<ConversationMessageResponse>> getMessages(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "createdAt") String sortField,
+            @RequestParam(defaultValue = "ASC") Sort.Direction direction
+    ) {
+        PaginationRequest request = new PaginationRequest(page, size, sortField, direction);
+        return ResponseEntity.ok(chatService.getMessages(conversationId, jwt.getSubject(), request));
     }
 }

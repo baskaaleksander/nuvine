@@ -1,14 +1,16 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.CompletionLlmRouterRequest;
-import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
-import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
+import com.baskaaleksander.nuvine.application.mapper.ConversationMessageMapper;
+import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.domain.model.ConversationRole;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,6 +23,7 @@ public class ChatService {
 
     private final LlmRouterServiceClient llmRouterServiceClient;
     private final ConversationMessageRepository conversationMessageRepository;
+    private final ConversationMessageMapper mapper;
 
     public CompletionResponse completion(CompletionRequest request, String userId) {
         UUID convoId;
@@ -84,5 +87,23 @@ public class ChatService {
 
     private List<String> buildRagContext() {
         return null;
+    }
+
+    public PagedResponse<ConversationMessageResponse> getMessages(UUID conversationId, String subject, PaginationRequest request) {
+        Pageable pageable = PaginationUtil.getPageable(request);
+
+        Page<ConversationMessage> page = conversationMessageRepository.findAllByConversationId(conversationId, pageable);
+
+        List<ConversationMessageResponse> content = page.getContent().stream().map(mapper::toResponse).toList();
+
+        return new PagedResponse<>(
+                content,
+                page.getTotalPages(),
+                page.getTotalElements(),
+                page.getSize(),
+                page.getNumber(),
+                page.isLast(),
+                page.hasNext()
+        );
     }
 }
