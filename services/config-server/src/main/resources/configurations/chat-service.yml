@@ -10,5 +10,10 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+chat:
+  keycloak:
+    auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
+    client-id: chat-service
+    client-secret: ${KEYCLOAK_CHAT_SERVICE_SECRET}
 server:
   port: 8110
