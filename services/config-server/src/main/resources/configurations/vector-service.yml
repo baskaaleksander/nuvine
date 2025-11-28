@@ -29,5 +29,11 @@ spring:
         spring.json.type.mapping: >
           embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent
 
+qdrant:
+  host: localhost
+  port: 6334
+  apiKey: null
+  collection: nuvine_embeddings
+
 server:
   port: 8100
