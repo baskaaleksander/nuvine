@@ -21,6 +21,6 @@ public record VectorSearchRequest(
         int topK,
         @NotNull(message = "Threshold cannot be null")
         @Size(min = 0, max = 1, message = "Threshold must be between 0 and 1")
-        long threshold
+        float threshold
 ) {
 }

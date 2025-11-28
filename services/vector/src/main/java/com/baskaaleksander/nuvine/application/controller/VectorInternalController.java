@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.TextVectorSearchRequest;
 import com.baskaaleksander.nuvine.application.dto.VectorSearchRequest;
+import com.baskaaleksander.nuvine.application.dto.VectorSearchResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,14 +20,14 @@ public class VectorInternalController {
 
 
     @PostMapping("/search-by-text")
-    public ResponseEntity<?> searchByText(
+    public ResponseEntity<VectorSearchResponse> searchByText(
             @RequestBody @Valid TextVectorSearchRequest request
     ) {
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/search")
-    public ResponseEntity<?> search(
+    public ResponseEntity<VectorSearchResponse> search(
             @RequestBody @Valid VectorSearchRequest request
     ) {
         return ResponseEntity.ok().build();
