@@ -57,5 +57,9 @@ spring:
               uri: lb://vector-service
               predicates:
                 - Path=/api/v1/internal/vector/**
+            - id: chat-service
+              uri: lb://chat-service
+              predicates:
+                - Path=/api/v1/chat/**
 server:
   port: 8222
