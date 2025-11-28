@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.infrastructure.repository;
 
+import com.baskaaleksander.nuvine.application.dto.UserConversationResponse;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,4 +17,7 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
     List<ConversationMessage> findByConversationId(UUID conversationId, int limit);
 
     Page<ConversationMessage> findAllByConversationId(UUID conversationId, Pageable pageable);
+
+    @Query("SELECT cm.conversationId, MAX(cm.createdAt) FROM ConversationMessage cm WHERE cm.ownerId = :ownerId GROUP BY cm.conversationId")
+    List<UserConversationResponse> findUserConversations(UUID ownerId);
 }

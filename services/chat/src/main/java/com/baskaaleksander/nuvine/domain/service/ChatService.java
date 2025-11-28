@@ -106,4 +106,8 @@ public class ChatService {
                 page.hasNext()
         );
     }
+
+    public List<UserConversationResponse> getUserConversations(String ownerId) {
+        return conversationMessageRepository.findUserConversations(UUID.fromString(ownerId));
+    }
 }

@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +28,13 @@ public class ChatController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.ok(chatService.completion(request, jwt.getSubject()));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UserConversationResponse>> getUserConversations(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(chatService.getUserConversations(jwt.getSubject()));
     }
 
     @PreAuthorize("@chatAccess.canAccessChat(#conversationId, #jwt.getSubject())")
