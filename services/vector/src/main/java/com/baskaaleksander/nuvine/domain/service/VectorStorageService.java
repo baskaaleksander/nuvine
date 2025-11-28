@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.domain.model.ChunkMetadata;
 import com.baskaaleksander.nuvine.domain.model.EmbeddedChunk;
 import com.baskaaleksander.nuvine.infrastructure.config.QdrantConfig;
 import io.qdrant.client.QdrantClient;
@@ -25,7 +26,7 @@ public class VectorStorageService {
     private final QdrantConfig.QdrantProperties props;
 
 
-    public void upsert(List<EmbeddedChunk> chunks) {
+    public void upsert(List<EmbeddedChunk> chunks, ChunkMetadata metadata) {
 
         List<Points.PointStruct> points = chunks.stream()
                 .map(this::toPoint)
@@ -38,11 +39,13 @@ public class VectorStorageService {
         }
     }
 
-    private Points.PointStruct toPoint(EmbeddedChunk c) {
+    private Points.PointStruct toPoint(EmbeddedChunk c, ChunkMetadata metadata) {
         return Points.PointStruct.newBuilder()
                 .setId(id(buildPointId(c)))
                 .setVectors(vectors(c.embedding()))
                 .putAllPayload(Map.of(
+                        "workspaceId", value(metadata.workspaceId().toString()),
+                        "projectId", value(metadata.projectId().toString()),
                         "documentId", value(c.documentId().toString()),
                         "page", value(c.page()),
                         "startOffset", value(c.startOffset()),

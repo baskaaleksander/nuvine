@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.domain.model.Chunk;
+import com.baskaaleksander.nuvine.domain.model.ChunkMetadata;
 import com.baskaaleksander.nuvine.domain.model.EmbeddingJob;
 import com.baskaaleksander.nuvine.domain.model.EmbeddingStatus;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedEvent;
@@ -56,8 +57,13 @@ public class EmbeddingService {
     public void processEmbeddingCompletedEvent(EmbeddingCompletedEvent event) {
         EmbeddingJob job = jobRepository.findById(UUID.fromString(event.ingestionJobId()))
                 .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        ChunkMetadata metadata = new ChunkMetadata(
+                job.getWorkspaceId(),
+                job.getProjectId()
+        );
 
-        vectorStorageService.upsert(event.embeddedChunks());
+        vectorStorageService.upsert(event.embeddedChunks(), metadata);
 
         job.setProcessedChunks(job.getProcessedChunks() + event.embeddedChunks().size());
         if (job.getProcessedChunks() == job.getTotalChunks()) {
