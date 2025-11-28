@@ -1,7 +1,9 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingResponse;
+import com.baskaaleksander.nuvine.domain.service.CompletionService;
 import com.baskaaleksander.nuvine.domain.service.EmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +18,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class LlmInternalController {
 
     private final EmbeddingService embeddingService;
+    private final CompletionService completionService;
 
     @PostMapping("/embeddings")
     public ResponseEntity<EmbeddingResponse> getEmbeddings(
             @RequestBody EmbeddingRequest request
     ) {
         return ResponseEntity.ok(embeddingService.createEmbeddings(request));
+    }
+
+    @PostMapping("/completions")
+    public ResponseEntity<String> completion(
+            @RequestBody CompletionRequest request
+    ) {
+        return ResponseEntity.ok(completionService.call(request.model(), request.message()));
     }
 }
