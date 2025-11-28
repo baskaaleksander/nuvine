@@ -12,6 +12,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+// TODO: change this to feign
 public class OpenAIEmbeddingClient {
 
     private final RestTemplate openAiRestTemplate;
