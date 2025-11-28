@@ -21,7 +21,7 @@ public class EmbeddingService {
     public List<EmbeddedChunk> createEmbeddings(List<Chunk> chunks) {
         List<List<Float>> embeddings = createEmbedding(chunks.stream().map(Chunk::content).toList());
         return chunks.stream()
-                .map(chunk -> new EmbeddedChunk(chunk.documentId(), chunk.page(), chunk.startOffset(), chunk.endOffset(), embeddings.get(chunk.index()), chunk.index()))
+                .map(chunk -> new EmbeddedChunk(chunk.documentId(), chunk.page(), chunk.startOffset(), chunk.endOffset(), embeddings.get(chunk.index()), chunk.content(), chunk.index()))
                 .toList();
     }
 

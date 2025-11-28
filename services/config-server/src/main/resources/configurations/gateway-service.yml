@@ -53,5 +53,9 @@ spring:
               uri: lb://llm-router-service
               predicates:
                 - Path=/api/v1/internal/llm/**
+            - id: vector-service-internal
+              uri: lb://vector-service
+              predicates:
+                - Path=/api/v1/internal/vector/**
 server:
   port: 8222
