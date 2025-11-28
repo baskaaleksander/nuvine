@@ -1,9 +1,6 @@
 package com.baskaaleksander.nuvine.application.dto;
 
-import java.util.UUID;
-
-public record CompletionRequest(
-        UUID conversationId,
+public record CompletionLlmRouterRequest(
         String message,
         String model
 ) {

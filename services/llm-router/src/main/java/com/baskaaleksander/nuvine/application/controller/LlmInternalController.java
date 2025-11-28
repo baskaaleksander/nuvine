@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
+import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingResponse;
 import com.baskaaleksander.nuvine.domain.service.CompletionService;
@@ -28,7 +29,7 @@ public class LlmInternalController {
     }
 
     @PostMapping("/completions")
-    public ResponseEntity<String> completion(
+    public ResponseEntity<CompletionResponse> completion(
             @RequestBody CompletionRequest request
     ) {
         return ResponseEntity.ok(completionService.call(request.model(), request.message()));

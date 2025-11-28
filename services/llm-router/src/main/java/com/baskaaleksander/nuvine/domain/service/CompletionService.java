@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterChatRequest;
 import com.baskaaleksander.nuvine.infrastructure.ai.client.OpenRouterClient;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ public class CompletionService {
 
     private final OpenRouterClient client;
 
-    public String call(String model, String prompt) {
+    public CompletionResponse call(String model, String prompt) {
         log.info("COMPLETION_CALL START");
         var request = new OpenRouterChatRequest(
                 model,
@@ -27,8 +28,13 @@ public class CompletionService {
 
         var response = client.createChatCompletion(request);
 
-        log.info("COMPLETION_CALL END model={}", response.model());
+        log.info("COMPLETION_CALL END model={} usage={}", response.model(), response.usage());
 
-        return response.choices().getFirst().message().content();
+        return new CompletionResponse(
+                response.choices().getFirst().message().content(),
+                response.usage().promptTokens(),
+                response.usage().completionTokens(),
+                response.model()
+        );
     }
 }
