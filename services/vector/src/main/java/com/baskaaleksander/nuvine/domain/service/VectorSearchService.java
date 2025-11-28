@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -30,6 +32,23 @@ public class VectorSearchService {
                 req.topK(),
                 req.threshold()
         );
-        return null;
+
+        List<VectorSearchResponse.VectorSearchMatch> matches = new ArrayList<>();
+
+        for (var point : searchResults) {
+            var fields = point.getPayloadMap();
+
+            matches.add(
+                    new VectorSearchResponse.VectorSearchMatch(
+                            UUID.fromString(fields.get("documentId").getStringValue()),
+                            (int) fields.get("page").getIntegerValue(),
+                            (int) fields.get("startOffset").getIntegerValue(),
+                            (int) fields.get("endOffset").getIntegerValue(),
+                            fields.get("content").getStringValue(),
+                            point.getScore()
+                    )
+            );
+        }
+        return new VectorSearchResponse(matches);
     }
 }

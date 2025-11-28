@@ -102,6 +102,7 @@ public class VectorStorageService {
                         "workspaceId", value(metadata.workspaceId().toString()),
                         "projectId", value(metadata.projectId().toString()),
                         "documentId", value(c.documentId().toString()),
+                        "content", value(c.content()),
                         "page", value(c.page()),
                         "startOffset", value(c.startOffset()),
                         "endOffset", value(c.endOffset())
