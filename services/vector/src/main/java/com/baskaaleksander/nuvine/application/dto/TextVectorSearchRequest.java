@@ -2,7 +2,6 @@ package com.baskaaleksander.nuvine.application.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,9 +16,7 @@ public record TextVectorSearchRequest(
         @NotNull(message = "Query cannot be null")
         String query,
         @NotNull(message = "Top K cannot be null")
-        @Size(min = 8, max = 14, message = "Top K must be between 8 and 14")
         int topK,
-        @Size(min = 0, max = 1, message = "Threshold must be between 0 and 1")
         float threshold
 ) {
 }

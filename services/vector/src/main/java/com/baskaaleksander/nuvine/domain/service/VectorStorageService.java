@@ -81,7 +81,13 @@ public class VectorStorageService {
                 .setCollectionName(props.collection())
                 .addAllVector(queryVector)
                 .setLimit(topK)
-                .setFilter(filter);
+                .setFilter(filter)
+                .setWithPayload(
+                        Points.WithPayloadSelector.newBuilder()
+                                .setEnable(true)
+                                .build()
+                );
+        ;
 
         if (scoreThreshold != null) {
             searchBuilder.setScoreThreshold(scoreThreshold);

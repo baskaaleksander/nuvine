@@ -1,8 +1,7 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.TextVectorSearchRequest;
-import com.baskaaleksander.nuvine.application.dto.VectorSearchRequest;
-import com.baskaaleksander.nuvine.application.dto.VectorSearchResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
+import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterInternalClient;
 import io.qdrant.client.grpc.Points;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +17,25 @@ import java.util.UUID;
 public class VectorSearchService {
 
     private final VectorStorageService storageService;
+    private final LlmRouterInternalClient llmRouterInternalClient;
 
     public VectorSearchResponse searchByText(TextVectorSearchRequest request) {
-        return null;
+        log.info("VECTOR_SEARCH_BY_TEXT START projectId={}", request.projectId());
+        EmbeddingResponse embeddingResponse = llmRouterInternalClient.embed(
+                new EmbeddingRequest(List.of(request.query()), "text-embedding-3-small")
+        );
+        List<Float> queryVector = embeddingResponse.embeddings().get(0);
+
+        return search(
+                new VectorSearchRequest(
+                        request.workspaceId(),
+                        request.projectId(),
+                        request.documentIds(),
+                        queryVector,
+                        request.topK(),
+                        request.threshold()
+                )
+        );
     }
 
     public VectorSearchResponse search(VectorSearchRequest req) {
@@ -38,13 +53,19 @@ public class VectorSearchService {
         for (var point : searchResults) {
             var fields = point.getPayloadMap();
 
+            var documentIdValue = fields.get("documentId");
+            var pageValue = fields.get("page");
+            var startOffsetValue = fields.get("startOffset");
+            var endOffsetValue = fields.get("endOffset");
+            var contentValue = fields.get("content");
+
             matches.add(
                     new VectorSearchResponse.VectorSearchMatch(
-                            UUID.fromString(fields.get("documentId").getStringValue()),
-                            (int) fields.get("page").getIntegerValue(),
-                            (int) fields.get("startOffset").getIntegerValue(),
-                            (int) fields.get("endOffset").getIntegerValue(),
-                            fields.get("content").getStringValue(),
+                            UUID.fromString(documentIdValue.getStringValue()),
+                            (int) pageValue.getIntegerValue(),
+                            (int) startOffsetValue.getIntegerValue(),
+                            (int) endOffsetValue.getIntegerValue(),
+                            contentValue.getStringValue(),
                             point.getScore()
                     )
             );

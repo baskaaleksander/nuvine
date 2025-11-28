@@ -33,7 +33,7 @@ qdrant:
   host: localhost
   port: 6334
   apiKey: null
-  collection: nuvine_embeddings
+  collection: nuvine_collection
 
 server:
   port: 8100
