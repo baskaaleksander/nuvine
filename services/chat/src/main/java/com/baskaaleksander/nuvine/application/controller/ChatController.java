@@ -23,7 +23,7 @@ public class ChatController {
 
     @PreAuthorize("@chatAccess.canAccessChat(#request.conversationId, #jwt.getSubject())")
     @PostMapping("/completions")
-    public ResponseEntity<CompletionResponse> completions(
+    public ResponseEntity<ConversationMessageResponse> completions(
             @RequestBody @Valid CompletionRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {

@@ -25,7 +25,7 @@ public class ChatService {
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationMessageMapper mapper;
 
-    public CompletionResponse completion(CompletionRequest request, String userId) {
+    public ConversationMessageResponse completion(CompletionRequest request, String userId) {
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;
         if (request.conversationId() == null) {
@@ -63,7 +63,7 @@ public class ChatService {
 
         conversationMessageRepository.save(userMessage);
 
-        conversationMessageRepository.save(
+        ConversationMessage assistantMessage = conversationMessageRepository.save(
                 ConversationMessage.builder()
                         .conversationId(convoId)
                         .content(completion.content())
@@ -76,7 +76,15 @@ public class ChatService {
         );
 
         log.info("CHAT_COMPLETION END convoId={}", convoId);
-        return completion;
+        return new ConversationMessageResponse(
+                assistantMessage.getId(),
+                assistantMessage.getContent(),
+                assistantMessage.getRole(),
+                assistantMessage.getModelUsed(),
+                assistantMessage.getTokensCost(),
+                assistantMessage.getOwnerId(),
+                assistantMessage.getCreatedAt()
+        );
     }
 
     private List<CompletionLlmRouterRequest.Message> buildChatMemory(UUID convoId, int memorySize) {
