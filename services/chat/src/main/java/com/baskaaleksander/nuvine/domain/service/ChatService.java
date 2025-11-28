@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,12 +24,16 @@ public class ChatService {
 
     public CompletionResponse completion(CompletionRequest request) {
         UUID convoId;
+        List<CompletionLlmRouterRequest.Message> messages = null;
         if (request.conversationId() == null) {
             convoId = UUID.randomUUID();
         } else {
             convoId = request.conversationId();
+            messages = conversationMessageRepository.findByConversationId(convoId, request.memorySize() * 2).stream().map(
+                    message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
+            ).toList();
         }
-        var completion = llmRouterServiceClient.completion(new CompletionLlmRouterRequest(request.message(), request.model()));
+        var completion = llmRouterServiceClient.completion(new CompletionLlmRouterRequest(request.message(), request.model(), messages));
 
         conversationMessageRepository.save(
                 ConversationMessage.builder()

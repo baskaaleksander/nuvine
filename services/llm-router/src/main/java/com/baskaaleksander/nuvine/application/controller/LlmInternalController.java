@@ -32,6 +32,6 @@ public class LlmInternalController {
     public ResponseEntity<CompletionResponse> completion(
             @RequestBody CompletionRequest request
     ) {
-        return ResponseEntity.ok(completionService.call(request.model(), request.message()));
+        return ResponseEntity.ok(completionService.call(request.model(), request.message(), request.messages()));
     }
 }

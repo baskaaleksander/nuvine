@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -16,11 +17,16 @@ public class CompletionService {
 
     private final OpenRouterClient client;
 
-    public CompletionResponse call(String model, String prompt) {
+    public CompletionResponse call(String model, String prompt, List<OpenRouterChatRequest.Message> messages) {
         log.info("COMPLETION_CALL START");
+        log.info("messages={}", messages);
+        if (messages == null) {
+            messages = new ArrayList<>();
+        }
+        messages.add(new OpenRouterChatRequest.Message("user", prompt));
         var request = new OpenRouterChatRequest(
                 model,
-                List.of(new OpenRouterChatRequest.Message("user", prompt)),
+                messages,
                 0.7,
                 2048,
                 false
