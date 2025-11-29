@@ -119,7 +119,7 @@ public class ChatService {
         llmRouterWebClient.post()
                 .uri("/api/v1/internal/llm/completion/stream")
                 .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_NDJSON) // ważne – NDJSON, nie event-stream
+                .accept(MediaType.APPLICATION_NDJSON)
                 .bodyValue(routerRequest)
                 .retrieve()
                 .bodyToFlux(LlmChunk.class)
@@ -146,6 +146,9 @@ public class ChatService {
                                         .data(chunk.content()));
                             }
                             case "done" -> {
+                                emitter.send(SseEmitter.event()
+                                        .name("metadata")
+                                        .data(new StreamEventMetadata(ctx.conversationId)));
                                 emitter.send(SseEmitter.event()
                                         .name("done")
                                         .data("done"));
@@ -320,7 +323,34 @@ public class ChatService {
     }
 
     public List<UserConversationResponse> getUserConversations(String ownerId) {
-        return conversationMessageRepository.findUserConversations(UUID.fromString(ownerId));
+        return conversationMessageRepository.findUserConversations(UUID.fromString(ownerId))
+                .stream()
+                .map(cm -> new UserConversationResponse(
+                        cm.conversationId(),
+                        cleanMarkdown(cm.lastMessage()).substring(0,
+                                Math.min(cleanMarkdown(cm.lastMessage()).length(), 100)),
+                        cm.lastMessageAt()
+                ))
+                .toList();
+    }
+
+
+    private String cleanMarkdown(String input) {
+        if (input == null) return "";
+
+        String cleaned = input;
+
+        cleaned = cleaned.replaceAll("(?m)^#{1,6}\\s*", "");
+        cleaned = cleaned.replaceAll("\\*\\*(.*?)\\*\\*", "$1");
+        cleaned = cleaned.replaceAll("\\*(.*?)\\*", "$1");
+        cleaned = cleaned.replaceAll("~~(.*?)~~", "$1");
+        cleaned = cleaned.replaceAll("`([^`]*)`", "$1");
+        cleaned = cleaned.replaceAll("```[\\s\\S]*?```", "");
+        cleaned = cleaned.replaceAll(">\\s*", "");
+        cleaned = cleaned.replaceAll("[-*+]\\s+", "");
+        cleaned = cleaned.replaceAll("\\r?\\n", " ");
+
+        return cleaned.trim();
     }
 
     private record ChatContext(
