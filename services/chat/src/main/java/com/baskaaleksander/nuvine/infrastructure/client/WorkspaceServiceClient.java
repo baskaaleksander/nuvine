@@ -11,7 +11,7 @@ import java.util.UUID;
 @FeignClient(
         name = "workspace-service",
         url = "${application.config.api-base-url}",
-        contextId = "workspaceServiceUserClient",
+        contextId = "workspaceServiceClient",
         configuration = UserFeignConfig.class
 )
 public interface WorkspaceServiceClient {
@@ -19,7 +19,7 @@ public interface WorkspaceServiceClient {
     @GetMapping("/workspaces/{workspaceId}")
     void checkWorkspaceAccess(@PathVariable UUID workspaceId);
 
-    @GetMapping("/internal/projects/{projectId}")
+    @GetMapping("/internal/projects/{projectId}/document-ids")
     List<UUID> getDocumentIdsInProject(@PathVariable UUID projectId);
 
 }

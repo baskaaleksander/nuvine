@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -224,20 +226,20 @@ public class ChatService {
 
     private ChatContext prepareChatContext(CompletionRequest request, String userId) {
         checkWorkspaceAccess(request.workspaceId());
-//        List<UUID> documentIds = getDocumentIdsInProject(request.projectId());
-//
-//        if (request.documentIds() != null && !request.documentIds().isEmpty()) {
-//            Set<UUID> available = new HashSet<>(documentIds);
-//
-//            List<UUID> missing = request.documentIds().stream()
-//                    .filter(id -> !available.contains(id))
-//                    .toList();
-//
-//            if (!missing.isEmpty()) {
-//                log.warn("DOCUMENTS_NOT_FOUND projectId={} missing={}", request.projectId(), missing);
-//                throw new RuntimeException("DOCUMENTS_NOT_FOUND");
-//            }
-//        }
+        List<UUID> documentIds = getDocumentIdsInProject(request.projectId());
+
+        if (request.documentIds() != null && !request.documentIds().isEmpty()) {
+            Set<UUID> available = new HashSet<>(documentIds);
+
+            List<UUID> missing = request.documentIds().stream()
+                    .filter(id -> !available.contains(id))
+                    .toList();
+
+            if (!missing.isEmpty()) {
+                log.warn("DOCUMENTS_NOT_FOUND projectId={} missing={}", request.projectId(), missing);
+                throw new RuntimeException("DOCUMENTS_NOT_FOUND");
+            }
+        }
 
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;

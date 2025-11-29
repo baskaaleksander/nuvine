@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
-        name = "workspace-service",
+        name = "llm-router-service",
         url = "${application.config.api-base-url}",
-        contextId = "workspaceServiceServiceClient",
+        contextId = "llmRouterServiceClient",
         configuration = InternalFeignConfig.class
 )
 public interface LlmRouterServiceClient {
