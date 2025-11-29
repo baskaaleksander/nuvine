@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -31,6 +33,15 @@ public class ChatService {
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
 
         checkWorkspaceAccess(request.workspaceId());
+        List<UUID> documentIds = getDocumentIdsInProject(request.projectId());
+
+        if (request.documentIds() != null && !request.documentIds().isEmpty()) {
+            Set<UUID> available = new HashSet<>(documentIds);
+
+            if (!available.containsAll(request.documentIds())) {
+                throw new RuntimeException("DOCUMENTS_NOT_FOUND");
+            }
+        }
 
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;
@@ -44,30 +55,26 @@ public class ChatService {
         UUID ownerUUID = UUID.fromString(userId);
 
         log.info("CHAT_COMPLETION START convoId={}", convoId);
-
-        ConversationMessage userMessage = ConversationMessage.builder()
-                .conversationId(convoId)
-                .content(request.message())
-                .role(ConversationRole.USER)
-                .modelUsed(request.model())
-                .ownerId(ownerUUID)
-                .cost(0)
-                .build();
-
-        conversationMessageRepository.save(userMessage);
-
         CompletionResponse completion;
 
-        try {
-            completion = llmRouterServiceClient.completion(new CompletionLlmRouterRequest(request.message(), request.model(), messages));
-        } catch (Exception e) {
-            log.error("CHAT_COMPLETION FAILED convoId={}", convoId, e);
-            throw new RuntimeException("CHAT_COMPLETION FAILED", e);
+        if (request.freeMode()) {
+            completion = getCompletionResponse(request.message(), request.model(), messages, convoId);
+        } else {
+            // todo: add context building here
+            completion = getCompletionResponse(request.message(), request.model(), messages, convoId);
         }
 
-        userMessage.setTokensCost(completion.tokensIn());
-
-        conversationMessageRepository.save(userMessage);
+        conversationMessageRepository.save(
+                ConversationMessage.builder()
+                        .conversationId(convoId)
+                        .content(request.message())
+                        .role(ConversationRole.USER)
+                        .modelUsed(request.model())
+                        .tokensCost(completion.tokensIn())
+                        .ownerId(ownerUUID)
+                        .cost(0)
+                        .build()
+        );
 
         ConversationMessage assistantMessage = conversationMessageRepository.save(
                 ConversationMessage.builder()
@@ -84,6 +91,7 @@ public class ChatService {
         log.info("CHAT_COMPLETION END convoId={}", convoId);
         return new ConversationMessageResponse(
                 assistantMessage.getId(),
+                assistantMessage.getConversationId(),
                 assistantMessage.getContent(),
                 assistantMessage.getRole(),
                 assistantMessage.getModelUsed(),
@@ -108,6 +116,33 @@ public class ChatService {
         } catch (Exception e) {
             log.error("WORKSPACE_ACCESS_CHECK_FAILED workspaceId={}", workspaceId, e);
             throw new RuntimeException("WORKSPACE_ACCESS_CHECK_FAILED", e);
+        }
+    }
+
+    private List<UUID> getDocumentIdsInProject(UUID projectId) {
+        try {
+            return workspaceServiceClient.getDocumentIdsInProject(projectId);
+        } catch (FeignException e) {
+            int status = e.status();
+            if (status == 404) {
+                throw new RuntimeException("PROJECT_NOT_FOUND");
+            } else if (status == 403) {
+                throw new RuntimeException("PROJECT_ACCESS_DENIED");
+            }
+            log.error("PROJECT_ACCESS_CHECK_FAILED projectId={}", projectId, e);
+            throw new RuntimeException("PROJECT_ACCESS_CHECK_FAILED", e);
+        } catch (Exception e) {
+            log.error("PROJECT_ACCESS_CHECK_FAILED projectId={}", projectId, e);
+            throw new RuntimeException("PROJECT_ACCESS_CHECK_FAILED", e);
+        }
+    }
+
+    private CompletionResponse getCompletionResponse(String prompt, String model, List<CompletionLlmRouterRequest.Message> messages, UUID convoId) {
+        try {
+            return llmRouterServiceClient.completion(new CompletionLlmRouterRequest(prompt, model, messages));
+        } catch (Exception e) {
+            log.error("CHAT_COMPLETION FAILED convoId={}", convoId, e);
+            throw new RuntimeException("CHAT_COMPLETION FAILED", e);
         }
     }
 

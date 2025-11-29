@@ -5,6 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.util.List;
 import java.util.UUID;
 
 @FeignClient(
@@ -17,5 +18,8 @@ public interface WorkspaceServiceClient {
 
     @GetMapping("/workspaces/{workspaceId}")
     void checkWorkspaceAccess(@PathVariable UUID workspaceId);
+
+    @GetMapping("/internal/projects/{projectId}")
+    List<UUID> getDocumentIdsInProject(@PathVariable UUID projectId);
 
 }

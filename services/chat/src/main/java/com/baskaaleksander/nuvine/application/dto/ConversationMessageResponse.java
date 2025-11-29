@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record ConversationMessageResponse(
         UUID id,
+        UUID conversationId,
         String content,
         ConversationRole role,
         String modelUsed,

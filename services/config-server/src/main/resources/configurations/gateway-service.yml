@@ -61,5 +61,9 @@ spring:
               uri: lb://chat-service
               predicates:
                 - Path=/api/v1/chat/**
+            - id: workspace-service-projects-internal
+              uri: lb://workspace-service
+              predicates:
+                - Path=/api/v1/internal/projects/**
 server:
   port: 8222
