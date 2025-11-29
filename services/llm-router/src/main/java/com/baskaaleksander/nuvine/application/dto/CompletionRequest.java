@@ -9,6 +9,6 @@ public record CompletionRequest(
         String message,
         @NotNull
         String model,
-        List<OpenRouterChatRequest.Message> messages
+        List<OpenRouterChatStreamRequest.Message> messages
 ) {
 }
