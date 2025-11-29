@@ -116,7 +116,7 @@ public class ConversationPersistenceService {
         );
     }
 
-    public void persistStrictModeNoContext(
+    public ConversationMessage persistStrictModeNoContext(
             UUID conversationId,
             CompletionRequest request,
             String assistantContent,
@@ -150,14 +150,16 @@ public class ConversationPersistenceService {
                 .cost(0)
                 .build();
 
-        conversationMessageRepository.save(assistantMessage);
+        ConversationMessage savedAssistant = conversationMessageRepository.save(assistantMessage);
 
         log.info(
                 "CONVERSATION_PERSIST_STRICT_NO_CONTEXT END convoId={} model={} userMsgId={} assistantMsgId={}",
                 conversationId,
                 request.model(),
                 userMessage.getId(),
-                assistantMessage.getId()
+                savedAssistant.getId()
         );
+
+        return savedAssistant;
     }
 }

@@ -34,8 +34,6 @@ public class ChatService {
     private final RagPromptBuilder ragPromptBuilder;
     private final ConversationPersistenceService conversationPersistenceService;
 
-    // ---------- SYNC COMPLETION ----------
-
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
         UUID workspaceId = request.workspaceId();
         UUID projectId = request.projectId();
@@ -48,38 +46,46 @@ public class ChatService {
                 request.strictMode()
         );
 
-        workspaceAccessService.checkWorkspaceAccess(workspaceId);
-
-        UUID conversationId = request.conversationId() != null
-                ? request.conversationId()
-                : UUID.randomUUID();
-
-        List<CompletionLlmRouterRequest.Message> messages = null;
-        if (request.conversationId() != null) {
-            messages = buildChatMemory(conversationId, request.memorySize());
-            log.debug("CHAT_COMPLETION MEMORY_LOADED convoId={} messagesCount={}", conversationId, messages.size());
+        ChatContext ctx;
+        try {
+            ctx = prepareChatContext(request, userId);
+        } catch (ContextNotFoundException ex) {
+            log.info(
+                    "CHAT_COMPLETION CONTEXT_NOT_FOUND_STRICT workspaceId={} projectId={}",
+                    workspaceId,
+                    projectId
+            );
+            return handleContextNotFoundStrictModeSync(request, userId);
         }
 
-        UUID ownerUUID = UUID.fromString(userId);
+        CompletionLlmRouterRequest routerRequest =
+                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
+
+        log.info(
+                "CHAT_COMPLETION LLM_CALL_START convoId={} model={} hasMemory={}",
+                ctx.conversationId(),
+                request.model(),
+                ctx.messages() != null && !ctx.messages().isEmpty()
+        );
 
         CompletionResponse completion = getCompletionResponse(
-                request.message(),
+                ctx.prompt(),
                 request.model(),
-                messages,
-                conversationId
+                ctx.messages(),
+                ctx.conversationId()
         );
 
         ConversationMessage assistantMessage =
                 conversationPersistenceService.persistSyncCompletion(
-                        conversationId,
+                        ctx.conversationId(),
                         request,
                         completion,
-                        ownerUUID
+                        ctx.ownerId()
                 );
 
         log.info(
                 "CHAT_COMPLETION END convoId={} workspaceId={} projectId={} model={} tokensIn={} tokensOut={}",
-                conversationId,
+                ctx.conversationId(),
                 workspaceId,
                 projectId,
                 request.model(),
@@ -99,7 +105,47 @@ public class ChatService {
         );
     }
 
-    // ---------- STREAM COMPLETION (SSE) ----------
+    private ConversationMessageResponse handleContextNotFoundStrictModeSync(
+            CompletionRequest request,
+            String userId
+    ) {
+        UUID conversationId = request.conversationId() != null
+                ? request.conversationId()
+                : UUID.randomUUID();
+
+        UUID ownerId = UUID.fromString(userId);
+
+        String assistantContent =
+                "I couldn't find any relevant context in your documents for this question. " +
+                        "Please adjust your filters, select different documents or upload more data.";
+
+        log.info(
+                "CHAT_COMPLETION STRICT_NO_CONTEXT_RESPONSE convoId={} workspaceId={} projectId={}",
+                conversationId,
+                request.workspaceId(),
+                request.projectId()
+        );
+
+        ConversationMessage assistantMessage =
+                conversationPersistenceService.persistStrictModeNoContext(
+                        conversationId,
+                        request,
+                        assistantContent,
+                        ownerId
+                );
+
+        return new ConversationMessageResponse(
+                assistantMessage.getId(),
+                assistantMessage.getConversationId(),
+                assistantMessage.getContent(),
+                assistantMessage.getRole(),
+                assistantMessage.getModelUsed(),
+                assistantMessage.getTokensCost(),
+                assistantMessage.getOwnerId(),
+                assistantMessage.getCreatedAt()
+        );
+    }
+
 
     public SseEmitter completionStream(CompletionRequest request, String userId) {
         SseEmitter emitter = new SseEmitter(0L);
@@ -260,8 +306,6 @@ public class ChatService {
         }
     }
 
-    // ---------- CONTEXT / PROMPT PREPARATION ----------
-
     private ChatContext prepareChatContext(CompletionRequest request, String userId) {
         UUID workspaceId = request.workspaceId();
         UUID projectId = request.projectId();
@@ -388,7 +432,6 @@ public class ChatService {
         }
     }
 
-    // ---------- REPOSITORY HELPERS ----------
 
     private CompletionResponse getCompletionResponse(
             String prompt,
@@ -397,13 +440,6 @@ public class ChatService {
             UUID convoId
     ) {
         try {
-            log.info(
-                    "CHAT_COMPLETION LLM_CALL_START convoId={} model={} hasMemory={}",
-                    convoId,
-                    model,
-                    messages != null && !messages.isEmpty()
-            );
-
             CompletionResponse response = llmRouterServiceClient.completion(
                     new CompletionLlmRouterRequest(prompt, model, messages)
             );
@@ -442,7 +478,6 @@ public class ChatService {
                 .toList();
     }
 
-    // ---------- QUERIES (MESSAGES & CONVERSATIONS) ----------
 
     public PagedResponse<ConversationMessageResponse> getMessages(
             UUID conversationId,
