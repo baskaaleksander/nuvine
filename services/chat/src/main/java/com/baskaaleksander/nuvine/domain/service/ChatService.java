@@ -6,7 +6,9 @@ import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.domain.model.ConversationRole;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,8 +26,12 @@ public class ChatService {
     private final LlmRouterServiceClient llmRouterServiceClient;
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationMessageMapper mapper;
+    private final WorkspaceServiceClient workspaceServiceClient;
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
+
+        checkWorkspaceAccess(request.workspaceId());
+
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;
         if (request.conversationId() == null) {
@@ -87,14 +93,28 @@ public class ChatService {
         );
     }
 
+    private void checkWorkspaceAccess(UUID workspaceId) {
+        try {
+            workspaceServiceClient.checkWorkspaceAccess(workspaceId);
+        } catch (FeignException e) {
+            int status = e.status();
+            if (status == 404) {
+                throw new RuntimeException("WORKSPACE_NOT_FOUND");
+            } else if (status == 403) {
+                throw new RuntimeException("WORKSPACE_ACCESS_DENIED");
+            }
+            log.error("WORKSPACE_ACCESS_CHECK_FAILED workspaceId={}", workspaceId, e);
+            throw new RuntimeException("WORKSPACE_ACCESS_CHECK_FAILED", e);
+        } catch (Exception e) {
+            log.error("WORKSPACE_ACCESS_CHECK_FAILED workspaceId={}", workspaceId, e);
+            throw new RuntimeException("WORKSPACE_ACCESS_CHECK_FAILED", e);
+        }
+    }
+
     private List<CompletionLlmRouterRequest.Message> buildChatMemory(UUID convoId, int memorySize) {
         return conversationMessageRepository.findByConversationId(convoId, memorySize * 2).stream().map(
                 message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
         ).toList();
-    }
-
-    private List<String> buildRagContext() {
-        return null;
     }
 
     public PagedResponse<ConversationMessageResponse> getMessages(UUID conversationId, String subject, PaginationRequest request) {
