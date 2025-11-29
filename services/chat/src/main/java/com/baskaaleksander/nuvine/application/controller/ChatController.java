@@ -5,11 +5,13 @@ import com.baskaaleksander.nuvine.domain.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +30,19 @@ public class ChatController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.ok(chatService.completion(request, jwt.getSubject()));
+    }
+
+    @PreAuthorize("@chatAccess.canAccessChat(#request.conversationId, #jwt.getSubject())")
+    @PostMapping(
+            value = "/completions/stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    public SseEmitter completionStream(
+            @RequestBody CompletionRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String userId = jwt.getSubject();
+        return chatService.completionStream(request, userId);
     }
 
     @GetMapping

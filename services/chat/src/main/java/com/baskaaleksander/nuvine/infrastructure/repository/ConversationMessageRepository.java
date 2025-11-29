@@ -18,6 +18,20 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
 
     Page<ConversationMessage> findAllByConversationId(UUID conversationId, Pageable pageable);
 
-    @Query("SELECT cm.conversationId, MAX(cm.createdAt) FROM ConversationMessage cm WHERE cm.ownerId = :ownerId GROUP BY cm.conversationId")
+    @Query("""
+            SELECT new com.baskaaleksander.nuvine.application.dto.UserConversationResponse(
+                cm.conversationId,
+                cm.content,
+                cm.createdAt
+            )
+            FROM ConversationMessage cm
+            WHERE cm.ownerId = :ownerId
+              AND cm.createdAt = (
+                    SELECT MAX(cm2.createdAt)
+                    FROM ConversationMessage cm2
+                    WHERE cm2.conversationId = cm.conversationId
+              )
+            ORDER BY cm.createdAt DESC
+            """)
     List<UserConversationResponse> findUserConversations(UUID ownerId);
 }

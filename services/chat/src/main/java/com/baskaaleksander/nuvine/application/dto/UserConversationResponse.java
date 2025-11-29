@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record UserConversationResponse(
         UUID conversationId,
+        String lastMessage,
         Instant lastMessageAt
 ) {
 }

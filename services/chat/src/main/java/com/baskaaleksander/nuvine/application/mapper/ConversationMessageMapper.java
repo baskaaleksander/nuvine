@@ -10,6 +10,7 @@ public class ConversationMessageMapper {
     public ConversationMessageResponse toResponse(ConversationMessage message) {
         return new ConversationMessageResponse(
                 message.getId(),
+                message.getConversationId(),
                 message.getContent(),
                 message.getRole(),
                 message.getModelUsed(),
