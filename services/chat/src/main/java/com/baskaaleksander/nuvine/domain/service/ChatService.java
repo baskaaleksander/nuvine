@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.ConversationMessageMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.ContextNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.domain.model.ConversationRole;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
@@ -34,6 +35,7 @@ public class ChatService {
     private final ConversationMessageMapper mapper;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final WebClient llmRouterWebClient;
+    private final ContextRetrievalService contextRetrievalService;
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
 
@@ -107,7 +109,6 @@ public class ChatService {
     }
 
     public SseEmitter completionStream(CompletionRequest request, String userId) {
-        ChatContext ctx = prepareChatContext(request, userId);
 
         SseEmitter emitter = new SseEmitter(0L);
         StringBuilder answerBuilder = new StringBuilder();
@@ -115,8 +116,16 @@ public class ChatService {
         AtomicInteger tokensIn = new AtomicInteger(0);
         AtomicInteger tokensOut = new AtomicInteger(0);
 
+        ChatContext ctx;
+        try {
+            ctx = prepareChatContext(request, userId);
+        } catch (ContextNotFoundException ex) {
+            handleContextNotFoundStrictMode(emitter, request, userId, ex);
+            return emitter;
+        }
+
         CompletionLlmRouterRequest routerRequest =
-                new CompletionLlmRouterRequest(request.message(), request.model(), ctx.messages());
+                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
 
         llmRouterWebClient.post()
                 .uri("/api/v1/internal/llm/completion/stream")
@@ -241,6 +250,51 @@ public class ChatService {
             }
         }
 
+        String prompt = request.message();
+
+        if (!request.freeMode()) {
+            String userMessage = request.message();
+            List<String> context = contextRetrievalService.retrieveContext(
+                    request.workspaceId(),
+                    request.projectId(),
+                    documentIds,
+                    request.message(),
+                    10,
+                    0.5f
+            );
+
+            String ragPart = context != null && !context.isEmpty()
+                    ? "Use the following context extracted from knowledge base to answer the user:\n---\n"
+                    + String.join("\n", context)
+                    + "\n---\n"
+                    : "No relevant context was found. Answer based only on your general knowledge.\n";
+
+            if (request.strictMode()) {
+                if (context == null || context.isEmpty()) {
+                    throw new ContextNotFoundException("Context not found");
+                }
+                ragPart = """
+                        You are an AI assistant that must answer strictly and only using the context from the user's documents.
+                        
+                        Rules:
+                        - Use only the information contained inside <context>...</context>.
+                        - If the answer is not clearly supported by the context, reply that the documents do not contain enough information to answer the question.
+                        - Do not use any outside or general knowledge.
+                        - Do not invent or guess any facts, numbers, or details.
+                        - If the context is only partially relevant, answer only what is directly supported and explicitly say what is missing.
+                        - Answer in the same language as the user message.
+                        
+                        <context>
+                        %s
+                        </context>
+                        """.formatted(
+                        String.join("\n\n---\n\n", context));
+            }
+
+
+            prompt = ragPart + "User message:\n" + userMessage;
+        }
+
         UUID convoId;
         List<CompletionLlmRouterRequest.Message> messages = null;
         if (request.conversationId() == null) {
@@ -252,7 +306,69 @@ public class ChatService {
 
         UUID ownerUUID = UUID.fromString(userId);
 
-        return new ChatContext(convoId, messages, ownerUUID);
+        return new ChatContext(prompt, convoId, messages, ownerUUID);
+    }
+
+    private void handleContextNotFoundStrictMode(
+            SseEmitter emitter,
+            CompletionRequest request,
+            String userId,
+            ContextNotFoundException ex
+    ) {
+        UUID conversationId = request.conversationId() != null
+                ? request.conversationId()
+                : UUID.randomUUID();
+
+        UUID ownerId = UUID.fromString(userId);
+
+        String assistantContent =
+                "I couldn't find any relevant context in your documents for this question. " +
+                        "Please adjust your filters, select different documents or upload more data.";
+
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("info")
+                    .data("No RAG context found for this query in strict mode."));
+
+            emitter.send(SseEmitter.event()
+                    .name("delta")
+                    .data(assistantContent));
+
+            emitter.send(SseEmitter.event()
+                    .name("usage")
+                    .data(new TokenUsage(0, 0)));
+
+            emitter.send(SseEmitter.event()
+                    .name("metadata")
+                    .data(new StreamEventMetadata(conversationId)));
+
+            emitter.send(SseEmitter.event()
+                    .name("done")
+                    .data("done"));
+        } catch (Exception sendEx) {
+            log.error("Failed to send strict-mode context-not-found response convoId={}", conversationId, sendEx);
+        } finally {
+            try {
+                ChatContext ctx = new ChatContext(
+                        request.message(),
+                        conversationId,
+                        null,
+                        ownerId
+                );
+
+                persistConversationMessages(
+                        ctx,
+                        request,
+                        assistantContent,
+                        0,
+                        0
+                );
+            } catch (Exception persistEx) {
+                log.error("Failed to persist strict-mode context-not-found messages convoId={}", conversationId, persistEx);
+            } finally {
+                emitter.complete();
+            }
+        }
     }
 
     private void checkWorkspaceAccess(UUID workspaceId) {
@@ -356,6 +472,7 @@ public class ChatService {
     }
 
     private record ChatContext(
+            String prompt,
             UUID conversationId,
             List<CompletionLlmRouterRequest.Message> messages,
             UUID ownerId
