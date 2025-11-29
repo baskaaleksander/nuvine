@@ -5,11 +5,8 @@ import com.baskaaleksander.nuvine.application.mapper.ConversationMessageMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.ContextNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
-import com.baskaaleksander.nuvine.domain.model.ConversationRole;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,9 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,69 +28,65 @@ public class ChatService {
     private final LlmRouterServiceClient llmRouterServiceClient;
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationMessageMapper mapper;
-    private final WorkspaceServiceClient workspaceServiceClient;
     private final WebClient llmRouterWebClient;
-    private final ContextRetrievalService contextRetrievalService;
+
+    private final WorkspaceAccessService workspaceAccessService;
+    private final RagPromptBuilder ragPromptBuilder;
+    private final ConversationPersistenceService conversationPersistenceService;
+
+    // ---------- SYNC COMPLETION ----------
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
+        UUID workspaceId = request.workspaceId();
+        UUID projectId = request.projectId();
 
-        checkWorkspaceAccess(request.workspaceId());
-//        List<UUID> documentIds = getDocumentIdsInProject(request.projectId());
-//
-//        if (request.documentIds() != null && !request.documentIds().isEmpty()) {
-//            Set<UUID> available = new HashSet<>(documentIds);
-//
-//            if (!available.containsAll(request.documentIds())) {
-//                throw new RuntimeException("DOCUMENTS_NOT_FOUND");
-//            }
-//        }
+        log.info(
+                "CHAT_COMPLETION START workspaceId={} projectId={} freeMode={} strictMode={}",
+                workspaceId,
+                projectId,
+                request.freeMode(),
+                request.strictMode()
+        );
 
-        UUID convoId;
+        workspaceAccessService.checkWorkspaceAccess(workspaceId);
+
+        UUID conversationId = request.conversationId() != null
+                ? request.conversationId()
+                : UUID.randomUUID();
+
         List<CompletionLlmRouterRequest.Message> messages = null;
-        if (request.conversationId() == null) {
-            convoId = UUID.randomUUID();
-        } else {
-            convoId = request.conversationId();
-            messages = buildChatMemory(convoId, request.memorySize());
+        if (request.conversationId() != null) {
+            messages = buildChatMemory(conversationId, request.memorySize());
+            log.debug("CHAT_COMPLETION MEMORY_LOADED convoId={} messagesCount={}", conversationId, messages.size());
         }
 
         UUID ownerUUID = UUID.fromString(userId);
 
-        log.info("CHAT_COMPLETION START convoId={}", convoId);
-        CompletionResponse completion;
-
-        if (request.freeMode()) {
-            completion = getCompletionResponse(request.message(), request.model(), messages, convoId);
-        } else {
-            // todo: add context building here
-            completion = getCompletionResponse(request.message(), request.model(), messages, convoId);
-        }
-
-        conversationMessageRepository.save(
-                ConversationMessage.builder()
-                        .conversationId(convoId)
-                        .content(request.message())
-                        .role(ConversationRole.USER)
-                        .modelUsed(request.model())
-                        .tokensCost(completion.tokensIn())
-                        .ownerId(ownerUUID)
-                        .cost(0)
-                        .build()
+        CompletionResponse completion = getCompletionResponse(
+                request.message(),
+                request.model(),
+                messages,
+                conversationId
         );
 
-        ConversationMessage assistantMessage = conversationMessageRepository.save(
-                ConversationMessage.builder()
-                        .conversationId(convoId)
-                        .content(completion.content())
-                        .role(ConversationRole.ASSISTANT)
-                        .modelUsed(request.model())
-                        .tokensCost(completion.tokensOut())
-                        .ownerId(ownerUUID)
-                        .cost(0)
-                        .build()
+        ConversationMessage assistantMessage =
+                conversationPersistenceService.persistSyncCompletion(
+                        conversationId,
+                        request,
+                        completion,
+                        ownerUUID
+                );
+
+        log.info(
+                "CHAT_COMPLETION END convoId={} workspaceId={} projectId={} model={} tokensIn={} tokensOut={}",
+                conversationId,
+                workspaceId,
+                projectId,
+                request.model(),
+                completion.tokensIn(),
+                completion.tokensOut()
         );
 
-        log.info("CHAT_COMPLETION END convoId={}", convoId);
         return new ConversationMessageResponse(
                 assistantMessage.getId(),
                 assistantMessage.getConversationId(),
@@ -108,21 +99,42 @@ public class ChatService {
         );
     }
 
-    public SseEmitter completionStream(CompletionRequest request, String userId) {
+    // ---------- STREAM COMPLETION (SSE) ----------
 
+    public SseEmitter completionStream(CompletionRequest request, String userId) {
         SseEmitter emitter = new SseEmitter(0L);
         StringBuilder answerBuilder = new StringBuilder();
 
         AtomicInteger tokensIn = new AtomicInteger(0);
         AtomicInteger tokensOut = new AtomicInteger(0);
 
+        log.info(
+                "CHAT_COMPLETION_STREAM START workspaceId={} projectId={} freeMode={} strictMode={}",
+                request.workspaceId(),
+                request.projectId(),
+                request.freeMode(),
+                request.strictMode()
+        );
+
         ChatContext ctx;
         try {
             ctx = prepareChatContext(request, userId);
         } catch (ContextNotFoundException ex) {
-            handleContextNotFoundStrictMode(emitter, request, userId, ex);
+            log.info(
+                    "CHAT_COMPLETION_STREAM CONTEXT_NOT_FOUND_STRICT workspaceId={} projectId={}",
+                    request.workspaceId(),
+                    request.projectId()
+            );
+            handleContextNotFoundStrictMode(emitter, request, userId);
             return emitter;
         }
+
+        log.info(
+                "CHAT_COMPLETION_STREAM CONTEXT_PREPARED convoId={} workspaceId={} projectId={}",
+                ctx.conversationId(),
+                request.workspaceId(),
+                request.projectId()
+        );
 
         CompletionLlmRouterRequest routerRequest =
                 new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
@@ -134,186 +146,181 @@ public class ChatService {
                 .bodyValue(routerRequest)
                 .retrieve()
                 .bodyToFlux(LlmChunk.class)
-                .doOnNext(chunk -> {
-                    try {
-                        switch (chunk.type()) {
-                            case "delta" -> {
-                                answerBuilder.append(chunk.content());
-                                emitter.send(SseEmitter.event()
-                                        .name("delta")
-                                        .data(chunk.content()));
-                            }
-                            case "usage" -> {
-                                tokensIn.set(chunk.tokensIn());
-                                tokensOut.set(chunk.tokensOut());
-
-                                emitter.send(SseEmitter.event()
-                                        .name("usage")
-                                        .data(new TokenUsage(chunk.tokensIn(), chunk.tokensOut())));
-                            }
-                            case "info" -> {
-                                emitter.send(SseEmitter.event()
-                                        .name("info")
-                                        .data(chunk.content()));
-                            }
-                            case "done" -> {
-                                emitter.send(SseEmitter.event()
-                                        .name("metadata")
-                                        .data(new StreamEventMetadata(ctx.conversationId)));
-                                emitter.send(SseEmitter.event()
-                                        .name("done")
-                                        .data("done"));
-                            }
-                            default -> {
-                                log.warn("Unknown chunk type: {}", chunk.type());
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.error("Failed to send SSE chunk convoId={}", ctx.conversationId(), e);
-                    }
-                })
-                .doOnError(ex -> {
-                    log.error("CHAT_COMPLETION_STREAM FAILED convoId={}", ctx.conversationId(), ex);
-                    try {
-                        emitter.completeWithError(ex);
-                    } catch (Exception ignored) {
-                    }
-                })
-                .doOnComplete(() -> {
-                    try {
-                        persistConversationMessages(
-                                ctx,
-                                request,
-                                answerBuilder.toString(),
-                                tokensIn.get(),
-                                tokensOut.get()
-                        );
-                    } catch (Exception e) {
-                        log.error("Failed to persist messages after stream convoId={}", ctx.conversationId(), e);
-                    } finally {
-                        emitter.complete();
-                    }
-                })
+                .doOnSubscribe(sub -> log.info(
+                        "CHAT_COMPLETION_STREAM LLM_CALL_START convoId={} model={}",
+                        ctx.conversationId(),
+                        request.model()
+                ))
+                .doOnNext(chunk -> handleChunk(chunk, emitter, answerBuilder, tokensIn, tokensOut, ctx))
+                .doOnError(ex -> handleStreamError(ex, emitter, ctx))
+                .doOnComplete(() -> handleStreamComplete(
+                        emitter,
+                        ctx,
+                        request,
+                        answerBuilder.toString(),
+                        tokensIn.get(),
+                        tokensOut.get()
+                ))
                 .subscribe();
 
         return emitter;
     }
 
-    private void persistConversationMessages(
+    private void handleChunk(
+            LlmChunk chunk,
+            SseEmitter emitter,
+            StringBuilder answerBuilder,
+            AtomicInteger tokensIn,
+            AtomicInteger tokensOut,
+            ChatContext ctx
+    ) {
+        try {
+            switch (chunk.type()) {
+                case "delta" -> {
+                    answerBuilder.append(chunk.content());
+                    emitter.send(SseEmitter.event()
+                            .name("delta")
+                            .data(chunk.content()));
+                }
+                case "usage" -> {
+                    tokensIn.set(chunk.tokensIn());
+                    tokensOut.set(chunk.tokensOut());
+
+                    log.info(
+                            "CHAT_COMPLETION_STREAM USAGE convoId={} tokensIn={} tokensOut={}",
+                            ctx.conversationId(),
+                            chunk.tokensIn(),
+                            chunk.tokensOut()
+                    );
+
+                    emitter.send(SseEmitter.event()
+                            .name("usage")
+                            .data(new TokenUsage(chunk.tokensIn(), chunk.tokensOut())));
+                }
+                case "info" -> emitter.send(SseEmitter.event()
+                        .name("info")
+                        .data(chunk.content()));
+                case "done" -> {
+                    log.info("CHAT_COMPLETION_STREAM LLM_CALL_DONE convoId={}", ctx.conversationId());
+                    emitter.send(SseEmitter.event()
+                            .name("metadata")
+                            .data(new StreamEventMetadata(ctx.conversationId())));
+                    emitter.send(SseEmitter.event()
+                            .name("done")
+                            .data("done"));
+                }
+                default -> log.warn("CHAT_COMPLETION_STREAM UNKNOWN_CHUNK_TYPE convoId={} type={}",
+                        ctx.conversationId(),
+                        chunk.type()
+                );
+            }
+        } catch (Exception e) {
+            log.error("CHAT_COMPLETION_STREAM SSE_SEND_FAILED convoId={}", ctx.conversationId(), e);
+        }
+    }
+
+    private void handleStreamError(Throwable ex, SseEmitter emitter, ChatContext ctx) {
+        log.error("CHAT_COMPLETION_STREAM FAILED convoId={}", ctx.conversationId(), ex);
+        try {
+            emitter.completeWithError(ex);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void handleStreamComplete(
+            SseEmitter emitter,
             ChatContext ctx,
             CompletionRequest request,
             String assistantContent,
             int tokensIn,
             int tokensOut
     ) {
-        log.info("CHAT_COMPLETION_STREAM END convoId={}", ctx.conversationId());
-
-        ConversationMessage userMessage = ConversationMessage.builder()
-                .conversationId(ctx.conversationId())
-                .content(request.message())
-                .role(ConversationRole.USER)
-                .modelUsed(request.model())
-                .ownerId(ctx.ownerId())
-                .tokensCost(tokensIn)
-                .cost(0)
-                .build();
-
-        conversationMessageRepository.save(userMessage);
-
-        ConversationMessage assistantMessage = conversationMessageRepository.save(
-                ConversationMessage.builder()
-                        .conversationId(ctx.conversationId())
-                        .content(assistantContent)
-                        .role(ConversationRole.ASSISTANT)
-                        .modelUsed(request.model())
-                        .tokensCost(tokensOut)
-                        .ownerId(ctx.ownerId())
-                        .cost(0)
-                        .build()
-        );
-    }
-
-    private ChatContext prepareChatContext(CompletionRequest request, String userId) {
-        checkWorkspaceAccess(request.workspaceId());
-        List<UUID> documentIds = getDocumentIdsInProject(request.projectId());
-
-        if (request.documentIds() != null && !request.documentIds().isEmpty()) {
-            Set<UUID> available = new HashSet<>(documentIds);
-
-            List<UUID> missing = request.documentIds().stream()
-                    .filter(id -> !available.contains(id))
-                    .toList();
-
-            if (!missing.isEmpty()) {
-                log.warn("DOCUMENTS_NOT_FOUND projectId={} missing={}", request.projectId(), missing);
-                throw new RuntimeException("DOCUMENTS_NOT_FOUND");
-            }
-        }
-
-        String prompt = request.message();
-
-        if (!request.freeMode()) {
-            String userMessage = request.message();
-            List<String> context = contextRetrievalService.retrieveContext(
-                    request.workspaceId(),
-                    request.projectId(),
-                    documentIds,
-                    request.message(),
-                    10,
-                    0.5f
+        try {
+            conversationPersistenceService.persistStreamCompletion(
+                    ctx,
+                    request,
+                    assistantContent,
+                    tokensIn,
+                    tokensOut
             );
 
-            String ragPart = context != null && !context.isEmpty()
-                    ? "Use the following context extracted from knowledge base to answer the user:\n---\n"
-                    + String.join("\n", context)
-                    + "\n---\n"
-                    : "No relevant context was found. Answer based only on your general knowledge.\n";
-
-            if (request.strictMode()) {
-                if (context == null || context.isEmpty()) {
-                    throw new ContextNotFoundException("Context not found");
-                }
-                ragPart = """
-                        You are an AI assistant that must answer strictly and only using the context from the user's documents.
-                        
-                        Rules:
-                        - Use only the information contained inside <context>...</context>.
-                        - If the answer is not clearly supported by the context, reply that the documents do not contain enough information to answer the question.
-                        - Do not use any outside or general knowledge.
-                        - Do not invent or guess any facts, numbers, or details.
-                        - If the context is only partially relevant, answer only what is directly supported and explicitly say what is missing.
-                        - Answer in the same language as the user message.
-                        
-                        <context>
-                        %s
-                        </context>
-                        """.formatted(
-                        String.join("\n\n---\n\n", context));
-            }
-
-
-            prompt = ragPart + "User message:\n" + userMessage;
+            log.info(
+                    "CHAT_COMPLETION_STREAM END convoId={} workspaceId={} projectId={} model={} tokensIn={} tokensOut={}",
+                    ctx.conversationId(),
+                    request.workspaceId(),
+                    request.projectId(),
+                    request.model(),
+                    tokensIn,
+                    tokensOut
+            );
+        } catch (Exception e) {
+            log.error("CHAT_COMPLETION_STREAM PERSIST_FAILED convoId={}", ctx.conversationId(), e);
+        } finally {
+            emitter.complete();
         }
+    }
 
-        UUID convoId;
-        List<CompletionLlmRouterRequest.Message> messages = null;
-        if (request.conversationId() == null) {
-            convoId = UUID.randomUUID();
+    // ---------- CONTEXT / PROMPT PREPARATION ----------
+
+    private ChatContext prepareChatContext(CompletionRequest request, String userId) {
+        UUID workspaceId = request.workspaceId();
+        UUID projectId = request.projectId();
+
+        log.info("CHAT_CONTEXT_PREPARE START workspaceId={} projectId={}", workspaceId, projectId);
+
+        workspaceAccessService.checkWorkspaceAccess(workspaceId);
+
+        List<UUID> documentIds = workspaceAccessService.getDocumentIdsInProject(projectId);
+        log.info(
+                "CHAT_CONTEXT_PREPARE DOCUMENTS_LOADED projectId={} documentsCount={}",
+                projectId,
+                documentIds.size()
+        );
+
+        workspaceAccessService.validateRequestedDocuments(
+                request.documentIds(),
+                documentIds,
+                projectId
+        );
+
+        String prompt = ragPromptBuilder.buildPrompt(request, documentIds);
+
+        UUID conversationId = request.conversationId() != null
+                ? request.conversationId()
+                : UUID.randomUUID();
+
+        List<CompletionLlmRouterRequest.Message> messages = request.conversationId() != null
+                ? buildChatMemory(conversationId, request.memorySize())
+                : null;
+
+        if (messages != null) {
+            log.info(
+                    "CHAT_CONTEXT_PREPARE MEMORY_ATTACHED convoId={} messagesCount={}",
+                    conversationId,
+                    messages.size()
+            );
         } else {
-            convoId = request.conversationId();
-            messages = buildChatMemory(convoId, request.memorySize());
+            log.info("CHAT_CONTEXT_PREPARE NEW_CONVERSATION convoId={}", conversationId);
         }
 
         UUID ownerUUID = UUID.fromString(userId);
 
-        return new ChatContext(prompt, convoId, messages, ownerUUID);
+        log.info(
+                "CHAT_CONTEXT_PREPARE END convoId={} workspaceId={} projectId={} freeMode={} strictMode={}",
+                conversationId,
+                workspaceId,
+                projectId,
+                request.freeMode(),
+                request.strictMode()
+        );
+
+        return new ChatContext(prompt, conversationId, messages, ownerUUID);
     }
 
     private void handleContextNotFoundStrictMode(
             SseEmitter emitter,
             CompletionRequest request,
-            String userId,
-            ContextNotFoundException ex
+            String userId
     ) {
         UUID conversationId = request.conversationId() != null
                 ? request.conversationId()
@@ -324,6 +331,13 @@ public class ChatService {
         String assistantContent =
                 "I couldn't find any relevant context in your documents for this question. " +
                         "Please adjust your filters, select different documents or upload more data.";
+
+        log.info(
+                "CHAT_COMPLETION_STREAM STRICT_NO_CONTEXT_RESPONSE convoId={} workspaceId={} projectId={}",
+                conversationId,
+                request.workspaceId(),
+                request.projectId()
+        );
 
         try {
             emitter.send(SseEmitter.event()
@@ -346,88 +360,118 @@ public class ChatService {
                     .name("done")
                     .data("done"));
         } catch (Exception sendEx) {
-            log.error("Failed to send strict-mode context-not-found response convoId={}", conversationId, sendEx);
+            log.error("CHAT_COMPLETION_STREAM STRICT_NO_CONTEXT_SSE_FAILED convoId={}", conversationId, sendEx);
         } finally {
             try {
-                ChatContext ctx = new ChatContext(
-                        request.message(),
+                conversationPersistenceService.persistStrictModeNoContext(
                         conversationId,
-                        null,
+                        request,
+                        assistantContent,
                         ownerId
                 );
 
-                persistConversationMessages(
-                        ctx,
-                        request,
-                        assistantContent,
-                        0,
-                        0
+                log.info(
+                        "CHAT_COMPLETION_STREAM STRICT_NO_CONTEXT_PERSISTED convoId={} workspaceId={} projectId={}",
+                        conversationId,
+                        request.workspaceId(),
+                        request.projectId()
                 );
             } catch (Exception persistEx) {
-                log.error("Failed to persist strict-mode context-not-found messages convoId={}", conversationId, persistEx);
+                log.error(
+                        "CHAT_COMPLETION_STREAM STRICT_NO_CONTEXT_PERSIST_FAILED convoId={}",
+                        conversationId,
+                        persistEx
+                );
             } finally {
                 emitter.complete();
             }
         }
     }
 
-    private void checkWorkspaceAccess(UUID workspaceId) {
-        try {
-            workspaceServiceClient.checkWorkspaceAccess(workspaceId);
-        } catch (FeignException e) {
-            int status = e.status();
-            if (status == 404) {
-                throw new RuntimeException("WORKSPACE_NOT_FOUND");
-            } else if (status == 403) {
-                throw new RuntimeException("WORKSPACE_ACCESS_DENIED");
-            }
-            log.error("WORKSPACE_ACCESS_CHECK_FAILED workspaceId={}", workspaceId, e);
-            throw new RuntimeException("WORKSPACE_ACCESS_CHECK_FAILED", e);
-        } catch (Exception e) {
-            log.error("WORKSPACE_ACCESS_CHECK_FAILED workspaceId={}", workspaceId, e);
-            throw new RuntimeException("WORKSPACE_ACCESS_CHECK_FAILED", e);
-        }
-    }
+    // ---------- REPOSITORY HELPERS ----------
 
-    private List<UUID> getDocumentIdsInProject(UUID projectId) {
+    private CompletionResponse getCompletionResponse(
+            String prompt,
+            String model,
+            List<CompletionLlmRouterRequest.Message> messages,
+            UUID convoId
+    ) {
         try {
-            return workspaceServiceClient.getDocumentIdsInProject(projectId);
-        } catch (FeignException e) {
-            int status = e.status();
-            if (status == 404) {
-                throw new RuntimeException("PROJECT_NOT_FOUND");
-            } else if (status == 403) {
-                throw new RuntimeException("PROJECT_ACCESS_DENIED");
-            }
-            log.error("PROJECT_ACCESS_CHECK_FAILED projectId={}", projectId, e);
-            throw new RuntimeException("PROJECT_ACCESS_CHECK_FAILED", e);
-        } catch (Exception e) {
-            log.error("PROJECT_ACCESS_CHECK_FAILED projectId={}", projectId, e);
-            throw new RuntimeException("PROJECT_ACCESS_CHECK_FAILED", e);
-        }
-    }
+            log.info(
+                    "CHAT_COMPLETION LLM_CALL_START convoId={} model={} hasMemory={}",
+                    convoId,
+                    model,
+                    messages != null && !messages.isEmpty()
+            );
 
-    private CompletionResponse getCompletionResponse(String prompt, String model, List<CompletionLlmRouterRequest.Message> messages, UUID convoId) {
-        try {
-            return llmRouterServiceClient.completion(new CompletionLlmRouterRequest(prompt, model, messages));
+            CompletionResponse response = llmRouterServiceClient.completion(
+                    new CompletionLlmRouterRequest(prompt, model, messages)
+            );
+
+            log.info(
+                    "CHAT_COMPLETION LLM_CALL_END convoId={} model={} tokensIn={} tokensOut={}",
+                    convoId,
+                    model,
+                    response.tokensIn(),
+                    response.tokensOut()
+            );
+
+            return response;
         } catch (Exception e) {
-            log.error("CHAT_COMPLETION FAILED convoId={}", convoId, e);
+            log.error("CHAT_COMPLETION FAILED convoId={} model={}", convoId, model, e);
             throw new RuntimeException("CHAT_COMPLETION FAILED", e);
         }
     }
 
     private List<CompletionLlmRouterRequest.Message> buildChatMemory(UUID convoId, int memorySize) {
-        return conversationMessageRepository.findByConversationId(convoId, memorySize * 2).stream().map(
-                message -> new CompletionLlmRouterRequest.Message(message.getRole().name().toLowerCase(), message.getContent())
-        ).toList();
+        List<ConversationMessage> history =
+                conversationMessageRepository.findByConversationId(convoId, memorySize * 2);
+
+        log.info(
+                "CHAT_MEMORY LOAD convoId={} requestedPairs={} loadedMessages={}",
+                convoId,
+                memorySize,
+                history.size()
+        );
+
+        return history.stream()
+                .map(message -> new CompletionLlmRouterRequest.Message(
+                        message.getRole().name().toLowerCase(),
+                        message.getContent())
+                )
+                .toList();
     }
 
-    public PagedResponse<ConversationMessageResponse> getMessages(UUID conversationId, String subject, PaginationRequest request) {
+    // ---------- QUERIES (MESSAGES & CONVERSATIONS) ----------
+
+    public PagedResponse<ConversationMessageResponse> getMessages(
+            UUID conversationId,
+            String subject,
+            PaginationRequest request
+    ) {
         Pageable pageable = PaginationUtil.getPageable(request);
 
-        Page<ConversationMessage> page = conversationMessageRepository.findAllByConversationId(conversationId, pageable);
+        log.info(
+                "CHAT_MESSAGES LIST_START convoId={} page={} size={}",
+                conversationId,
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
 
-        List<ConversationMessageResponse> content = page.getContent().stream().map(mapper::toResponse).toList();
+        Page<ConversationMessage> page =
+                conversationMessageRepository.findAllByConversationId(conversationId, pageable);
+
+        List<ConversationMessageResponse> content = page.getContent().stream()
+                .map(mapper::toResponse)
+                .toList();
+
+        log.info(
+                "CHAT_MESSAGES LIST_END convoId={} page={} size={} totalElements={}",
+                conversationId,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
 
         return new PagedResponse<>(
                 content,
@@ -441,41 +485,30 @@ public class ChatService {
     }
 
     public List<UserConversationResponse> getUserConversations(String ownerId) {
-        return conversationMessageRepository.findUserConversations(UUID.fromString(ownerId))
+        UUID ownerUuid = UUID.fromString(ownerId);
+
+        log.info("CHAT_USER_CONVERSATIONS START ownerId={}", ownerUuid);
+
+        List<UserConversationResponse> result = conversationMessageRepository
+                .findUserConversations(ownerUuid)
                 .stream()
-                .map(cm -> new UserConversationResponse(
-                        cm.conversationId(),
-                        cleanMarkdown(cm.lastMessage()).substring(0,
-                                Math.min(cleanMarkdown(cm.lastMessage()).length(), 100)),
-                        cm.lastMessageAt()
-                ))
+                .map(cm -> {
+                    String cleaned = MarkdownCleaner.clean(cm.lastMessage());
+                    String preview = cleaned.substring(0, Math.min(cleaned.length(), 100));
+                    return new UserConversationResponse(
+                            cm.conversationId(),
+                            preview,
+                            cm.lastMessageAt()
+                    );
+                })
                 .toList();
-    }
 
+        log.info(
+                "CHAT_USER_CONVERSATIONS END ownerId={} conversationsCount={}",
+                ownerUuid,
+                result.size()
+        );
 
-    private String cleanMarkdown(String input) {
-        if (input == null) return "";
-
-        String cleaned = input;
-
-        cleaned = cleaned.replaceAll("(?m)^#{1,6}\\s*", "");
-        cleaned = cleaned.replaceAll("\\*\\*(.*?)\\*\\*", "$1");
-        cleaned = cleaned.replaceAll("\\*(.*?)\\*", "$1");
-        cleaned = cleaned.replaceAll("~~(.*?)~~", "$1");
-        cleaned = cleaned.replaceAll("`([^`]*)`", "$1");
-        cleaned = cleaned.replaceAll("```[\\s\\S]*?```", "");
-        cleaned = cleaned.replaceAll(">\\s*", "");
-        cleaned = cleaned.replaceAll("[-*+]\\s+", "");
-        cleaned = cleaned.replaceAll("\\r?\\n", " ");
-
-        return cleaned.trim();
-    }
-
-    private record ChatContext(
-            String prompt,
-            UUID conversationId,
-            List<CompletionLlmRouterRequest.Message> messages,
-            UUID ownerId
-    ) {
+        return result;
     }
 }
