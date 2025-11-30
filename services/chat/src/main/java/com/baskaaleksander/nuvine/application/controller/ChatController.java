@@ -47,9 +47,10 @@ public class ChatController {
 
     @GetMapping
     public ResponseEntity<List<UserConversationResponse>> getUserConversations(
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam UUID projectId
     ) {
-        return ResponseEntity.ok(chatService.getUserConversations(jwt.getSubject()));
+        return ResponseEntity.ok(chatService.getUserConversations(jwt.getSubject(), projectId));
     }
 
     @PreAuthorize("@chatAccess.canAccessChat(#conversationId, #jwt.getSubject())")

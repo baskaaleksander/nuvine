@@ -51,6 +51,12 @@ public class ConversationMessage {
     @Column(nullable = false)
     private UUID ownerId;
 
+    @Column(nullable = false, name = "project_id")
+    private UUID projectId;
+
+    @Column(nullable = false, name = "workspace_id")
+    private UUID workspaceId;
+
     @Column(nullable = false)
     private double cost;
 

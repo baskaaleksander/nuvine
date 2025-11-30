@@ -26,6 +26,7 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
             )
             FROM ConversationMessage cm
             WHERE cm.ownerId = :ownerId
+              AND cm.projectId = :projectId
               AND cm.createdAt = (
                     SELECT MAX(cm2.createdAt)
                     FROM ConversationMessage cm2
@@ -33,5 +34,5 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
               )
             ORDER BY cm.createdAt DESC
             """)
-    List<UserConversationResponse> findUserConversations(UUID ownerId);
+    List<UserConversationResponse> findUserConversations(UUID ownerId, UUID projectId);
 }

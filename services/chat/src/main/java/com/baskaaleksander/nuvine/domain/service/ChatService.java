@@ -358,7 +358,7 @@ public class ChatService {
                 request.strictMode()
         );
 
-        return new ChatContext(prompt, conversationId, messages, ownerUUID);
+        return new ChatContext(prompt, conversationId, projectId, workspaceId, messages, ownerUUID);
     }
 
     private void handleContextNotFoundStrictMode(
@@ -519,13 +519,13 @@ public class ChatService {
         );
     }
 
-    public List<UserConversationResponse> getUserConversations(String ownerId) {
+    public List<UserConversationResponse> getUserConversations(String ownerId, UUID projectId) {
         UUID ownerUuid = UUID.fromString(ownerId);
 
         log.info("CHAT_USER_CONVERSATIONS START ownerId={}", ownerUuid);
 
         List<UserConversationResponse> result = conversationMessageRepository
-                .findUserConversations(ownerUuid)
+                .findUserConversations(ownerUuid, projectId)
                 .stream()
                 .map(cm -> {
                     String cleaned = MarkdownCleaner.clean(cm.lastMessage());
