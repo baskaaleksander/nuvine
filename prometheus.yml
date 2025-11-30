@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: [ "ms_prometheus:9090" ]
+
+  - job_name: "gateway"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8222" ]
+
+  - job_name: "auth"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8040" ]
+
+  - job_name: "chat"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8110" ]
+
+  - job_name: "llm-router"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8090" ]
+
+  - job_name: "vector"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8100" ]
+
+  - job_name: "ingestion"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8080" ]
+
+  - job_name: "file-storage"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8070" ]
+
+  - job_name: "notification"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8050" ]
+
+  - job_name: "workspace"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "host.docker.internal:8060" ]

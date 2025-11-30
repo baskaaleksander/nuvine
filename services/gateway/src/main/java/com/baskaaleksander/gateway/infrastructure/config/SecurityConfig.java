@@ -63,7 +63,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/password/forgot",
                                 "/api/v1/auth/password/check-token",
                                 "/api/v1/auth/password/reset",
-                                "/api/v1/internal/file-storage/events"
+                                "/api/v1/internal/file-storage/events",
+                                "/actuator/**"
                         ).permitAll()
                         .pathMatchers("/api/v1/admin").hasAnyRole("ADMIN")
                         .anyExchange().authenticated()
