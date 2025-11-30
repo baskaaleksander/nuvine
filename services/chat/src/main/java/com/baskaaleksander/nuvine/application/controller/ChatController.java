@@ -23,7 +23,7 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    @PreAuthorize("@chatAccess.canAccessChat(#request.conversationId, #jwt.getSubject())")
+    @PreAuthorize("@chatAccess.canCreateMessage(#request.conversationId, #jwt.getSubject(), #request.projectId, #request.workspaceId)")
     @PostMapping("/completions")
     public ResponseEntity<ConversationMessageResponse> completions(
             @RequestBody @Valid CompletionRequest request,
@@ -32,7 +32,7 @@ public class ChatController {
         return ResponseEntity.ok(chatService.completion(request, jwt.getSubject()));
     }
 
-    @PreAuthorize("@chatAccess.canAccessChat(#request.conversationId, #jwt.getSubject())")
+    @PreAuthorize("@chatAccess.canCreateMessage(#request.conversationId, #jwt.getSubject(), #request.projectId, #request.workspaceId)")
     @PostMapping(
             value = "/completions/stream",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE
