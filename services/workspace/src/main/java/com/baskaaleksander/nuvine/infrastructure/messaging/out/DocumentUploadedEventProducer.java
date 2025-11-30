@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.messaging;
+package com.baskaaleksander.nuvine.infrastructure.messaging.out;
 
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
 import lombok.RequiredArgsConstructor;

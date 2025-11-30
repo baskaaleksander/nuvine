@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class VectorProcessingCompletedEventConsumer {
 
-    private IngestionStatusOrchestrator ingestionStatusOrchestrator;
+    private final IngestionStatusOrchestrator ingestionStatusOrchestrator;
 
     @KafkaListener(topics = "${topics.vector-processing-completed-topic}")
     public void consumeVectorProcessingCompletedEvent(VectorProcessingCompletedEvent event) {

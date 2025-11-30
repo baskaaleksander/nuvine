@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.messaging;
 
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberAddedEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
