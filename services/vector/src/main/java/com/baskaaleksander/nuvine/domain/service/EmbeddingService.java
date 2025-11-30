@@ -6,8 +6,10 @@ import com.baskaaleksander.nuvine.domain.model.EmbeddingJob;
 import com.baskaaleksander.nuvine.domain.model.EmbeddingStatus;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.EmbeddingRequestEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.VectorProcessingCompletedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.EmbeddingJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class EmbeddingService {
     private final EmbeddingRequestEventProducer embeddingRequestEventProducer;
     private final EmbeddingJobRepository jobRepository;
     private final VectorStorageService vectorStorageService;
+    private final VectorProcessingCompletedEventProducer vectorProcessingCompletedEventProducer;
 
     public void process(VectorProcessingRequestEvent event) {
         int totalChunks = event.chunks().size();
@@ -82,6 +85,7 @@ public class EmbeddingService {
             job.setStatus(EmbeddingStatus.COMPLETED);
             job.setModelUsed(event.model());
             log.info("EMBEDDING_SERVICE PROCESS EMBEDDING_COMPLETED_EVENT COMPLETED jobId={} totalChunks={}", event.ingestionJobId(), event.embeddedChunks().size());
+            vectorProcessingCompletedEventProducer.sendVectorProcessingCompletedEvent(new VectorProcessingCompletedEvent(job.getIngestionJobId().toString(), job.getDocumentId().toString(), job.getProjectId().toString(), job.getWorkspaceId().toString()));
         }
         jobRepository.save(job);
     }
