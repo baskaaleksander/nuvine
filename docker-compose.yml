@@ -105,6 +105,35 @@ services:
       - microservices-net
     restart: unless-stopped
 
+  prometheus:
+    container_name: ms_prometheus
+    image: prom/prometheus:latest
+    env_file:
+      - .env
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  grafana:
+    container_name: ms_grafana
+    image: grafana/grafana:latest
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
 networks:
   microservices-net:
     driver: bridge
@@ -115,3 +144,5 @@ volumes:
   keycloak:
   minio:
   qdrant:
+  prometheus:
+  grafana:
