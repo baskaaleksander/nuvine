@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: "Nuvine dashboards"
+    orgId: 1
+    folder: "Nuvine"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
