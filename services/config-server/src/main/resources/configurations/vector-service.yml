@@ -27,7 +27,8 @@ spring:
       properties:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
-          embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent
+          embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent,
+          vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent
 
 qdrant:
   host: localhost

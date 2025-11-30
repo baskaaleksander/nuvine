@@ -47,6 +47,8 @@ topics:
   embedding-request-topic: embedding-request-topic
   embedding-completed-topic: embedding-completed-topic
   vector-processing-request-topic: vector-processing-request-topic
+  vector-processing-completed-topic: vector-processing-completed-topic
+  document-ingestion-completed-topic: document-ingestion-completed-topic
 
 crypto:
   notifications:
