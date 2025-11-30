@@ -15,6 +15,21 @@ spring:
         jwt:
           issuer-uri: http://localhost:9098/realms/nuvine
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus,metrics,health,info"
+  endpoint:
+    prometheus:
+      access: unrestricted
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
 logging:
   level:
     root: INFO
