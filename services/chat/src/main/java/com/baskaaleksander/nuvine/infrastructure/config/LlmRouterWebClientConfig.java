@@ -4,6 +4,8 @@ import com.baskaaleksander.nuvine.infrastructure.auth.KeycloakClientCredentialsT
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
@@ -15,11 +17,21 @@ public class LlmRouterWebClientConfig {
     @Bean
     public WebClient llmRouterWebClient() {
 
-        String token = tokenProvider.getAccessToken();
-
         return WebClient.builder()
                 .baseUrl("http://localhost:8090")
-                .defaultHeader("Authorization", "Bearer " + token)
+                .filter(authorizationFilter())
                 .build();
+    }
+
+    private ExchangeFilterFunction authorizationFilter() {
+        return (request, next) -> {
+            String token = tokenProvider.getAccessToken();
+
+            ClientRequest newRequest = ClientRequest.from(request)
+                    .headers(headers -> headers.setBearerAuth(token))
+                    .build();
+
+            return next.exchange(newRequest);
+        };
     }
 }
