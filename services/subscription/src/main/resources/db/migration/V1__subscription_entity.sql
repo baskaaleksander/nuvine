@@ -18,8 +18,8 @@ CREATE TABLE subscriptions (
                                current_period_start TIMESTAMPTZ NOT NULL,
                                current_period_end TIMESTAMPTZ NOT NULL,
                                cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
-                               created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                               updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                               created_at TIMESTAMPTZ NOT NULL,
+                               updated_at TIMESTAMPTZ NOT NULL
 );
 
 ALTER TABLE subscriptions

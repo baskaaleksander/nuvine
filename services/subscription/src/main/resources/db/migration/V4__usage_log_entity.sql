@@ -17,7 +17,7 @@ CREATE TABLE usage_logs
 
     cost_credits    NUMERIC(18, 6) NOT NULL,
 
-    created_at      TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    created_at      TIMESTAMPTZ    NOT NULL,
     occurred_at     TIMESTAMPTZ    NOT NULL
 );
 

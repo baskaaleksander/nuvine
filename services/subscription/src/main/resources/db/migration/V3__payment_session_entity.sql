@@ -13,7 +13,7 @@ CREATE TABLE payment_sessions
 
     status            VARCHAR(32)   NOT NULL,
 
-    created_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    created_at        TIMESTAMPTZ   NOT NULL,
     expires_at        TIMESTAMPTZ,
     completed_at      TIMESTAMPTZ,
 

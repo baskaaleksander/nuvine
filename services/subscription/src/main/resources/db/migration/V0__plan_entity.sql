@@ -12,8 +12,8 @@ CREATE TABLE plans (
                        included_credits VARCHAR(64) NOT NULL,
                        max_storage_size BIGINT NOT NULL,
                        hard_limit_behaviour hard_limit_behaviour NOT NULL,
-                       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                       created_at TIMESTAMPTZ NOT NULL,
+                       updated_at TIMESTAMPTZ NOT NULL
 );
 
 -- Unique constraint
