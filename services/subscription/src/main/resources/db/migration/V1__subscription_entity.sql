@@ -15,8 +15,8 @@ CREATE TABLE subscriptions (
                                stripe_customer_id VARCHAR(128) NOT NULL,
                                stripe_subscription_id VARCHAR(128) NOT NULL,
                                status subscription_status NOT NULL,
-                               current_period_start BIGINT,
-                               current_period_end BIGINT,
+                               current_period_start TIMESTAMPTZ NOT NULL,
+                               current_period_end TIMESTAMPTZ NOT NULL,
                                cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
                                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

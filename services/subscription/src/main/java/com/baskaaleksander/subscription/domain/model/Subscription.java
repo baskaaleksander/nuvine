@@ -52,10 +52,10 @@ public class Subscription {
     private SubscriptionStatus status;
 
     @Column(name = "current_period_start")
-    private Long currentPeriodStart;
+    private Instant currentPeriodStart;
 
     @Column(name = "current_period_end")
-    private Long currentPeriodEnd;
+    private Instant currentPeriodEnd;
 
     @Column(name = "cancel_at_period_end", nullable = false)
     private Boolean cancelAtPeriodEnd;
