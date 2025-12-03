@@ -20,7 +20,7 @@ CREATE TABLE payment_sessions
     metadata_json     JSONB
 );
 
-CREATE INDEX idx_payment_sessions_org
+CREATE INDEX idx_payment_sessions_workspace
     ON payment_sessions (workspace_id);
 
 CREATE INDEX idx_payment_sessions_stripe_session

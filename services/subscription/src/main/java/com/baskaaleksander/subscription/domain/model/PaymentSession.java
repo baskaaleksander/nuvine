@@ -11,7 +11,7 @@ import java.util.UUID;
 @Table(
         name = "payment_sessions",
         indexes = {
-                @Index(name = "idx_payment_sessions_org", columnList = "organization_id"),
+                @Index(name = "idx_payment_sessions_workspace", columnList = "workspace_id"),
                 @Index(name = "idx_payment_sessions_stripe_session", columnList = "stripe_session_id", unique = true),
                 @Index(name = "idx_payment_sessions_status", columnList = "status")
         }
