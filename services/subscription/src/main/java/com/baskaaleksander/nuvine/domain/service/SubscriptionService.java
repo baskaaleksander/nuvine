@@ -3,9 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
-import com.baskaaleksander.nuvine.domain.exception.ForbiddenAccessException;
-import com.baskaaleksander.nuvine.domain.exception.SubscriptionConflictException;
-import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
@@ -215,14 +213,14 @@ public class SubscriptionService {
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {
-                throw new RuntimeException("Workspace not found");
+                throw new WorkspaceNotFoundException("Workspace not found");
             } else {
                 log.error("SEARCH_WORKSPACE FAILED", e);
-                throw e;
+                throw new RuntimeException("Failed to search user, try again later.");
             }
         } catch (Exception e) {
             log.error("SEARCH_WORKSPACE FAILED", e);
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("Failed to search workspace, try again later.");
         }
     }
 
@@ -233,14 +231,14 @@ public class SubscriptionService {
             int status = e.status();
             if (status == 404) {
                 log.info("SEARCH_USER FAILED reason=user_not_found");
-                throw new RuntimeException("User not found");
+                throw new UserNotFoundException("User not found");
             } else {
                 log.error("SEARCH_USER FAILED", e);
-                throw e;
+                throw new RuntimeException("Failed to search user, try again later.");
             }
         } catch (Exception e) {
             log.error("SEARCH_USER FAILED", e);
-            throw e;
+            throw new RuntimeException("Failed to search user, try again later.");
         }
     }
 }
