@@ -3,6 +3,9 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
+import com.baskaaleksander.nuvine.domain.exception.ForbiddenAccessException;
+import com.baskaaleksander.nuvine.domain.exception.SubscriptionConflictException;
+import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
@@ -69,16 +72,16 @@ public class SubscriptionService {
         var subscription = subscriptionRepository.findByWorkspaceId(workspaceId).orElse(null);
 
         if (intent == PaymentSessionIntent.SUBSCRIPTION_CREATE && subscription != null) {
-            throw new RuntimeException("Subscription already exists");
+            throw new SubscriptionConflictException("Subscription already exists");
         } else if (intent == PaymentSessionIntent.SUBSCRIPTION_UPDATE && subscription == null) {
-            throw new RuntimeException("Subscription not found");
+            throw new SubscriptionNotFoundException("Subscription not found");
         }
 
         WorkspaceInternalSubscriptionResponse workspaceSubscriptionResponse = searchWorkspace(workspaceId);
         UserInternalResponse userInternalResponse = searchUser(userId);
 
         if (!workspaceSubscriptionResponse.ownerId().equals(userInternalResponse.id())) {
-            throw new RuntimeException("User is not the owner of the workspace");
+            throw new ForbiddenAccessException("User is not the owner of the workspace");
         }
 
         CustomerSearchParams params = CustomerSearchParams.builder()
@@ -140,7 +143,7 @@ public class SubscriptionService {
                 customerId = customer.getId();
             } catch (StripeException e) {
                 log.error("Failed to create customer", e);
-                throw new RuntimeException(e.getMessage());
+                throw new RuntimeException("Failed to create Stripe customer, try again later.");
             }
         } else {
             Customer customer = searchResult.getData().get(0);
@@ -168,7 +171,7 @@ public class SubscriptionService {
 
         } catch (StripeException e) {
             log.error("Failed to create payment session", e);
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("Failed to create Stripe payment session, try again later.");
         }
         return new PaymentSessionResponse(session.getUrl(), session.getId());
     }
@@ -202,7 +205,7 @@ public class SubscriptionService {
 
         } catch (StripeException e) {
             log.error("Failed to update subscription", e);
-            throw new RuntimeException("Failed to update subscription: " + e.getMessage());
+            throw new RuntimeException("Failed to update Stripe subscription, try again later.");
         }
     }
 
