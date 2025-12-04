@@ -65,5 +65,13 @@ spring:
               uri: lb://workspace-service
               predicates:
                 - Path=/api/v1/internal/projects/**
+            - id: subscription-service
+              uri: lb://subscription-service
+              predicates:
+                - Path=/api/v1/subscription/**
+            - id: workspace-service-workspaces-internal
+              uri: lb://workspace-service
+              predicates:
+                - Path=/api/v1/internal/workspaces/**
 server:
   port: 8222

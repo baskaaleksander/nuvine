@@ -10,5 +10,17 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+stripe:
+  api-key: ${STRIPE_API_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  success-url: ${STRIPE_SUCCESS_URL}
+  cancel-url: ${STRIPE_CANCEL_URL}
+
+subscription:
+  keycloak:
+    auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
+    client-id: subscription-service
+    client-secret: ${KEYCLOAK_SUBSCRIPTION_SERVICE_SECRET}
+
 server:
   port: 8120
