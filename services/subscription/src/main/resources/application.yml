@@ -2,4 +2,4 @@ spring:
   application:
     name: subscription-service
   config:
-    import: optional:configserver:http://localhost:8222
+    import: optional:configserver:http://localhost:8888

@@ -42,7 +42,7 @@ public class EmailVerificationService {
             eventProducer.sendEmailVerificationEvent(
                     new EmailVerificationEvent(
                             email,
-                            verificationToken.toString(),
+                            verificationToken.getToken(),
                             user.get().getId().toString()
                     )
             );
