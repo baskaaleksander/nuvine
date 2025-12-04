@@ -13,6 +13,8 @@ spring:
 stripe:
   api-key: ${STRIPE_API_KEY}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  success-url: ${STRIPE_SUCCESS_URL}
+  cancel-url: ${STRIPE_CANCEL_URL}
 
 subscription:
   keycloak:

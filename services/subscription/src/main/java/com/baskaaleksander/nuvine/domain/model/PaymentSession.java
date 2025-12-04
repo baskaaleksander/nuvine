@@ -33,6 +33,9 @@ public class PaymentSession {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "plan_id", nullable = false)
+    private UUID planId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 32)
     private PaymentSessionType type;
