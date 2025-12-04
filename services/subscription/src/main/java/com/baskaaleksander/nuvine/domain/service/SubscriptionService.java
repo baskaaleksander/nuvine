@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.domain.model.PaymentSessionIntent;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
@@ -24,8 +25,9 @@ public class SubscriptionService {
 
     private final StripeClient stripeClient;
     private final PlanRepository planRepository;
+    private final AuthServiceClient authServiceClient;
 
-    public PaymentSessionResponse createPaymentSession(UUID workspaceId, UUID planId, PaymentSessionIntent intent, UUID userId, String email) {
+    public PaymentSessionResponse createPaymentSession(UUID workspaceId, UUID planId, PaymentSessionIntent intent, UUID userId) {
         var plan = planRepository.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
         CustomerSearchParams params = CustomerSearchParams.builder()
                 .setQuery("email:'" + email + "'")
