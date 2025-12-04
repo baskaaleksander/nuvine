@@ -16,6 +16,6 @@ import java.util.UUID;
 )
 public interface AuthServiceClient {
 
-    @GetMapping("/internal/users/{userId}")
+    @GetMapping("/internal/auth/users/{userId}")
     UserInternalResponse getUserInternalResponse(@PathVariable UUID userId);
 }

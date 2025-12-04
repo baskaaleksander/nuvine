@@ -118,6 +118,7 @@ public class SubscriptionService {
                 .stripeUrl(response.url())
                 .status(PaymentSessionStatus.PENDING)
                 .expiresAt(Instant.now().plusSeconds(24 * 60 * 60))
+                .metadataJson(metadata)
                 .build();
 
         paymentSessionRepository.save(session);

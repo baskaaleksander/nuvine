@@ -20,11 +20,20 @@ public class WorkspaceInternalService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public WorkspaceInternalSubscriptionResponse getWorkspaceSubscription(UUID workspaceId) {
+        log.info("GET_WORKSPACE_INTERNAL START workspaceId={}", workspaceId);
         var workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace not found"));
+                .orElseThrow(() -> {
+                    log.info("GET_WORKSPACE_INTERNAL FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
 
         var workspaceOwnerId = workspaceMemberRepository.findOwnerUserIdByWorkspaceId(workspaceId)
-                .orElseThrow(() -> new WorkspaceMemberNotFoundException("Workspace owner not found"));
+                .orElseThrow(() -> {
+                    log.info("GET_WORKSPACE_INTERNAL FAILED reason=workspace_owner_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceMemberNotFoundException("Workspace owner not found");
+                });
+
+        log.info("GET_WORKSPACE_INTERNAL END workspaceId={}", workspaceId);
 
         return new WorkspaceInternalSubscriptionResponse(
                 workspace.getId(),

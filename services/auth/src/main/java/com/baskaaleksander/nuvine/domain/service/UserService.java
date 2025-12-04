@@ -88,8 +88,14 @@ public class UserService {
     }
 
     public UserInternalResponse checkInternalUser(UUID id) {
+        log.info("GET_USER_INTERNAL START userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.info("GET_USER_INTERNAL FAILED reason=user_not_found userId={}", id);
+                    return new UserNotFoundException("User not found");
+                });
+
+        log.info("GET_USER_INTERNAL END userId={}", id);
 
         return new UserInternalResponse(
                 user.getId(),
