@@ -99,7 +99,7 @@ class WorkspaceMemberServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        userInternal = new UserInternalResponse(userId.toString(), "user@example.com");
+        userInternal = new UserInternalResponse(userId, "user@example.com", "user", "user");
     }
 
     @Test

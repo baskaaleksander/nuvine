@@ -92,7 +92,9 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         return new UserInternalResponse(
-                user.getId().toString(),
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
                 user.getEmail()
         );
     }
