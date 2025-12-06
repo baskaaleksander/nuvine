@@ -48,10 +48,32 @@ public class WebhookService {
     }
 
     private void handleCheckoutSessionExpired(Event event) {
+        PaymentSession paymentSession = getPaymentSession(event);
 
+        if (paymentSession == null) {
+            log.error("Payment session not found for event id: {}", event.getId());
+            return;
+        }
+
+        paymentSession.setCompletedAt(Instant.now());
+        paymentSession.setStatus(PaymentSessionStatus.EXPIRED);
+        paymentSessionRepository.save(paymentSession);
     }
 
     private void handleCheckoutSessionCompleted(Event event) {
+        PaymentSession paymentSession = getPaymentSession(event);
+
+        if (paymentSession == null) {
+            log.error("Payment session not found for event id: {}", event.getId());
+            return;
+        }
+
+        paymentSession.setCompletedAt(Instant.now());
+        paymentSession.setStatus(PaymentSessionStatus.COMPLETED);
+        paymentSessionRepository.save(paymentSession);
+    }
+
+    private PaymentSession getPaymentSession(Event event) {
         EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
         Session checkoutSession;
 
@@ -59,7 +81,7 @@ public class WebhookService {
             checkoutSession = (com.stripe.model.checkout.Session) eventDataObjectDeserializer.getObject().get();
         } catch (Exception e) {
             log.error("Failed to deserialize event data", e);
-            return;
+            return null;
         }
 
         String id = checkoutSession.getId();
@@ -67,12 +89,10 @@ public class WebhookService {
 
         if (paymentSession == null) {
             log.error("Payment session not found for session id: {}", id);
-            return;
+            return null;
         }
 
-        paymentSession.setCompletedAt(Instant.now());
-        paymentSession.setStatus(PaymentSessionStatus.COMPLETED);
-        paymentSessionRepository.save(paymentSession);
+        return paymentSession;
     }
 
     private void handleChargeRefunded(Event event) {
@@ -98,14 +118,148 @@ public class WebhookService {
     }
 
     private void handleInvoicePaymentFailed(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Invoice stripeInvoice;
+
+            try {
+                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = null;
+            if (stripeInvoice.getParent() != null &&
+                    stripeInvoice.getParent().getSubscriptionDetails() != null) {
+                stripeSubscriptionId = stripeInvoice.getParent().getSubscriptionDetails().getSubscription();
+            }
+
+            if (stripeSubscriptionId == null) {
+                log.warn("Invoice has no associated subscription: {}", stripeInvoice.getId());
+                return;
+            }
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            existingSubscription.setStatus(SubscriptionStatus.PAST_DUE);
+            existingSubscription.setUpdatedAt(Instant.now());
+
+            subscriptionRepository.save(existingSubscription);
+
+            workspaceServiceClient.updateWorkspaceBillingTier(
+                    existingSubscription.getWorkspaceId(),
+                    new WorkspaceBillingTierUpdateRequest("FREE")
+            );
+
+            log.warn("Invoice payment failed for subscription: {}", stripeSubscriptionId);
+        } catch (Exception e) {
+            log.error("Failed to handle invoice payment failed event", e);
+        }
     }
 
     private void handleInvoicePaid(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Invoice stripeInvoice;
 
+            try {
+                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = null;
+            if (stripeInvoice.getParent() != null &&
+                    stripeInvoice.getParent().getSubscriptionDetails() != null) {
+                stripeSubscriptionId = stripeInvoice.getParent().getSubscriptionDetails().getSubscription();
+            }
+
+            if (stripeSubscriptionId == null) {
+                log.info("Invoice paid but no associated subscription: {}", stripeInvoice.getId());
+                return;
+            }
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            if (existingSubscription.getStatus() == SubscriptionStatus.PAST_DUE
+                    || existingSubscription.getStatus() == SubscriptionStatus.UNPAID) {
+
+                existingSubscription.setStatus(SubscriptionStatus.ACTIVE);
+                existingSubscription.setUpdatedAt(Instant.now());
+
+
+                Plan plan = planRepository.findById(existingSubscription.getPlanId()).orElse(null);
+
+                if (plan == null) {
+                    log.error("Plan not found for plan id: {}", existingSubscription.getPlanId());
+                    return;
+                }
+
+                workspaceServiceClient.updateWorkspaceBillingTier(
+                        existingSubscription.getWorkspaceId(),
+                        new WorkspaceBillingTierUpdateRequest(plan.getCode())
+                );
+
+                log.info("Invoice paid, subscription restored to active: {}", stripeSubscriptionId);
+            } else {
+                log.info("Invoice paid for already active subscription: {}", stripeSubscriptionId);
+            }
+            existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(stripeInvoice.getPeriodStart()));
+            existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(stripeInvoice.getPeriodEnd()));
+            subscriptionRepository.save(existingSubscription);
+
+        } catch (Exception e) {
+            log.error("Failed to handle invoice paid event", e);
+        }
     }
 
     private void handleCustomerSubscriptionDeleted(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Subscription stripeSubscription;
 
+            try {
+                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = stripeSubscription.getId();
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.warn("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            existingSubscription.setStatus(SubscriptionStatus.DELETED);
+            existingSubscription.setUpdatedAt(Instant.now());
+
+            subscriptionRepository.save(existingSubscription);
+
+            workspaceServiceClient.updateWorkspaceBillingTier(
+                    existingSubscription.getWorkspaceId(),
+                    new WorkspaceBillingTierUpdateRequest("FREE")
+            );
+
+            log.info("Customer subscription deleted successfully: {}", stripeSubscriptionId);
+        } catch (Exception e) {
+            log.error("Failed to handle customer subscription deleted event", e);
+        }
     }
 
     private void handleCustomerSubscriptionUpdated(Event event) {
