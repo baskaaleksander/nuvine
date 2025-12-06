@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.CustomerPortalSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
@@ -48,6 +49,34 @@ public class SubscriptionService {
 
     @Value("${stripe.cancel-url}")
     private String cancelUrl;
+
+    public CustomerPortalSessionResponse createCustomerPortalSession(UUID workspaceId, UUID userId) {
+
+        WorkspaceInternalSubscriptionResponse workspace = searchWorkspace(workspaceId);
+        UserInternalResponse user = searchUser(userId);
+
+        if (!workspace.ownerId().equals(user.id())) {
+            throw new ForbiddenAccessException("User is not the owner");
+        }
+
+        Subscription subscription = subscriptionRepository
+                .findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new SubscriptionNotFoundException("Subscription not found"));
+
+        com.stripe.param.billingportal.SessionCreateParams params = com.stripe.param.billingportal.SessionCreateParams.builder()
+                .setCustomer(subscription.getStripeCustomerId())
+                .setReturnUrl(successUrl)
+                .build();
+
+        try {
+            com.stripe.model.billingportal.Session session =
+                    stripeClient.v1().billingPortal().sessions().create(params);
+            return new CustomerPortalSessionResponse(session.getUrl());
+        } catch (StripeException e) {
+            log.error("Failed to create portal session", e);
+            throw new RuntimeException("Failed to create portal session");
+        }
+    }
 
     public PaymentSessionResponse createPaymentSession(UUID workspaceId, UUID planId, PaymentSessionIntent intent, UUID userId) {
 
