@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.messaging.out;
+package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 
 import com.baskaaleksander.nuvine.application.dto.CreateNotificationRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
@@ -8,6 +8,7 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerification
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.EmailSender;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

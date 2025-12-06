@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.messaging.out;
+package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 
 import com.baskaaleksander.nuvine.application.dto.CreateFailedNotificationRequest;
 import com.baskaaleksander.nuvine.domain.model.NotificationType;
