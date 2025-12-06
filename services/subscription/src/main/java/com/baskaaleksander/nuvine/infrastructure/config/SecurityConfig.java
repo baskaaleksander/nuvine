@@ -33,7 +33,7 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**", "/webhooks").permitAll()
+                        .requestMatchers("/actuator/**", "/api/v1/stripe/webhook").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->
