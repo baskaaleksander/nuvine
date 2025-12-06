@@ -9,6 +9,10 @@ spring:
       ddl-auto: validate
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
 
 stripe:
   api-key: ${STRIPE_API_KEY}

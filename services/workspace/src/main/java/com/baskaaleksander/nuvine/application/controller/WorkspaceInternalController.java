@@ -1,13 +1,12 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.WorkspaceBillingTierUpdateRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceInternalService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -22,5 +21,13 @@ public class WorkspaceInternalController {
     @GetMapping("/{workspaceId}")
     public WorkspaceInternalSubscriptionResponse getWorkspaceSubscription(@PathVariable UUID workspaceId) {
         return workspaceInternalService.getWorkspaceSubscription(workspaceId);
+    }
+
+    @PatchMapping("/{workspaceId}/billing-tier")
+    public void updateWorkspaceBillingTier(
+            @PathVariable UUID workspaceId,
+            @RequestBody @Valid WorkspaceBillingTierUpdateRequest request
+    ) {
+        workspaceInternalService.updateWorkspaceBillingTier(workspaceId, request.billingTierCode());
     }
 }

@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
+import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,5 +42,16 @@ public class WorkspaceInternalService {
                 workspace.getSubscriptionId(),
                 workspaceOwnerId
         );
+    }
+
+    public void updateWorkspaceBillingTier(UUID workspaceId, String billingTierCode) {
+        var workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("UPDATE_WORKSPACE_BILLING_TIER FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
+
+        workspace.setBillingTier(BillingTier.fromString(billingTierCode));
+        workspaceRepository.save(workspace);
     }
 }

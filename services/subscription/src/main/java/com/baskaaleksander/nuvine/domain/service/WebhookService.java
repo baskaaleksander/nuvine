@@ -1,10 +1,10 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.domain.model.PaymentSession;
-import com.baskaaleksander.nuvine.domain.model.PaymentSessionStatus;
-import com.baskaaleksander.nuvine.domain.model.Subscription;
-import com.baskaaleksander.nuvine.domain.model.SubscriptionStatus;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceBillingTierUpdateRequest;
+import com.baskaaleksander.nuvine.domain.model.*;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
+import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -25,6 +25,8 @@ public class WebhookService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PaymentSessionRepository paymentSessionRepository;
+    private final WorkspaceServiceClient workspaceServiceClient;
+    private final PlanRepository planRepository;
 
     public void handleEvent(Event event) {
         switch (event.getType()) {
@@ -150,9 +152,17 @@ public class WebhookService {
                     .updatedAt(now)
                     .build();
 
-            //todo call to workspace service
 
             subscriptionRepository.save(subscription);
+
+            Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
+
+            if (plan == null) {
+                log.error("Plan not found for plan id: {}", planId);
+                return;
+            }
+
+            workspaceServiceClient.updateWorkspaceBillingTier(UUID.fromString(workspaceId), new WorkspaceBillingTierUpdateRequest(plan.getCode()));
         } catch (Exception e) {
             log.error("Failed to handle customer subscription created event", e);
         }
