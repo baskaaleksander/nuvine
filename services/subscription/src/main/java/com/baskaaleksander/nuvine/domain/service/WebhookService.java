@@ -1,7 +1,12 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceBillingTierUpdateRequest;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
+import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
@@ -12,6 +17,7 @@ import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.SubscriptionItem;
 import com.stripe.model.checkout.Session;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +36,7 @@ public class WebhookService {
     private final WorkspaceServiceClient workspaceServiceClient;
     private final PlanRepository planRepository;
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
+    private final AuthServiceClient authServiceClient;
 
     public void handleEvent(Event event) {
         switch (event.getType()) {
@@ -138,18 +145,20 @@ public class WebhookService {
                 return;
             }
 
+            WorkspaceInternalSubscriptionResponse workspace = searchWorkspace(existingSubscription.getWorkspaceId());
+            UserInternalResponse owner = searchUser(workspace.ownerId());
+
+
             existingSubscription.setStatus(SubscriptionStatus.INCOMPLETE);
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
 
             String hostedInvoiceUrl = stripeInvoice.getHostedInvoiceUrl();
-            //todo get owner email from workspace
-            String ownerEmail = "placeholder";
 
             paymentActionRequiredEventProducer.producePaymentActionRequiredEvent(
                     new PaymentActionRequiredEvent(
-                            ownerEmail,
+                            owner.email(),
                             stripeInvoice.getId(),
                             hostedInvoiceUrl
                     )
@@ -432,4 +441,38 @@ public class WebhookService {
         }
     }
 
+    private WorkspaceInternalSubscriptionResponse searchWorkspace(UUID workspaceId) {
+        try {
+            return workspaceServiceClient.getWorkspaceSubscription(workspaceId);
+        } catch (FeignException e) {
+            int status = e.status();
+            if (status == 404) {
+                throw new WorkspaceNotFoundException("Workspace not found");
+            } else {
+                log.error("SEARCH_WORKSPACE FAILED", e);
+                throw new RuntimeException("Failed to search user, try again later.");
+            }
+        } catch (Exception e) {
+            log.error("SEARCH_WORKSPACE FAILED", e);
+            throw new RuntimeException("Failed to search workspace, try again later.");
+        }
+    }
+
+    private UserInternalResponse searchUser(UUID userId) {
+        try {
+            return authServiceClient.getUserInternalResponse(userId);
+        } catch (FeignException e) {
+            int status = e.status();
+            if (status == 404) {
+                log.info("SEARCH_USER FAILED reason=user_not_found");
+                throw new UserNotFoundException("User not found");
+            } else {
+                log.error("SEARCH_USER FAILED", e);
+                throw new RuntimeException("Failed to search user, try again later.");
+            }
+        } catch (Exception e) {
+            log.error("SEARCH_USER FAILED", e);
+            throw new RuntimeException("Failed to search user, try again later.");
+        }
+    }
 }
