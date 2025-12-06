@@ -1,6 +1,10 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.domain.model.PaymentSession;
+import com.baskaaleksander.nuvine.domain.model.PaymentSessionStatus;
 import com.baskaaleksander.nuvine.domain.model.Subscription;
+import com.baskaaleksander.nuvine.domain.model.SubscriptionStatus;
+import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -20,8 +24,7 @@ import java.util.UUID;
 public class WebhookService {
 
     private final SubscriptionRepository subscriptionRepository;
-
-    private final
+    private final PaymentSessionRepository paymentSessionRepository;
 
     public void handleEvent(Event event) {
         switch (event.getType()) {
@@ -58,6 +61,16 @@ public class WebhookService {
         }
 
         String id = checkoutSession.getId();
+        PaymentSession paymentSession = paymentSessionRepository.findByStripeSessionId(id).orElse(null);
+
+        if (paymentSession == null) {
+            log.error("Payment session not found for session id: {}", id);
+            return;
+        }
+
+        paymentSession.setCompletedAt(Instant.now());
+        paymentSession.setStatus(PaymentSessionStatus.COMPLETED);
+        paymentSessionRepository.save(paymentSession);
     }
 
     private void handleChargeRefunded(Event event) {
@@ -98,42 +111,51 @@ public class WebhookService {
     }
 
     private void handleCustomerSubscriptionCreated(Event event) {
-        EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-        com.stripe.model.Subscription stripeSubscription;
-
         try {
-            stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Subscription stripeSubscription;
+
+            try {
+                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            Map<String, String> metadata = stripeSubscription.getMetadata();
+            String workspaceId = metadata.get("workspace_id");
+            String planId = metadata.get("plan_id");
+
+            String stripeCustomerId = stripeSubscription.getCustomer();
+            String stripeSubscriptionId = stripeSubscription.getId();
+            Boolean cancelAtPeriodEnd = stripeSubscription.getCancelAtPeriodEnd();
+
+            SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
+            Long currentPeriodStart = item.getCurrentPeriodStart();
+            Long currentPeriodEnd = item.getCurrentPeriodEnd();
+
+            Instant now = Instant.now();
+
+
+            Subscription subscription = Subscription.builder()
+                    .workspaceId(UUID.fromString(workspaceId))
+                    .planId(UUID.fromString(planId))
+                    .stripeCustomerId(stripeCustomerId)
+                    .stripeSubscriptionId(stripeSubscriptionId)
+                    .status(SubscriptionStatus.ACTIVE)
+                    .cancelAtPeriodEnd(cancelAtPeriodEnd)
+                    .currentPeriodStart(Instant.ofEpochSecond(currentPeriodStart))
+                    .currentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            //todo call to workspace service
+
+            subscriptionRepository.save(subscription);
         } catch (Exception e) {
-            log.error("Failed to deserialize event data", e);
-            return;
+            log.error("Failed to handle customer subscription created event", e);
         }
-
-        Map<String, String> metadata = stripeSubscription.getMetadata();
-        String workspaceId = metadata.get("workspace_id");
-        String planId = metadata.get("plan_id");
-
-        String stripeCustomerId = stripeSubscription.getCustomer();
-        String stripeSubscriptionId = stripeSubscription.getId();
-        Boolean cancelAtPeriodEnd = stripeSubscription.getCancelAtPeriodEnd();
-
-        SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
-        Long currentPeriodStart = item.getCurrentPeriodStart();
-        Long currentPeriodEnd = item.getCurrentPeriodEnd();
-
-
-        Subscription subscription = Subscription.builder()
-                .workspaceId(UUID.fromString(workspaceId))
-                .planId(UUID.fromString(planId))
-                .stripeCustomerId(stripeCustomerId)
-                .stripeSubscriptionId(stripeSubscriptionId)
-                .cancelAtPeriodEnd(cancelAtPeriodEnd)
-                .currentPeriodStart(Instant.ofEpochSecond(currentPeriodStart))
-                .currentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd))
-                .build();
-
-        //todo call to workspace service
-
-        subscriptionRepository.save(subscription);
     }
 
 }
