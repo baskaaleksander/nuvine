@@ -105,7 +105,7 @@ public class SubscriptionService {
             case SUBSCRIPTION_CREATE ->
                     response = createNewSubscriptionSession(plan.getStripePriceId(), searchResult, userInternalResponse.email(), metadata);
             case SUBSCRIPTION_UPDATE ->
-                    response = createUpdateSubscriptionSession(plan.getStripePriceId(), subscription);
+                    response = createUpdateSubscriptionSession(plan.getStripePriceId(), subscription, metadata);
             default -> throw new IllegalStateException("Unexpected value: " + intent);
         }
 
@@ -160,6 +160,11 @@ public class SubscriptionService {
                 )
                 .setCustomer(customerId)
                 .putAllMetadata(metadata)
+                .setSubscriptionData(
+                        SessionCreateParams.SubscriptionData.builder()
+                                .putAllMetadata(metadata)
+                                .build()
+                )
                 .build();
 
         Session session;
@@ -174,7 +179,7 @@ public class SubscriptionService {
         return new PaymentSessionResponse(session.getUrl(), session.getId());
     }
 
-    private PaymentSessionResponse createUpdateSubscriptionSession(String newPlanPriceId, Subscription subscription) {
+    private PaymentSessionResponse createUpdateSubscriptionSession(String newPlanPriceId, Subscription subscription, Map<String, String> metadata) {
         try {
             com.stripe.model.Subscription stripeSubscription = stripeClient.v1().subscriptions()
                     .retrieve(subscription.getStripeSubscriptionId());
@@ -187,6 +192,7 @@ public class SubscriptionService {
                             .setPrice(newPlanPriceId)
                             .build())
                     .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.ALWAYS_INVOICE)
+                    .putAllMetadata(metadata)
                     .build();
 
             com.stripe.model.Subscription updatedSubscription = stripeClient.v1().subscriptions()
