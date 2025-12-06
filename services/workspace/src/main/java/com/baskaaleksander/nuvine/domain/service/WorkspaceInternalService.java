@@ -38,6 +38,7 @@ public class WorkspaceInternalService {
 
         return new WorkspaceInternalSubscriptionResponse(
                 workspace.getId(),
+                workspace.getName(),
                 workspace.getBillingTier(),
                 workspace.getSubscriptionId(),
                 workspaceOwnerId

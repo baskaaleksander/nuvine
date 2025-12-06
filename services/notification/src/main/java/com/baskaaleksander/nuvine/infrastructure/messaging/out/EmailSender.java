@@ -204,4 +204,8 @@ public class EmailSender {
         }
 
     }
+
+    public void sendPaymentActionRequiredEmail(String to, String invoiceId, String invoiceUrl, String workspaceId, String workspaceName) {
+        
+    }
 }
