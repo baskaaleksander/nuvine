@@ -49,6 +49,7 @@ topics:
   vector-processing-request-topic: vector-processing-request-topic
   vector-processing-completed-topic: vector-processing-completed-topic
   document-ingestion-completed-topic: document-ingestion-completed-topic
+  payment-action-required-topic: payment-action-required-topic
 
 crypto:
   notifications:

@@ -160,7 +160,10 @@ public class WebhookService {
                     new PaymentActionRequiredEvent(
                             owner.email(),
                             stripeInvoice.getId(),
-                            hostedInvoiceUrl
+                            hostedInvoiceUrl,
+                            workspace.id().toString(),
+                            workspace.name(),
+                            owner.id().toString()
                     )
             );
 

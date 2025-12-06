@@ -13,6 +13,16 @@ spring:
     openfeign:
       okhttp:
         enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent
 
 stripe:
   api-key: ${STRIPE_API_KEY}

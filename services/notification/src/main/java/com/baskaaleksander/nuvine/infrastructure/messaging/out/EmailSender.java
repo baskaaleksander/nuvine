@@ -204,4 +204,70 @@ public class EmailSender {
         }
 
     }
+
+    public void sendPaymentActionRequiredEmail(String to, String invoiceId, String invoiceUrl, String workspaceId, String workspaceName) throws MessagingException {
+        log.info("SEND_PAYMENT_ACTION_REQUIRED_EMAIL START to={}", MaskingUtil.maskEmail(to));
+
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+        messageHelper.setFrom(senderEmail);
+
+        final String templateName = EmailTemplates.PAYMENT_ACTION_REQUIRED.getTemplateName();
+        final String subject = EmailTemplates.PAYMENT_ACTION_REQUIRED.getSubject();
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("workspaceName", workspaceName);
+        variables.put("invoiceUrl", invoiceUrl);
+        variables.put("workspaceId", workspaceId);
+        variables.put("invoiceId", invoiceId);
+
+        Context context = new Context();
+        context.setVariables(variables);
+        messageHelper.setSubject(subject);
+
+        try {
+            String htmlContent = templateEngine.process(templateName, context);
+            String plainContent = String.format(
+                    """
+                            Payment Action Required
+                            
+                            We were unable to process the payment for your Nuvine workspace "%s".
+                            
+                            To continue using your workspace without interruption, please update your payment method or retry the payment.
+                            
+                            Your workspace will remain accessible for a limited time while we resolve this issue.
+                            
+                            View Invoice & Pay:
+                            %s
+                            
+                            You can also manage your billing settings directly in your workspace:
+                            https://nuvine.org/workspace/%s
+                            
+                            If you have any questions or need assistance, please don't hesitate to reach out to our support team.
+                            
+                            – The Nuvine Team
+                            
+                            ========================================
+                            
+                            This is an important billing notification for your Nuvine workspace.
+                            Invoice ID: %s
+                            
+                            Contact Support: https://nuvine.org/contact
+                            Privacy Policy: https://nuvine.org/privacy
+                            """,
+                    workspaceName,
+                    invoiceUrl,
+                    workspaceId,
+                    invoiceId
+            );
+            messageHelper.setText(plainContent, htmlContent);
+
+            messageHelper.setTo(to);
+            sender.send(message);
+            log.info("SEND_PAYMENT_ACTION_REQUIRED_EMAIL SUCCESS to={}", MaskingUtil.maskEmail(to));
+        } catch (Exception e) {
+            log.error("SEND_PAYMENT_ACTION_REQUIRED_EMAIL FAILED to={}", MaskingUtil.maskEmail(to), e);
+            throw e;
+        }
+    }
 }

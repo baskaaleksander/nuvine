@@ -1,13 +1,11 @@
-package com.baskaaleksander.nuvine.infrastructure.messaging.out;
+package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 
 import com.baskaaleksander.nuvine.application.dto.CreateNotificationRequest;
 import com.baskaaleksander.nuvine.application.util.MaskingUtil;
 import com.baskaaleksander.nuvine.domain.model.NotificationType;
 import com.baskaaleksander.nuvine.domain.service.NotificationEntityService;
-import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
-import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
-import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
-import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.*;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.EmailSender;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,6 +87,23 @@ public class EmailNotificationConsumer {
                     ));
         } catch (Exception e) {
             log.error("WORKSPACE_MEMBER_ADDED_EVENT FAILED userId={} email={}", event.userId(), MaskingUtil.maskEmail(event.email()), e);
+            throw e;
+        }
+    }
+
+    @KafkaListener(topics = "${topics.payment-action-required-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
+    public void onPaymentActionRequired(PaymentActionRequiredEvent event) throws MessagingException {
+        log.info("PAYMENT_ACTION_REQUIRED_EVENT RECEIVED userId={} email={}", event.workspaceOwnerId(), MaskingUtil.maskEmail(event.ownerEmail()));
+        try {
+            emailSender.sendPaymentActionRequiredEmail(event.ownerEmail(), event.invoiceId(), event.invoiceUrl(), event.workspaceId(), event.workspaceName());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.ownerEmail(),
+                            NotificationType.PAYMENT_ACTION_REQUIRED,
+                            event.toString()
+                    ));
+        } catch (Exception e) {
+            log.error("PAYMENT_ACTION_REQUIRED_EVENT FAILED userId={} email={}", event.workspaceOwnerId(), MaskingUtil.maskEmail(event.ownerEmail()), e);
             throw e;
         }
     }
