@@ -5,6 +5,7 @@ public record PaymentActionRequiredEvent(
         String invoiceId,
         String invoiceUrl,
         String workspaceId,
-        String workspaceName
+        String workspaceName,
+        String workspaceOwnerId
 ) {
 }

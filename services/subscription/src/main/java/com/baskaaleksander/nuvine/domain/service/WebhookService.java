@@ -162,7 +162,8 @@ public class WebhookService {
                             stripeInvoice.getId(),
                             hostedInvoiceUrl,
                             workspace.id().toString(),
-                            workspace.name()
+                            workspace.name(),
+                            owner.id().toString()
                     )
             );
 
