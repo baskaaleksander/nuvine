@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.CustomerPortalSessionRequest;
+import com.baskaaleksander.nuvine.application.dto.CustomerPortalSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionRequest;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.domain.service.SubscriptionService;
@@ -32,6 +34,19 @@ public class SubscriptionController {
                         request.workspaceId(),
                         request.planId(),
                         request.intent(),
+                        UUID.fromString(jwt.getSubject())
+                )
+        );
+    }
+
+    @PostMapping("/customer-portal-session")
+    public ResponseEntity<CustomerPortalSessionResponse> createCustomerPortalSession(
+            @RequestBody @Valid CustomerPortalSessionRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(
+                subscriptionService.createCustomerPortalSession(
+                        request.workspaceId(),
                         UUID.fromString(jwt.getSubject())
                 )
         );

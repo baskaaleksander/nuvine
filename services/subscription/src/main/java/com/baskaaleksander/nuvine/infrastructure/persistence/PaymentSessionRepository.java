@@ -27,4 +27,6 @@ public interface PaymentSessionRepository extends JpaRepository<PaymentSession, 
                 AND ps.status = :status
             """)
     Optional<PaymentSession> findValidSession(UUID workspaceId, UUID planId, PaymentSessionType type, PaymentSessionIntent intent, UUID userId, Instant now, PaymentSessionStatus status);
+
+    Optional<PaymentSession> findByStripeSessionId(String stripeSessionId);
 }

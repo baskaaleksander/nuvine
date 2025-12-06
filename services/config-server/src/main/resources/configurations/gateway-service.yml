@@ -73,5 +73,9 @@ spring:
               uri: lb://workspace-service
               predicates:
                 - Path=/api/v1/internal/workspaces/**
+            - id: subscription-service-webhook
+              uri: lb://subscription-service
+              predicates:
+                - Path=/api/v1/stripe/webhook
 server:
   port: 8222

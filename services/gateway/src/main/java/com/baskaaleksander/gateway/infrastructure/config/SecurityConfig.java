@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/password/check-token",
                                 "/api/v1/auth/password/reset",
                                 "/api/v1/internal/file-storage/events",
-                                "/actuator/**"
+                                "/actuator/**",
+                                "/api/v1/stripe/webhook"
                         ).permitAll()
                         .pathMatchers("/api/v1/admin").hasAnyRole("ADMIN")
                         .anyExchange().authenticated()
