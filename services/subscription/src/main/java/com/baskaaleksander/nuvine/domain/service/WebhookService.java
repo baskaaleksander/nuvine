@@ -3,6 +3,8 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceBillingTierUpdateRequest;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
@@ -27,6 +29,7 @@ public class WebhookService {
     private final PaymentSessionRepository paymentSessionRepository;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final PlanRepository planRepository;
+    private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
 
     public void handleEvent(Event event) {
         switch (event.getType()) {
@@ -39,8 +42,6 @@ public class WebhookService {
             case "invoice.finalized" -> handleInvoiceFinalized(event);
             case "payment_intent.succeeded" -> handlePaymentIntentSucceeded(event);
             case "payment_intent.payment_failed" -> handlePaymentIntentPaymentFailed(event);
-            case "charge.dispute.created" -> handleChargeDisputeCreated(event);
-            case "charge.refunded" -> handleChargeRefunded(event);
             case "checkout.session.completed" -> handleCheckoutSessionCompleted(event);
             case "checkout.session.expired" -> handleCheckoutSessionExpired(event);
             default -> log.warn("Unknown event type: {}", event.getType());
@@ -95,13 +96,6 @@ public class WebhookService {
         return paymentSession;
     }
 
-    private void handleChargeRefunded(Event event) {
-    }
-
-    private void handleChargeDisputeCreated(Event event) {
-
-    }
-
     private void handlePaymentIntentPaymentFailed(Event event) {
 
     }
@@ -115,6 +109,58 @@ public class WebhookService {
     }
 
     private void handleInvoicePaymentActionRequired(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Invoice stripeInvoice;
+
+            try {
+                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = null;
+            if (stripeInvoice.getParent() != null &&
+                    stripeInvoice.getParent().getSubscriptionDetails() != null) {
+                stripeSubscriptionId = stripeInvoice.getParent().getSubscriptionDetails().getSubscription();
+            }
+
+            if (stripeSubscriptionId == null) {
+                log.info("Invoice payment action required but no associated subscription: {}", stripeInvoice.getId());
+                return;
+            }
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            existingSubscription.setStatus(SubscriptionStatus.INCOMPLETE);
+            existingSubscription.setUpdatedAt(Instant.now());
+
+            subscriptionRepository.save(existingSubscription);
+
+            String hostedInvoiceUrl = stripeInvoice.getHostedInvoiceUrl();
+            //todo get owner email from workspace
+            String ownerEmail = "placeholder";
+
+            paymentActionRequiredEventProducer.producePaymentActionRequiredEvent(
+                    new PaymentActionRequiredEvent(
+                            ownerEmail,
+                            stripeInvoice.getId(),
+                            hostedInvoiceUrl
+                    )
+            );
+
+
+            log.warn("Invoice payment action required for subscription: {}. User notified.", stripeSubscriptionId);
+
+        } catch (Exception e) {
+            log.error("Failed to handle invoice payment action required event", e);
+        }
     }
 
     private void handleInvoicePaymentFailed(Event event) {
@@ -163,6 +209,7 @@ public class WebhookService {
         }
     }
 
+    // todo add payment monitoring
     private void handleInvoicePaid(Event event) {
         try {
             EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
