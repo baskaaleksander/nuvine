@@ -109,7 +109,70 @@ public class WebhookService {
     }
 
     private void handleCustomerSubscriptionUpdated(Event event) {
-        log.info("Customer subscription updated: {}", event.toJson());
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Subscription stripeSubscription;
+
+            try {
+                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = stripeSubscription.getId();
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            Boolean cancelAtPeriodEnd = stripeSubscription.getCancelAtPeriodEnd();
+            String stripeStatus = stripeSubscription.getStatus();
+
+            SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
+            Long currentPeriodStart = item.getCurrentPeriodStart();
+            Long currentPeriodEnd = item.getCurrentPeriodEnd();
+
+            existingSubscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
+            existingSubscription.setStatus(mapStripeStatus(stripeStatus));
+            existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(currentPeriodStart));
+            existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd));
+            existingSubscription.setUpdatedAt(Instant.now());
+
+            subscriptionRepository.save(existingSubscription);
+
+            if ("active".equals(stripeStatus) || "canceled".equals(stripeStatus)) {
+                Plan plan = planRepository.findById(existingSubscription.getPlanId()).orElse(null);
+
+                if (plan == null) {
+                    log.error("Plan not found for plan id: {}", existingSubscription.getPlanId());
+                    return;
+                }
+
+                String billingTierCode = "canceled".equals(stripeStatus) ? "FREE" : plan.getCode();
+                workspaceServiceClient.updateWorkspaceBillingTier(
+                        existingSubscription.getWorkspaceId(),
+                        new WorkspaceBillingTierUpdateRequest(billingTierCode)
+                );
+            }
+
+            log.info("Customer subscription updated successfully: {}", stripeSubscriptionId);
+        } catch (Exception e) {
+            log.error("Failed to handle customer subscription updated event", e);
+        }
+    }
+
+    private SubscriptionStatus mapStripeStatus(String stripeStatus) {
+        return switch (stripeStatus) {
+            case "active" -> SubscriptionStatus.ACTIVE;
+            case "canceled" -> SubscriptionStatus.CANCELED;
+            case "past_due" -> SubscriptionStatus.PAST_DUE;
+            case "unpaid" -> SubscriptionStatus.UNPAID;
+            default -> SubscriptionStatus.INCOMPLETE;
+        };
     }
 
     private void handleCustomerSubscriptionCreated(Event event) {

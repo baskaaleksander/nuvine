@@ -138,7 +138,7 @@ public class SubscriptionService {
             default -> throw new IllegalStateException("Unexpected value: " + intent);
         }
 
-        PaymentSession session = PaymentSession.builder()
+        PaymentSession.PaymentSessionBuilder builder = PaymentSession.builder()
                 .workspaceId(workspaceId)
                 .planId(planId)
                 .userId(userId)
@@ -148,8 +148,15 @@ public class SubscriptionService {
                 .stripeUrl(response.url())
                 .status(PaymentSessionStatus.PENDING)
                 .expiresAt(Instant.now().plusSeconds(24 * 60 * 60))
-                .metadataJson(metadata)
-                .build();
+                .metadataJson(metadata);
+
+        if (intent == PaymentSessionIntent.SUBSCRIPTION_UPDATE) {
+            builder.status(PaymentSessionStatus.COMPLETED);
+        } else {
+            builder.status(PaymentSessionStatus.PENDING);
+        }
+
+        PaymentSession session = builder.build();
 
         paymentSessionRepository.save(session);
 
@@ -231,7 +238,7 @@ public class SubscriptionService {
             Invoice invoice = stripeClient.v1().invoices().retrieve(invoiceId);
 
             if ("paid".equals(invoice.getStatus())) {
-                return new PaymentSessionResponse(successUrl, "sub_update_" + updatedSubscription.getId());
+                return new PaymentSessionResponse(successUrl, "sub_update_" + updatedSubscription.getId() + UUID.randomUUID());
             } else {
                 return new PaymentSessionResponse(invoice.getHostedInvoiceUrl(), invoice.getId());
             }
