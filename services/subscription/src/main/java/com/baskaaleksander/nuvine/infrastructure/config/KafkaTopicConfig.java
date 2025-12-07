@@ -12,10 +12,20 @@ public class KafkaTopicConfig {
     @Value("topics.payment-action-required-topic")
     private String paymentActionRequiredTopic;
 
+    @Value("topics.log-token-usage-topic")
+    private String logTokenUsageTopic;
+
     @Bean
     public NewTopic paymentActionRequiredTopic() {
         return TopicBuilder
                 .name(paymentActionRequiredTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic logTokenUsageTopic() {
+        return TopicBuilder
+                .name(logTokenUsageTopic)
                 .build();
     }
 }

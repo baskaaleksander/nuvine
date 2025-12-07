@@ -38,6 +38,8 @@ public class WebhookService {
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
     private final AuthServiceClient authServiceClient;
 
+
+    //todo: implement payment's logging related webhooks
     public void handleEvent(Event event) {
         switch (event.getType()) {
             case "customer.subscription.created" -> handleCustomerSubscriptionCreated(event);
