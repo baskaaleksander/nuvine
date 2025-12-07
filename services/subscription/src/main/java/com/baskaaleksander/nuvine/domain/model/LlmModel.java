@@ -15,7 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class LlmModel {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -31,6 +31,9 @@ public class LlmModel {
 
     @Embedded
     private ModelPricing pricing;
+
+    @Column(nullable = false)
+    private Boolean free = false;
 
     @Column(nullable = false)
     private boolean active;
