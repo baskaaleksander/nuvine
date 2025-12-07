@@ -37,7 +37,7 @@ public class ModelPricingService {
     }
 
     public BigDecimal calculateCost(String provider, String model,
-                                    int inputTokens, int outputTokens) {
+                                    long inputTokens, long outputTokens) {
         ModelPricing pricing = getModelPricing(provider, model);
 
         BigDecimal inputCost = pricing.getInputPricePer1MTokens()
