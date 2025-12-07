@@ -5,11 +5,14 @@ import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
 import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.domain.model.ConversationRole;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.LogTokenUsageEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -18,6 +21,7 @@ import java.util.UUID;
 public class ConversationPersistenceService {
 
     private final ConversationMessageRepository conversationMessageRepository;
+    private final LogTokenUsageEventProducer logTokenUsageEventProducer;
 
     public ConversationMessage persistSyncCompletion(
             UUID conversationId,
@@ -69,6 +73,23 @@ public class ConversationPersistenceService {
                 savedAssistant.getId()
         );
 
+        String provider = request.model().split("/")[0];
+
+        logTokenUsageEventProducer.produceLogTokenUsageEvent(
+                new LogTokenUsageEvent(
+                        request.workspaceId().toString(),
+                        ownerId.toString(),
+                        conversationId.toString(),
+                        userMessage.getId().toString(),
+                        request.model(),
+                        provider,
+                        "chat-service",
+                        completion.tokensIn(),
+                        completion.tokensOut(),
+                        Instant.now()
+                )
+        );
+
         return savedAssistant;
     }
 
@@ -114,6 +135,23 @@ public class ConversationPersistenceService {
                 .build();
 
         conversationMessageRepository.save(assistantMessage);
+
+        String provider = request.model().split("/")[0];
+
+        logTokenUsageEventProducer.produceLogTokenUsageEvent(
+                new LogTokenUsageEvent(
+                        request.workspaceId().toString(),
+                        ctx.ownerId().toString(),
+                        ctx.conversationId().toString(),
+                        userMessage.getId().toString(),
+                        request.model(),
+                        provider,
+                        "chat-service",
+                        tokensIn,
+                        tokensOut,
+                        Instant.now()
+                )
+        );
 
         log.info(
                 "CONVERSATION_PERSIST_STREAM END convoId={} model={} userMsgId={} assistantMsgId={}",
