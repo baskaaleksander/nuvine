@@ -23,6 +23,13 @@ spring:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
           paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
 
 stripe:
   api-key: ${STRIPE_API_KEY}
