@@ -1,6 +1,9 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.CheckLimitRequest;
+import com.baskaaleksander.nuvine.application.dto.CheckLimitResult;
+import com.baskaaleksander.nuvine.application.dto.ReleaseReservationRequest;
+import com.baskaaleksander.nuvine.domain.service.BillingInternalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('INTERNAL_SERVICE')")
 public class BillingInternalController {
 
+    private final BillingInternalService billingInternalService;
+
     @PostMapping("/check-limit")
-    public ResponseEntity<Boolean> checkLimit(
+    public ResponseEntity<CheckLimitResult> checkLimit(
             @RequestBody @Valid CheckLimitRequest request
     ) {
-        return ResponseEntity.ok(true);
+        CheckLimitResult result = billingInternalService.checkAndReserveLimit(request);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/release-reservation")
+    public ResponseEntity<Void> releaseReservation(
+            @RequestBody @Valid ReleaseReservationRequest request
+    ) {
+        billingInternalService.releaseReservation(request.workspaceId(), request.amount());
+        return ResponseEntity.ok().build();
     }
 }
