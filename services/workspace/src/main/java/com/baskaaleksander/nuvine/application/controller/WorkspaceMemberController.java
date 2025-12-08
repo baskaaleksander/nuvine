@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRequest;
+import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRoleRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberService;
@@ -39,6 +40,15 @@ public class WorkspaceMemberController {
     ) {
         workspaceMemberService.addWorkspaceMember(workspaceId, request.userId(), request.role());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("@workspaceAccess.canViewWorkspace(#workspaceId, #jwt.getSubject())")
+    public ResponseEntity<WorkspaceMemberResponse> getWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(workspaceMemberService.getWorkspaceMember(workspaceId, UUID.fromString(jwt.getSubject())));
     }
 
     @DeleteMapping("/me")

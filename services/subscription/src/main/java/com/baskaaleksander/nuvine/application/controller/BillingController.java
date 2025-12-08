@@ -7,8 +7,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,40 +26,36 @@ public class BillingController {
     }
 
     @GetMapping("/workspaces/{workspaceId}/subscription")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#workspaceId)")
     public ResponseEntity<SubscriptionStatusResponse> getSubscriptionStatus(
-            @PathVariable UUID workspaceId,
-            @AuthenticationPrincipal Jwt jwt
+            @PathVariable UUID workspaceId
     ) {
         return ResponseEntity.ok(billingService.getSubscriptionStatus(workspaceId));
     }
 
     @GetMapping("/workspaces/{workspaceId}/usage-logs")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#workspaceId)")
     public ResponseEntity<PagedResponse<UsageLogResponse>> getUsageLogs(
             @PathVariable UUID workspaceId,
-            @ModelAttribute UsageLogFilterRequest filter,
-            @AuthenticationPrincipal Jwt jwt
+            @ModelAttribute UsageLogFilterRequest filter
     ) {
         return ResponseEntity.ok(billingService.getUsageLogs(workspaceId, filter));
     }
 
     @GetMapping("/workspaces/{workspaceId}/payments")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#workspaceId)")
     public ResponseEntity<PagedResponse<PaymentResponse>> getPayments(
             @PathVariable UUID workspaceId,
-            @ModelAttribute PaymentFilterRequest filter,
-            @AuthenticationPrincipal Jwt jwt
+            @ModelAttribute PaymentFilterRequest filter
     ) {
         return ResponseEntity.ok(billingService.getPayments(workspaceId, filter));
     }
 
     @GetMapping("/workspaces/{workspaceId}/usage/aggregations")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#workspaceId)")
     public ResponseEntity<UsageAggregationResponse> getUsageAggregations(
             @PathVariable UUID workspaceId,
-            @Valid @ModelAttribute UsageAggregationRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @Valid @ModelAttribute UsageAggregationRequest request
     ) {
         return ResponseEntity.ok(billingService.getUsageAggregations(workspaceId, request));
     }

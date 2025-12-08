@@ -171,4 +171,10 @@ public class WorkspaceMemberService {
 
         log.info("REMOVE_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
+
+    public WorkspaceMemberResponse getWorkspaceMember(UUID workspaceId, UUID uuid) {
+        return workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, uuid)
+                .map(workspaceMemberMapper::toWorkspaceMemberResponse)
+                .orElseThrow(() -> new WorkspaceMemberNotFoundException("Workspace member not found"));
+    }
 }
