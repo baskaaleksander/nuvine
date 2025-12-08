@@ -1,6 +1,6 @@
 CREATE TABLE llm_providers
 (
-    id           UUID PRIMARY KEY,
+    id           UUID         NOT NULL,
     provider_key VARCHAR(255) NOT NULL UNIQUE,
     display_name VARCHAR(255),
     active       BOOLEAN      NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE llm_providers
 
 CREATE TABLE llm_models
 (
-    id                              UUID PRIMARY KEY,
+    id                              UUID           NOT NULL,
     provider_id                     UUID           NOT NULL,
     model_key                       VARCHAR(255)   NOT NULL,
     display_name                    VARCHAR(255),
