@@ -47,4 +47,42 @@ public interface SubscriptionUsageCounterRepository extends JpaRepository<Subscr
             @Param("periodEnd") LocalDate periodEnd,
             @Param("metric") UsageMetric metric
     );
+
+    Optional<SubscriptionUsageCounter> findBySubscriptionId(UUID subscriptionId);
+
+    @Modifying
+    @Query("""
+            UPDATE SubscriptionUsageCounter
+            SET reservedBudget = reservedBudget + :amount,
+                updatedAt = CURRENT_TIMESTAMP
+            WHERE subscriptionId = :subscriptionId
+            AND periodStart = :periodStart
+            AND periodEnd = :periodEnd
+            AND metric = :metric
+            """)
+    int incrementReservedBudget(
+            @Param("subscriptionId") UUID subscriptionId,
+            @Param("periodStart") LocalDate periodStart,
+            @Param("periodEnd") LocalDate periodEnd,
+            @Param("metric") UsageMetric metric,
+            @Param("amount") BigDecimal amount
+    );
+
+    @Modifying
+    @Query("""
+            UPDATE SubscriptionUsageCounter
+            SET reservedBudget = reservedBudget - :amount,
+                updatedAt = CURRENT_TIMESTAMP
+            WHERE subscriptionId = :subscriptionId
+            AND periodStart = :periodStart
+            AND periodEnd = :periodEnd
+            AND metric = :metric
+            """)
+    int decrementReservedBudget(
+            @Param("subscriptionId") UUID subscriptionId,
+            @Param("periodStart") LocalDate periodStart,
+            @Param("periodEnd") LocalDate periodEnd,
+            @Param("metric") UsageMetric metric,
+            @Param("amount") BigDecimal amount
+    );
 }

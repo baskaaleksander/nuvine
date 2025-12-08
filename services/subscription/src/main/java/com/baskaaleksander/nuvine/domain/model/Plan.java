@@ -45,7 +45,7 @@ public class Plan {
     private BillingPeriod billingPeriod;
 
     @Column(name = "included_credits", nullable = false, length = 64)
-    private String includedCredits;
+    private long includedCredits;
 
     @Column(name = "max_storage_size", nullable = false)
     private long maxStorageSize;

@@ -48,6 +48,10 @@ public class SubscriptionUsageCounter {
     @Column(name = "used_value", nullable = false, precision = 18, scale = 6)
     private BigDecimal usedValue;
 
+    @Builder.Default
+    @Column(name = "reserved_budget", nullable = false, precision = 18, scale = 6)
+    private BigDecimal reservedBudget = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -29,6 +29,9 @@ public class LlmModel {
 
     private String displayName;
 
+    @Column(nullable = false)
+    private long maxOutputTokens;
+
     @Embedded
     private ModelPricing pricing;
 

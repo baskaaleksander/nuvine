@@ -77,5 +77,13 @@ spring:
               uri: lb://subscription-service
               predicates:
                 - Path=/api/v1/stripe/webhook
+            - id: subscription-service-billing-internal
+              uri: lb://subscription-service
+              predicates:
+                - Path=/api/v1/internal/billing/**
+            - id: subscription-service-billing
+              uri: lb://subscription-service
+              predicates:
+                - Path=/api/v1/billing/**
 server:
   port: 8222
