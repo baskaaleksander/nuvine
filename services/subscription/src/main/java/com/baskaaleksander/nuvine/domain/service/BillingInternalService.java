@@ -1,7 +1,9 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.CheckLimitRequest;
+import com.baskaaleksander.nuvine.application.dto.CheckLimitResult;
 import com.baskaaleksander.nuvine.domain.exception.ModelNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.PlanNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.persistence.LlmModelRepository;
@@ -10,6 +12,7 @@ import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionReposit
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionUsageCounterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -55,8 +58,9 @@ public class BillingInternalService {
                         "Plan not found: " + subscription.getPlanId()
                 ));
 
-        long maxOutputTokens = Optional.ofNullable(model.getMaxOutputTokens())
-                .orElse(DEFAULT_MAX_OUTPUT_TOKENS);
+        long maxOutputTokens = model.getMaxOutputTokens() > 0 
+                ? model.getMaxOutputTokens() 
+                : DEFAULT_MAX_OUTPUT_TOKENS;
 
         BigDecimal estimatedCost = modelPricingService.calculateCost(
                 request.providerKey(),
@@ -84,7 +88,7 @@ public class BillingInternalService {
                 )
                 .orElse(null);
 
-        BigDecimal includedCredits = plan.getIncludedCredits();
+        BigDecimal includedCredits = BigDecimal.valueOf(plan.getIncludedCredits());
         BigDecimal usedValue = counter != null ? counter.getUsedValue() : BigDecimal.ZERO;
         BigDecimal reservedBudget = counter != null ? counter.getReservedBudget() : BigDecimal.ZERO;
 
