@@ -18,12 +18,55 @@ public interface UsageLogRepository extends JpaRepository<UsageLog, UUID> {
     @Query("""
             SELECT u FROM UsageLog u
             WHERE u.workspaceId = :workspaceId
-            AND (:startDate IS NULL OR u.occurredAt >= :startDate)
-            AND (:endDate IS NULL OR u.occurredAt <= :endDate)
-            AND (:provider IS NULL OR u.provider = :provider)
-            AND (:model IS NULL OR u.model = :model)
+            AND u.occurredAt >= :startDate
+            AND u.occurredAt <= :endDate
             """)
-    Page<UsageLog> findByWorkspaceIdWithFilters(
+    Page<UsageLog> findByWorkspaceIdAndDateRange(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT u FROM UsageLog u
+            WHERE u.workspaceId = :workspaceId
+            AND u.occurredAt >= :startDate
+            AND u.occurredAt <= :endDate
+            AND u.provider = :provider
+            """)
+    Page<UsageLog> findByWorkspaceIdAndDateRangeAndProvider(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            @Param("provider") String provider,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT u FROM UsageLog u
+            WHERE u.workspaceId = :workspaceId
+            AND u.occurredAt >= :startDate
+            AND u.occurredAt <= :endDate
+            AND u.model = :model
+            """)
+    Page<UsageLog> findByWorkspaceIdAndDateRangeAndModel(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            @Param("model") String model,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT u FROM UsageLog u
+            WHERE u.workspaceId = :workspaceId
+            AND u.occurredAt >= :startDate
+            AND u.occurredAt <= :endDate
+            AND u.provider = :provider
+            AND u.model = :model
+            """)
+    Page<UsageLog> findByWorkspaceIdAndDateRangeAndProviderAndModel(
             @Param("workspaceId") UUID workspaceId,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,
@@ -38,7 +81,7 @@ public interface UsageLogRepository extends JpaRepository<UsageLog, UUID> {
             AND u.occurredAt >= :startDate
             AND u.occurredAt <= :endDate
             """)
-    List<UsageLog> findByWorkspaceIdAndDateRange(
+    List<UsageLog> findByWorkspaceIdAndDateRangeList(
             @Param("workspaceId") UUID workspaceId,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate

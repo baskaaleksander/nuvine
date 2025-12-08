@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,21 +74,10 @@ public class BillingService {
         log.info("GET_USAGE_LOGS START workspaceId={}", workspaceId);
 
         try {
-            Instant startDate = filter.getStartDate() != null
-                    ? filter.getStartDate().atStartOfDay(ZoneOffset.UTC).toInstant()
-                    : null;
-            Instant endDate = filter.getEndDate() != null
-                    ? filter.getEndDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant()
-                    : null;
+            Instant startDate = filter.getStartDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant endDate = filter.getEndDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-            Page<UsageLog> page = usageLogRepository.findByWorkspaceIdWithFilters(
-                    workspaceId,
-                    startDate,
-                    endDate,
-                    filter.getProvider(),
-                    filter.getModel(),
-                    PaginationUtil.getPageable(filter)
-            );
+            Page<UsageLog> page = findUsageLogs(workspaceId, startDate, endDate, filter);
 
             log.info("GET_USAGE_LOGS END workspaceId={} totalElements={}", workspaceId, page.getTotalElements());
             return new PagedResponse<>(
@@ -107,6 +97,31 @@ public class BillingService {
         }
     }
 
+    private Page<UsageLog> findUsageLogs(
+            UUID workspaceId,
+            Instant startDate,
+            Instant endDate,
+            UsageLogFilterRequest filter
+    ) {
+        Pageable pageable = PaginationUtil.getPageable(filter);
+        boolean hasProvider = filter.getProvider() != null && !filter.getProvider().isBlank();
+        boolean hasModel = filter.getModel() != null && !filter.getModel().isBlank();
+
+        if (hasProvider && hasModel) {
+            return usageLogRepository.findByWorkspaceIdAndDateRangeAndProviderAndModel(
+                    workspaceId, startDate, endDate, filter.getProvider(), filter.getModel(), pageable);
+        } else if (hasProvider) {
+            return usageLogRepository.findByWorkspaceIdAndDateRangeAndProvider(
+                    workspaceId, startDate, endDate, filter.getProvider(), pageable);
+        } else if (hasModel) {
+            return usageLogRepository.findByWorkspaceIdAndDateRangeAndModel(
+                    workspaceId, startDate, endDate, filter.getModel(), pageable);
+        } else {
+            return usageLogRepository.findByWorkspaceIdAndDateRange(
+                    workspaceId, startDate, endDate, pageable);
+        }
+    }
+
     @Transactional(readOnly = true)
     public PagedResponse<PaymentResponse> getPayments(
             UUID workspaceId,
@@ -122,13 +137,23 @@ public class BillingService {
                     ? filter.getEndDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant()
                     : null;
 
-            Page<Payment> page = paymentRepository.findByWorkspaceIdWithFilters(
-                    workspaceId,
-                    startDate,
-                    endDate,
-                    filter.getStatus(),
-                    PaginationUtil.getPageable(filter)
-            );
+            Page<Payment> page;
+            if (filter.getStatus() != null) {
+                page = paymentRepository.findByWorkspaceIdAndDateRangeAndStatus(
+                        workspaceId,
+                        startDate,
+                        endDate,
+                        filter.getStatus(),
+                        PaginationUtil.getPageable(filter)
+                );
+            } else {
+                page = paymentRepository.findByWorkspaceIdAndDateRange(
+                        workspaceId,
+                        startDate,
+                        endDate,
+                        PaginationUtil.getPageable(filter)
+                );
+            }
 
             log.info("GET_PAYMENTS END workspaceId={} totalElements={}", workspaceId, page.getTotalElements());
             return new PagedResponse<>(
@@ -159,7 +184,7 @@ public class BillingService {
             Instant startDate = request.getStartDate().atStartOfDay(ZoneOffset.UTC).toInstant();
             Instant endDate = request.getEndDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-            List<UsageLog> logs = usageLogRepository.findByWorkspaceIdAndDateRange(
+            List<UsageLog> logs = usageLogRepository.findByWorkspaceIdAndDateRangeList(
                     workspaceId,
                     startDate,
                     endDate

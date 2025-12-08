@@ -9,23 +9,23 @@ CREATE TABLE llm_providers
 
 CREATE TABLE llm_models
 (
-    id                              UUID           NOT NULL,
-    provider_id                     UUID           NOT NULL,
-    model_key                       VARCHAR(255)   NOT NULL,
-    display_name                    VARCHAR(255),
-    max_output_tokens               BIGINT         NOT NULL,
+    id                               UUID           NOT NULL,
+    provider_id                      UUID           NOT NULL,
+    model_key                        VARCHAR(255)   NOT NULL,
+    display_name                     VARCHAR(255),
+    max_output_tokens                BIGINT         NOT NULL,
 
-    input_price_per1m_tokens        DECIMAL(12, 8) NOT NULL,
-    output_price_per1m_tokens       DECIMAL(12, 8) NOT NULL,
-    image_price_per1k               DECIMAL(12, 8),
-    audio_input_price_per1m_tokens  DECIMAL(12, 8),
-    audio_output_price_per1m_tokens DECIMAL(12, 8),
-    currency                        VARCHAR(3)     NOT NULL DEFAULT 'USD',
+    input_price_per1mtokens          DECIMAL(12, 8) NOT NULL,
+    output_price_per1mtokens         DECIMAL(12, 8) NOT NULL,
+    image_price_per1k                DECIMAL(12, 8),
+    audio_input_price_per1mtokens    DECIMAL(12, 8),
+    audio_output_price_per1mtokens   DECIMAL(12, 8),
+    currency                         VARCHAR(3)     NOT NULL DEFAULT 'USD',
 
-    free                            BOOLEAN        NOT NULL DEFAULT FALSE,
-    active                          BOOLEAN        NOT NULL,
-    effective_from                  TIMESTAMP      NOT NULL,
-    effective_to                    TIMESTAMP,
+    free                             BOOLEAN        NOT NULL DEFAULT FALSE,
+    active                           BOOLEAN        NOT NULL,
+    effective_from                   TIMESTAMP      NOT NULL,
+    effective_to                     TIMESTAMP,
 
     CONSTRAINT pk_llm_models PRIMARY KEY (id),
     CONSTRAINT fk_llm_models_provider FOREIGN KEY (provider_id)

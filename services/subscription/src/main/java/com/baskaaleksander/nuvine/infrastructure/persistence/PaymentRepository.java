@@ -18,11 +18,24 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query("""
             SELECT p FROM Payment p
             WHERE p.workspaceId = :workspaceId
-            AND (:startDate IS NULL OR p.createdAt >= :startDate)
-            AND (:endDate IS NULL OR p.createdAt <= :endDate)
-            AND (:status IS NULL OR p.status = :status)
+            AND p.createdAt >= :startDate
+            AND p.createdAt <= :endDate
             """)
-    Page<Payment> findByWorkspaceIdWithFilters(
+    Page<Payment> findByWorkspaceIdAndDateRange(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT p FROM Payment p
+            WHERE p.workspaceId = :workspaceId
+            AND p.createdAt >= :startDate
+            AND p.createdAt <= :endDate
+            AND p.status = :status
+            """)
+    Page<Payment> findByWorkspaceIdAndDateRangeAndStatus(
             @Param("workspaceId") UUID workspaceId,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,

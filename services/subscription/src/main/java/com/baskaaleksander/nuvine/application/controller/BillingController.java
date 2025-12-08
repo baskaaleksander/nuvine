@@ -28,7 +28,7 @@ public class BillingController {
     }
 
     @GetMapping("/workspaces/{workspaceId}/subscription")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
     public ResponseEntity<SubscriptionStatusResponse> getSubscriptionStatus(
             @PathVariable UUID workspaceId,
             @AuthenticationPrincipal Jwt jwt
@@ -37,7 +37,7 @@ public class BillingController {
     }
 
     @GetMapping("/workspaces/{workspaceId}/usage-logs")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
     public ResponseEntity<PagedResponse<UsageLogResponse>> getUsageLogs(
             @PathVariable UUID workspaceId,
             @ModelAttribute UsageLogFilterRequest filter,
@@ -47,7 +47,7 @@ public class BillingController {
     }
 
     @GetMapping("/workspaces/{workspaceId}/payments")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
     public ResponseEntity<PagedResponse<PaymentResponse>> getPayments(
             @PathVariable UUID workspaceId,
             @ModelAttribute PaymentFilterRequest filter,
@@ -57,7 +57,7 @@ public class BillingController {
     }
 
     @GetMapping("/workspaces/{workspaceId}/usage/aggregations")
-    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(jwt.getSubject(), #workspaceId)")
+    @PreAuthorize("@billingDataAccessEvaluator.canAccessBillingData(#jwt.getSubject(), #workspaceId)")
     public ResponseEntity<UsageAggregationResponse> getUsageAggregations(
             @PathVariable UUID workspaceId,
             @Valid @ModelAttribute UsageAggregationRequest request,

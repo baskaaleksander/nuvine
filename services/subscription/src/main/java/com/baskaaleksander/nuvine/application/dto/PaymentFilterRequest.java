@@ -13,9 +13,9 @@ import java.time.LocalDate;
 @ToString(callSuper = true)
 public class PaymentFilterRequest extends PaginationRequest {
 
-    private LocalDate startDate;
+    private LocalDate startDate = LocalDate.now().minusYears(1);
 
-    private LocalDate endDate;
+    private LocalDate endDate = LocalDate.now().plusDays(1);
 
     private PaymentStatus status;
 
@@ -34,8 +34,8 @@ public class PaymentFilterRequest extends PaginationRequest {
         super.setSize(size != null ? size : 10);
         super.setSortField(sortField != null ? sortField : "createdAt");
         super.setDirection(direction != null ? direction : Sort.Direction.DESC);
-        this.startDate = startDate;
-        this.endDate = endDate;
+        this.startDate = startDate != null ? startDate : LocalDate.now().minusYears(1);
+        this.endDate = endDate != null ? endDate : LocalDate.now().plusDays(1);
         this.status = status;
     }
 }

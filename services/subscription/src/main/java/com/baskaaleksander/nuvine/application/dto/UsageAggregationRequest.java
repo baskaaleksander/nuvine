@@ -1,25 +1,30 @@
 package com.baskaaleksander.nuvine.application.dto;
 
 import com.baskaaleksander.nuvine.domain.model.AggregationGranularity;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
 public class UsageAggregationRequest {
 
-    @NotNull(message = "Start date is required")
-    private LocalDate startDate;
+    private LocalDate startDate = LocalDate.now().minusDays(30);
 
-    @NotNull(message = "End date is required")
-    private LocalDate endDate;
+    private LocalDate endDate = LocalDate.now();
 
-    @Builder.Default
     private AggregationGranularity granularity = AggregationGranularity.DAILY;
+
+    @Builder
+    public UsageAggregationRequest(
+            LocalDate startDate,
+            LocalDate endDate,
+            AggregationGranularity granularity
+    ) {
+        this.startDate = startDate != null ? startDate : LocalDate.now().minusDays(30);
+        this.endDate = endDate != null ? endDate : LocalDate.now();
+        this.granularity = granularity != null ? granularity : AggregationGranularity.DAILY;
+    }
 }
