@@ -13,6 +13,7 @@ CREATE TABLE llm_models
     provider_id                     UUID           NOT NULL,
     model_key                       VARCHAR(255)   NOT NULL,
     display_name                    VARCHAR(255),
+    max_output_tokens               BIGINT         NOT NULL,
 
     input_price_per1m_tokens        DECIMAL(12, 8) NOT NULL,
     output_price_per1m_tokens       DECIMAL(12, 8) NOT NULL,

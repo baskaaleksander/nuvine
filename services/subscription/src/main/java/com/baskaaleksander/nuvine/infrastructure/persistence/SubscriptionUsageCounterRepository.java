@@ -47,4 +47,6 @@ public interface SubscriptionUsageCounterRepository extends JpaRepository<Subscr
             @Param("periodEnd") LocalDate periodEnd,
             @Param("metric") UsageMetric metric
     );
+
+    Optional<SubscriptionUsageCounter> findBySubscriptionId(UUID subscriptionId);
 }
