@@ -31,7 +31,7 @@ public class UsageService {
     private final ModelPricingService modelPricingService;
 
     private static final BigDecimal CREDITS_TO_DOLLARS_EXCHANGE_RATE = BigDecimal.valueOf(1000);
-    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final ZoneId UTC = ZoneId.of("CET");
 
     @Transactional
     public void logTokenUsage(LogTokenUsageEvent event) {

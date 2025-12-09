@@ -244,6 +244,15 @@ public class ChatService {
 
         String provider = request.model().split("/")[0];
         String model = request.model().split("/")[1];
+        log.info(
+                "CHAT_COMPLETION_STREAM CHECK_LIMIT convoId={} workspaceId={} projectId={} model={} provider={} inputTokens={}",
+                request.conversationId(),
+                request.workspaceId(),
+                request.projectId(),
+                model,
+                provider,
+                inputTokens
+        );
 
         CheckLimitRequest checkLimitRequest =
                 new CheckLimitRequest(
@@ -256,6 +265,7 @@ public class ChatService {
         try {
             checkLimitResult = subscriptionServiceClient.checkLimit(checkLimitRequest);
         } catch (FeignException e) {
+            log.error("Check limit failed", e);
             int status = e.status();
             if (status == 404) {
                 throw new CheckLimitNotFoundException("Check limit not found exception");
