@@ -9,6 +9,16 @@ spring:
       ddl-auto: validate
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
 
 chat:
   keycloak:
