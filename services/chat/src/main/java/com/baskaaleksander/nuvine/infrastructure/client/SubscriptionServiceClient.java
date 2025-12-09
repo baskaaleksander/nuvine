@@ -1,5 +1,8 @@
 package com.baskaaleksander.nuvine.infrastructure.client;
 
+import com.baskaaleksander.nuvine.application.dto.CheckLimitRequest;
+import com.baskaaleksander.nuvine.application.dto.CheckLimitResult;
+import com.baskaaleksander.nuvine.application.dto.ReleaseReservationRequest;
 import com.baskaaleksander.nuvine.infrastructure.config.InternalFeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
