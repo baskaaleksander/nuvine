@@ -1,10 +1,9 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.ChatContext;
-import com.baskaaleksander.nuvine.application.dto.CompletionRequest;
-import com.baskaaleksander.nuvine.application.dto.CompletionResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.domain.model.ConversationRole;
+import com.baskaaleksander.nuvine.infrastructure.client.SubscriptionServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.LogTokenUsageEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
@@ -22,12 +21,14 @@ public class ConversationPersistenceService {
 
     private final ConversationMessageRepository conversationMessageRepository;
     private final LogTokenUsageEventProducer logTokenUsageEventProducer;
+    private final SubscriptionServiceClient subscriptionServiceClient;
 
     public ConversationMessage persistSyncCompletion(
             UUID conversationId,
             CompletionRequest request,
             CompletionResponse completion,
-            UUID ownerId
+            UUID ownerId,
+            CheckLimitResult checkLimitResult
     ) {
         log.info(
                 "CONVERSATION_PERSIST_SYNC START convoId={} model={} tokensIn={} tokensOut={}",
@@ -74,6 +75,7 @@ public class ConversationPersistenceService {
         );
 
         String provider = request.model().split("/")[0];
+        String model = request.model().split("/")[1];
 
         logTokenUsageEventProducer.produceLogTokenUsageEvent(
                 new LogTokenUsageEvent(
@@ -81,12 +83,19 @@ public class ConversationPersistenceService {
                         ownerId.toString(),
                         conversationId.toString(),
                         userMessage.getId().toString(),
-                        request.model(),
+                        model,
                         provider,
                         "chat-service",
                         completion.tokensIn(),
                         completion.tokensOut(),
                         Instant.now()
+                )
+        );
+
+        subscriptionServiceClient.releaseReservation(
+                new ReleaseReservationRequest(
+                        request.workspaceId(),
+                        checkLimitResult.estimatedCost()
                 )
         );
 
@@ -98,7 +107,8 @@ public class ConversationPersistenceService {
             CompletionRequest request,
             String assistantContent,
             int tokensIn,
-            int tokensOut
+            int tokensOut,
+            CheckLimitResult checkLimitResult
     ) {
         log.info(
                 "CONVERSATION_PERSIST_STREAM START convoId={} model={} tokensIn={} tokensOut={}",
@@ -137,6 +147,7 @@ public class ConversationPersistenceService {
         conversationMessageRepository.save(assistantMessage);
 
         String provider = request.model().split("/")[0];
+        String model = request.model().split("/")[1];
 
         logTokenUsageEventProducer.produceLogTokenUsageEvent(
                 new LogTokenUsageEvent(
@@ -144,7 +155,7 @@ public class ConversationPersistenceService {
                         ctx.ownerId().toString(),
                         ctx.conversationId().toString(),
                         userMessage.getId().toString(),
-                        request.model(),
+                        model,
                         provider,
                         "chat-service",
                         tokensIn,
@@ -152,6 +163,14 @@ public class ConversationPersistenceService {
                         Instant.now()
                 )
         );
+
+        subscriptionServiceClient.releaseReservation(
+                new ReleaseReservationRequest(
+                        request.workspaceId(),
+                        checkLimitResult.estimatedCost()
+                )
+        );
+
 
         log.info(
                 "CONVERSATION_PERSIST_STREAM END convoId={} model={} userMsgId={} assistantMsgId={}",

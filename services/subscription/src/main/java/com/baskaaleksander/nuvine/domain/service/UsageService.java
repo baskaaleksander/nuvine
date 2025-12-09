@@ -61,6 +61,7 @@ public class UsageService {
                 .workspaceId(workspaceId)
                 .userId(userId)
                 .conversationId(conversationId)
+                .subscriptionId(subscription.getId())
                 .messageId(messageId)
                 .model(event.model())
                 .provider(event.provider())
