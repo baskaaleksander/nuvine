@@ -32,13 +32,16 @@ public class BillingInternalService {
     private final SubscriptionUsageCounterRepository usageCounterRepository;
     private final ModelPricingService modelPricingService;
 
-    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final ZoneId UTC = ZoneId.of("CET");
     private static final long DEFAULT_MAX_OUTPUT_TOKENS = 4096L;
 
     @Transactional
     public CheckLimitResult checkAndReserveLimit(CheckLimitRequest request) {
-        log.debug("CHECK_LIMIT START workspace={} model={}:{}",
+        log.info("CHECK_LIMIT START workspace={} model={}:{}",
                 request.workspaceId(), request.providerKey(), request.modelKey());
+
+        log.info("Searching in DB: providerKey='{}', modelKey='{}'",
+                request.providerKey(), request.modelKey());
 
         LlmModel model = llmModelRepository
                 .findActiveModel(request.providerKey(), request.modelKey(), Instant.now())
@@ -58,8 +61,8 @@ public class BillingInternalService {
                         "Plan not found: " + subscription.getPlanId()
                 ));
 
-        long maxOutputTokens = model.getMaxOutputTokens() > 0 
-                ? model.getMaxOutputTokens() 
+        long maxOutputTokens = model.getMaxOutputTokens() > 0
+                ? model.getMaxOutputTokens()
                 : DEFAULT_MAX_OUTPUT_TOKENS;
 
         BigDecimal estimatedCost = modelPricingService.calculateCost(
@@ -69,7 +72,7 @@ public class BillingInternalService {
                 maxOutputTokens
         );
 
-        log.debug("Estimated cost: {} credits (input={} output={})",
+        log.info("Estimated cost: {} credits (input={} output={})",
                 estimatedCost, request.inputTokens(), maxOutputTokens);
 
         LocalDate periodStart = subscription.getCurrentPeriodStart()

@@ -3,10 +3,14 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.ConversationMessageMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.CheckLimitNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.ContextNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.RequestLimitExceededException;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.SubscriptionServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,10 +33,12 @@ public class ChatService {
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationMessageMapper mapper;
     private final WebClient llmRouterWebClient;
+    private final SubscriptionServiceClient subscriptionServiceClient;
 
     private final WorkspaceAccessService workspaceAccessService;
     private final RagPromptBuilder ragPromptBuilder;
     private final ConversationPersistenceService conversationPersistenceService;
+    private final TokenCountingService tokenCountingService;
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
         UUID workspaceId = request.workspaceId();
@@ -58,8 +64,20 @@ public class ChatService {
             return handleContextNotFoundStrictModeSync(request, userId);
         }
 
-        CompletionLlmRouterRequest routerRequest =
-                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
+        CheckLimitResult checkLimitResult = checkLimit(request, ctx.prompt());
+
+        if (!checkLimitResult.approved()) {
+            log.info(
+                    "CHAT_COMPLETION LIMIT_EXCEEDED convoId={} workspaceId={} projectId={}",
+                    ctx.conversationId(),
+                    request.workspaceId(),
+                    request.projectId()
+            );
+            throw new RequestLimitExceededException("Limit exceeded exception");
+        }
+
+//        CompletionLlmRouterRequest routerRequest =
+//                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
 
         log.info(
                 "CHAT_COMPLETION LLM_CALL_START convoId={} model={} hasMemory={}",
@@ -80,7 +98,8 @@ public class ChatService {
                         ctx.conversationId(),
                         request,
                         completion,
-                        ctx.ownerId()
+                        ctx.ownerId(),
+                        checkLimitResult
                 );
 
         log.info(
@@ -174,6 +193,17 @@ public class ChatService {
             handleContextNotFoundStrictMode(emitter, request, userId);
             return emitter;
         }
+        CheckLimitResult checkLimitResult = checkLimit(request, ctx.prompt());
+
+        if (!checkLimitResult.approved()) {
+            log.info(
+                    "CHAT_COMPLETION_STREAM LIMIT_EXCEEDED convoId={} workspaceId={} projectId={}",
+                    ctx.conversationId(),
+                    request.workspaceId(),
+                    request.projectId()
+            );
+            throw new RequestLimitExceededException("Limit exceeded exception");
+        }
 
         log.info(
                 "CHAT_COMPLETION_STREAM CONTEXT_PREPARED convoId={} workspaceId={} projectId={}",
@@ -181,6 +211,7 @@ public class ChatService {
                 request.workspaceId(),
                 request.projectId()
         );
+
 
         CompletionLlmRouterRequest routerRequest =
                 new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
@@ -205,11 +236,49 @@ public class ChatService {
                         request,
                         answerBuilder.toString(),
                         tokensIn.get(),
-                        tokensOut.get()
+                        tokensOut.get(),
+                        checkLimitResult
                 ))
                 .subscribe();
 
         return emitter;
+    }
+
+    private CheckLimitResult checkLimit(CompletionRequest request, String prompt) {
+        long inputTokens = tokenCountingService.count(prompt);
+
+        String provider = request.model().split("/")[0];
+        String model = request.model().split("/")[1];
+        log.info(
+                "CHAT_COMPLETION_STREAM CHECK_LIMIT convoId={} workspaceId={} projectId={} model={} provider={} inputTokens={}",
+                request.conversationId(),
+                request.workspaceId(),
+                request.projectId(),
+                model,
+                provider,
+                inputTokens
+        );
+
+        CheckLimitRequest checkLimitRequest =
+                new CheckLimitRequest(
+                        request.workspaceId(),
+                        model,
+                        provider,
+                        inputTokens
+                );
+        CheckLimitResult checkLimitResult;
+        try {
+            checkLimitResult = subscriptionServiceClient.checkLimit(checkLimitRequest);
+        } catch (FeignException e) {
+            log.error("Check limit failed", e);
+            int status = e.status();
+            if (status == 404) {
+                throw new CheckLimitNotFoundException("Check limit not found exception");
+            }
+            throw new RuntimeException(e);
+        }
+
+        return checkLimitResult;
     }
 
     private void handleChunk(
@@ -279,7 +348,8 @@ public class ChatService {
             CompletionRequest request,
             String assistantContent,
             int tokensIn,
-            int tokensOut
+            int tokensOut,
+            CheckLimitResult checkLimitResult
     ) {
         try {
             conversationPersistenceService.persistStreamCompletion(
@@ -287,7 +357,8 @@ public class ChatService {
                     request,
                     assistantContent,
                     tokensIn,
-                    tokensOut
+                    tokensOut,
+                    checkLimitResult
             );
 
             log.info(

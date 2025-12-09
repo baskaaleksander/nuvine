@@ -3,7 +3,9 @@ package com.baskaaleksander.nuvine.domain.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,7 +44,8 @@ public class SubscriptionUsageCounter {
     private LocalDate periodEnd;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "metric", nullable = false, length = 32)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "metric", nullable = false, columnDefinition = "usage_metric")
     private UsageMetric metric;
 
     @Column(name = "used_value", nullable = false, precision = 18, scale = 6)

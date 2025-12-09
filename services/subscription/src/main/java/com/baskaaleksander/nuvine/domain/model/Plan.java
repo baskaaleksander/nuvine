@@ -3,6 +3,8 @@ package com.baskaaleksander.nuvine.domain.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
@@ -41,7 +43,8 @@ public class Plan {
     private String stripePriceId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "billing_period", nullable = false, columnDefinition = "billing_period")
     private BillingPeriod billingPeriod;
 
     @Column(name = "included_credits", nullable = false, length = 64)
@@ -51,7 +54,8 @@ public class Plan {
     private long maxStorageSize;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "hard_limit_behaviour", nullable = false, length = 32)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "hard_limit_behaviour", nullable = false, columnDefinition = "hard_limit_behaviour")
     private HardLimitBehaviour hardLimitBehaviour;
 
     @Column(name = "created_at", nullable = false, updatable = false)
