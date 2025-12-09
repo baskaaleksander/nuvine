@@ -3,10 +3,14 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.application.mapper.ConversationMessageMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
+import com.baskaaleksander.nuvine.domain.exception.CheckLimitNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.ContextNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.RequestLimitExceededException;
 import com.baskaaleksander.nuvine.domain.model.ConversationMessage;
 import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.SubscriptionServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ConversationMessageRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,10 +33,12 @@ public class ChatService {
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationMessageMapper mapper;
     private final WebClient llmRouterWebClient;
+    private final SubscriptionServiceClient subscriptionServiceClient;
 
     private final WorkspaceAccessService workspaceAccessService;
     private final RagPromptBuilder ragPromptBuilder;
     private final ConversationPersistenceService conversationPersistenceService;
+    private final TokenCountingService tokenCountingService;
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
         UUID workspaceId = request.workspaceId();
@@ -58,8 +64,18 @@ public class ChatService {
             return handleContextNotFoundStrictModeSync(request, userId);
         }
 
-        CompletionLlmRouterRequest routerRequest =
-                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
+        if (!checkLimit(request, ctx.prompt())) {
+            log.info(
+                    "CHAT_COMPLETION LIMIT_EXCEEDED convoId={} workspaceId={} projectId={}",
+                    ctx.conversationId(),
+                    workspaceId,
+                    projectId
+            );
+            throw new RequestLimitExceededException("Request limit exceeded exception");
+        }
+
+//        CompletionLlmRouterRequest routerRequest =
+//                new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
 
         log.info(
                 "CHAT_COMPLETION LLM_CALL_START convoId={} model={} hasMemory={}",
@@ -175,12 +191,23 @@ public class ChatService {
             return emitter;
         }
 
+        if (!checkLimit(request, ctx.prompt())) {
+            log.info(
+                    "CHAT_COMPLETION_STREAM LIMIT_EXCEEDED convoId={} workspaceId={} projectId={}",
+                    ctx.conversationId(),
+                    request.workspaceId(),
+                    request.projectId()
+            );
+            throw new RequestLimitExceededException("Limit exceeded exception");
+        }
+
         log.info(
                 "CHAT_COMPLETION_STREAM CONTEXT_PREPARED convoId={} workspaceId={} projectId={}",
                 ctx.conversationId(),
                 request.workspaceId(),
                 request.projectId()
         );
+
 
         CompletionLlmRouterRequest routerRequest =
                 new CompletionLlmRouterRequest(ctx.prompt(), request.model(), ctx.messages());
@@ -210,6 +237,33 @@ public class ChatService {
                 .subscribe();
 
         return emitter;
+    }
+
+    private boolean checkLimit(CompletionRequest request, String prompt) {
+        long inputTokens = tokenCountingService.count(prompt);
+
+        String provider = request.model().split("/")[0];
+        String model = request.model().split("/")[1];
+
+        CheckLimitRequest checkLimitRequest =
+                new CheckLimitRequest(
+                        request.workspaceId(),
+                        model,
+                        provider,
+                        inputTokens
+                );
+        CheckLimitResult checkLimitResult;
+        try {
+            checkLimitResult = subscriptionServiceClient.checkLimit(checkLimitRequest);
+        } catch (FeignException e) {
+            int status = e.status();
+            if (status == 404) {
+                throw new CheckLimitNotFoundException("Check limit not found exception");
+            }
+            throw new RuntimeException(e);
+        }
+
+        return checkLimitResult.approved();
     }
 
     private void handleChunk(
