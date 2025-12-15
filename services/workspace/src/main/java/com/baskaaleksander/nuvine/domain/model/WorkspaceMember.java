@@ -42,6 +42,10 @@ public class WorkspaceMember {
     private WorkspaceRole role;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private WorkspaceMemberStatus status;
+
+    @Column(nullable = false)
     private boolean deleted = false;
 
     @Column(nullable = false, updatable = false)
