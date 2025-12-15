@@ -277,8 +277,10 @@ public class WebhookService {
             } else {
                 log.info("Invoice paid for already active subscription: {}", stripeSubscriptionId);
             }
-            existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(stripeInvoice.getPeriodStart()));
-            existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(stripeInvoice.getPeriodEnd()));
+            Long periodStart = stripeInvoice.getLines().getData().get(0).getPeriod().getStart();
+            Long periodEnd = stripeInvoice.getLines().getData().get(0).getPeriod().getEnd();
+            existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(periodStart));
+            existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(periodEnd));
             subscriptionRepository.save(existingSubscription);
 
         } catch (Exception e) {
@@ -415,10 +417,7 @@ public class WebhookService {
             SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
             Long currentPeriodStart = item.getCurrentPeriodStart();
             Long currentPeriodEnd = item.getCurrentPeriodEnd();
-
-            Instant now = Instant.now();
-
-            log.info("Building subscription object...");
+            
             Subscription subscription = Subscription.builder()
                     .workspaceId(UUID.fromString(workspaceId))
                     .planId(UUID.fromString(planId))
@@ -430,16 +429,7 @@ public class WebhookService {
                     .currentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd))
                     .build();
 
-            log.info("Subscription BEFORE save:");
-            log.info("  - currentPeriodStart: {}", subscription.getCurrentPeriodStart());
-            log.info("  - currentPeriodEnd: {}", subscription.getCurrentPeriodEnd());
-            log.info("  - Object: {}", subscription);
-
             subscriptionRepository.save(subscription);
-
-            log.info("Subscription AFTER save:");
-            log.info("  - currentPeriodStart: {}", subscription.getCurrentPeriodStart());
-            log.info("  - currentPeriodEnd: {}", subscription.getCurrentPeriodEnd());
 
             Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
 
