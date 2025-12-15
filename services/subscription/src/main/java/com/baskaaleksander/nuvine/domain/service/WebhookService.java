@@ -13,6 +13,7 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequ
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
+import com.stripe.StripeClient;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.SubscriptionItem;
@@ -37,6 +38,7 @@ public class WebhookService {
     private final PlanRepository planRepository;
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
     private final AuthServiceClient authServiceClient;
+    private final StripeClient stripeClient;
 
 
     //todo: implement payment's logging related webhooks
@@ -277,8 +279,16 @@ public class WebhookService {
             } else {
                 log.info("Invoice paid for already active subscription: {}", stripeSubscriptionId);
             }
-            Long periodStart = stripeInvoice.getLines().getData().get(0).getPeriod().getStart();
-            Long periodEnd = stripeInvoice.getLines().getData().get(0).getPeriod().getEnd();
+            String subscriptionId =
+                    stripeInvoice.getParent()
+                            .getSubscriptionDetails()
+                            .getSubscription();
+
+            com.stripe.model.Subscription stripeSubscription =
+                    stripeClient.v1().subscriptions().retrieve(subscriptionId);
+
+            Long periodStart = stripeSubscription.getItems().getData().get(0).getCurrentPeriodStart();
+            Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
             existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(periodStart));
             existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(periodEnd));
             subscriptionRepository.save(existingSubscription);
@@ -348,21 +358,26 @@ public class WebhookService {
 
             Boolean cancelAtPeriodEnd = stripeSubscription.getCancelAtPeriodEnd();
             String stripeStatus = stripeSubscription.getStatus();
+            Map<String, String> metadata = stripeSubscription.getMetadata();
+            String planId = metadata.get("plan_id");
+            String workspaceId = metadata.get("workspace_id");
 
             SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
             Long currentPeriodStart = item.getCurrentPeriodStart();
             Long currentPeriodEnd = item.getCurrentPeriodEnd();
 
+
             existingSubscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
             existingSubscription.setStatus(mapStripeStatus(stripeStatus));
             existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(currentPeriodStart));
             existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd));
+            existingSubscription.setPlanId(UUID.fromString(planId));
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
 
             if ("active".equals(stripeStatus) || "canceled".equals(stripeStatus)) {
-                Plan plan = planRepository.findById(existingSubscription.getPlanId()).orElse(null);
+                Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
 
                 if (plan == null) {
                     log.error("Plan not found for plan id: {}", existingSubscription.getPlanId());
@@ -417,7 +432,7 @@ public class WebhookService {
             SubscriptionItem item = stripeSubscription.getItems().getData().get(0);
             Long currentPeriodStart = item.getCurrentPeriodStart();
             Long currentPeriodEnd = item.getCurrentPeriodEnd();
-            
+
             Subscription subscription = Subscription.builder()
                     .workspaceId(UUID.fromString(workspaceId))
                     .planId(UUID.fromString(planId))
