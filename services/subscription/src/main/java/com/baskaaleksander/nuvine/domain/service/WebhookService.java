@@ -367,6 +367,8 @@ public class WebhookService {
                     return;
                 }
 
+                log.info("Updating workspace billing tier for workspace id: {}", existingSubscription.getWorkspaceId());
+
                 String billingTierCode = "canceled".equals(stripeStatus) ? "FREE" : plan.getCode();
                 workspaceServiceClient.updateWorkspaceBillingTier(
                         existingSubscription.getWorkspaceId(),
@@ -416,7 +418,7 @@ public class WebhookService {
 
             Instant now = Instant.now();
 
-
+            log.info("Building subscription object...");
             Subscription subscription = Subscription.builder()
                     .workspaceId(UUID.fromString(workspaceId))
                     .planId(UUID.fromString(planId))
@@ -426,12 +428,18 @@ public class WebhookService {
                     .cancelAtPeriodEnd(cancelAtPeriodEnd)
                     .currentPeriodStart(Instant.ofEpochSecond(currentPeriodStart))
                     .currentPeriodEnd(Instant.ofEpochSecond(currentPeriodEnd))
-                    .createdAt(now)
-                    .updatedAt(now)
                     .build();
 
+            log.info("Subscription BEFORE save:");
+            log.info("  - currentPeriodStart: {}", subscription.getCurrentPeriodStart());
+            log.info("  - currentPeriodEnd: {}", subscription.getCurrentPeriodEnd());
+            log.info("  - Object: {}", subscription);
 
             subscriptionRepository.save(subscription);
+
+            log.info("Subscription AFTER save:");
+            log.info("  - currentPeriodStart: {}", subscription.getCurrentPeriodStart());
+            log.info("  - currentPeriodEnd: {}", subscription.getCurrentPeriodEnd());
 
             Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
 
