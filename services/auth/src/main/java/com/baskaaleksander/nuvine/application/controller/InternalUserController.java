@@ -2,13 +2,12 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.domain.service.UserService;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -22,7 +21,14 @@ public class InternalUserController {
     @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @GetMapping("/{id}")
     public ResponseEntity<UserInternalResponse> checkInternalUser(@PathVariable UUID id) {
-        
+
         return ResponseEntity.ok(userService.checkInternalUser(id));
+    }
+
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    @GetMapping("/email")
+    public ResponseEntity<UserInternalResponse> checkInternalUser(@RequestParam @Email @NotBlank String email) {
+
+        return ResponseEntity.ok(userService.checkInternalUserByEmail(email));
     }
 }

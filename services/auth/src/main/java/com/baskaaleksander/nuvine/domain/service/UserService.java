@@ -104,4 +104,22 @@ public class UserService {
                 user.getEmail()
         );
     }
+
+    public UserInternalResponse checkInternalUserByEmail(String email) {
+        log.info("GET_USER_INTERNAL_BY_EMAIL START");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.info("GET_USER_INTERNAL_BY_EMAIL FAILED reason=user_not_found");
+                    return new UserNotFoundException("User not found");
+                });
+
+        log.info("GET_USER_INTERNAL_BY_EMAIL userId={}", user.getId());
+
+        return new UserInternalResponse(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail()
+        );
+    }
 }
