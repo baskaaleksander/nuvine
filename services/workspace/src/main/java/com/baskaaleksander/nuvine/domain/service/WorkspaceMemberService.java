@@ -233,7 +233,7 @@ public class WorkspaceMemberService {
                     .status(WorkspaceMemberStatus.PENDING)
                     .build();
 
-            workspaceMemberRepository.save(member);
+            member = workspaceMemberRepository.save(member);
         }
 
         WorkspaceMemberInviteToken inviteToken = workspaceMemberInviteTokenService.getOrCreateActiveToken(member, forceNewToken);
