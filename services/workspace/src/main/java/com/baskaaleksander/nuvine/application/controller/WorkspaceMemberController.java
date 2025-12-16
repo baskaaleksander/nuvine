@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.application.controller;
 
+import com.baskaaleksander.nuvine.application.dto.InviteWorkspaceMemberRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberRoleRequest;
@@ -7,6 +8,7 @@ import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -81,5 +83,16 @@ public class WorkspaceMemberController {
     ) {
         workspaceMemberService.removeWorkspaceMember(workspaceId, userId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/invite")
+    @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void inviteWorkspaceMember(
+            @PathVariable UUID workspaceId,
+            @RequestBody @Valid InviteWorkspaceMemberRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        workspaceMemberService.inviteWorkspaceMember(workspaceId, request.email(), request.role());
     }
 }

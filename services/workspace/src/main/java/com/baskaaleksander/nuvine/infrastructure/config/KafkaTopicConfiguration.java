@@ -15,6 +15,9 @@ public class KafkaTopicConfiguration {
     @Value("${topics.document-uploaded-topic}")
     private String documentUploadedTopic;
 
+    @Value("${topics.workspace-member-invited-topic}")
+    private String workspaceMemberInvitedTopic;
+
     @Bean
     public NewTopic memberAddedTopic() {
         return TopicBuilder
@@ -26,6 +29,13 @@ public class KafkaTopicConfiguration {
     public NewTopic documentUploadedTopic() {
         return TopicBuilder
                 .name(documentUploadedTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic workspaceMemberInvitedTopic() {
+        return TopicBuilder
+                .name(workspaceMemberInvitedTopic)
                 .build();
     }
 
