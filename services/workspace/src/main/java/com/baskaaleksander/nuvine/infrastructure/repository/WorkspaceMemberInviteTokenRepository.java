@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface WorkspaceMemberInviteTokenRepository extends JpaRepository<WorkspaceMemberInviteToken, UUID> {
 
     Optional<WorkspaceMemberInviteToken> findFirstByWorkspaceMember_IdAndUsedAtIsNullOrderByCreatedAtDesc(UUID workspaceMemberId);
+
+    Optional<WorkspaceMemberInviteToken> findByToken(String token);
 }
