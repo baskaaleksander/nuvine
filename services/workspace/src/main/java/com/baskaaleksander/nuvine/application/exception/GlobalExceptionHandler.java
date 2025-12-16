@@ -152,6 +152,42 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(InvitationTokenNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInvitationTokenNotFoundException(InvitationTokenNotFoundException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                400,
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvitationTokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleInvitationTokenExpiredException(InvitationTokenExpiredException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                400,
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvitationEmailMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleInvitationEmailMismatchException(InvitationEmailMismatchException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                403,
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
