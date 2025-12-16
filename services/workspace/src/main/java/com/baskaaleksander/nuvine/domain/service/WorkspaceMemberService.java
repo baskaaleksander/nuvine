@@ -64,7 +64,7 @@ public class WorkspaceMemberService {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}, userId={}", workspaceId, userId);
             throw new WorkspaceRoleConflictException("Owner role is not allowed");
         }
-
+        
         WorkspaceMember existing = workspaceMemberRepository
                 .findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElse(null);
