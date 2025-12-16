@@ -5,10 +5,14 @@ import com.baskaaleksander.nuvine.application.dto.WorkspaceMemberResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceMembersResponse;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
 import com.baskaaleksander.nuvine.domain.exception.*;
+import com.baskaaleksander.nuvine.domain.model.Workspace;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberInviteToken;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberStatus;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberAddedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberInvitedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
@@ -379,5 +383,188 @@ class WorkspaceMemberServiceTest {
 
         verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
         verify(workspaceMemberRepository).updateDeletedById(activeMember.getId(), true);
+    }
+
+    @Test
+    void inviteWorkspaceMember_whenNewInvite_createsTokenAndSendsEvent() {
+        String email = "invitee@example.com";
+        WorkspaceRole role = WorkspaceRole.VIEWER;
+
+        Workspace workspace = Workspace.builder()
+                .id(workspaceId)
+                .name("Test workspace")
+                .ownerUserId(ownerId)
+                .deleted(false)
+                .build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(workspace));
+        when(workspaceMemberRepository.findByWorkspaceIdAndEmail(workspaceId, email)).thenReturn(java.util.Optional.empty());
+        when(workspaceMemberRepository.save(any(WorkspaceMember.class))).thenAnswer(invocation -> {
+            WorkspaceMember member = invocation.getArgument(0);
+            if (member.getId() == null) {
+                member.setId(UUID.randomUUID());
+            }
+            return member;
+        });
+
+        WorkspaceMemberInviteToken inviteToken = WorkspaceMemberInviteToken.builder()
+                .token("token-1")
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        ArgumentCaptor<WorkspaceMember> tokenMemberCaptor = ArgumentCaptor.forClass(WorkspaceMember.class);
+        when(workspaceMemberInviteTokenService.getOrCreateActiveToken(tokenMemberCaptor.capture(), eq(true)))
+                .thenReturn(inviteToken);
+
+        ArgumentCaptor<WorkspaceMemberInvitedEvent> eventCaptor = ArgumentCaptor.forClass(WorkspaceMemberInvitedEvent.class);
+
+        workspaceMemberService.inviteWorkspaceMember(workspaceId, email, role);
+
+        WorkspaceMember tokenMember = tokenMemberCaptor.getValue();
+        assertEquals(workspaceId, tokenMember.getWorkspaceId());
+        assertEquals(email, tokenMember.getEmail());
+        assertEquals(role, tokenMember.getRole());
+        assertEquals(WorkspaceMemberStatus.PENDING, tokenMember.getStatus());
+        assertEquals(false, tokenMember.isDeleted());
+
+        verify(workspaceMemberInvitedEventProducer).sendWorkspaceMemberInvitedEvent(eventCaptor.capture());
+        assertEquals(new WorkspaceMemberInvitedEvent(
+                email,
+                workspaceId.toString(),
+                workspace.getName(),
+                role.toString(),
+                inviteToken.getToken()
+        ), eventCaptor.getValue());
+    }
+
+    @Test
+    void inviteWorkspaceMember_whenPendingMemberExists_reusesTokenAndUpdatesRole() {
+        String email = "invitee@example.com";
+        WorkspaceRole role = WorkspaceRole.VIEWER;
+
+        Workspace workspace = Workspace.builder()
+                .id(workspaceId)
+                .name("Test workspace")
+                .ownerUserId(ownerId)
+                .deleted(false)
+                .build();
+
+        WorkspaceMember pendingMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .email(email)
+                .role(WorkspaceRole.MODERATOR)
+                .status(WorkspaceMemberStatus.PENDING)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(workspace));
+        when(workspaceMemberRepository.findByWorkspaceIdAndEmail(workspaceId, email)).thenReturn(java.util.Optional.of(pendingMember));
+        when(workspaceMemberRepository.save(any(WorkspaceMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WorkspaceMemberInviteToken inviteToken = WorkspaceMemberInviteToken.builder()
+                .token("token-reused")
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        ArgumentCaptor<WorkspaceMember> tokenMemberCaptor = ArgumentCaptor.forClass(WorkspaceMember.class);
+        when(workspaceMemberInviteTokenService.getOrCreateActiveToken(tokenMemberCaptor.capture(), eq(false)))
+                .thenReturn(inviteToken);
+
+        ArgumentCaptor<WorkspaceMemberInvitedEvent> eventCaptor = ArgumentCaptor.forClass(WorkspaceMemberInvitedEvent.class);
+
+        workspaceMemberService.inviteWorkspaceMember(workspaceId, email, role);
+
+        WorkspaceMember tokenMember = tokenMemberCaptor.getValue();
+        assertEquals(pendingMember.getId(), tokenMember.getId());
+        assertEquals(role, tokenMember.getRole());
+        assertEquals(WorkspaceMemberStatus.PENDING, tokenMember.getStatus());
+        assertEquals(false, tokenMember.isDeleted());
+
+        verify(workspaceMemberInvitedEventProducer).sendWorkspaceMemberInvitedEvent(eventCaptor.capture());
+        assertEquals(new WorkspaceMemberInvitedEvent(
+                email,
+                workspaceId.toString(),
+                workspace.getName(),
+                role.toString(),
+                inviteToken.getToken()
+        ), eventCaptor.getValue());
+    }
+
+    @Test
+    void inviteWorkspaceMember_whenMemberRejected_forcesNewToken() {
+        String email = "invitee@example.com";
+        WorkspaceRole role = WorkspaceRole.VIEWER;
+
+        Workspace workspace = Workspace.builder()
+                .id(workspaceId)
+                .name("Test workspace")
+                .ownerUserId(ownerId)
+                .deleted(false)
+                .build();
+
+        WorkspaceMember rejectedMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .email(email)
+                .role(WorkspaceRole.MODERATOR)
+                .status(WorkspaceMemberStatus.REJECTED)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(workspace));
+        when(workspaceMemberRepository.findByWorkspaceIdAndEmail(workspaceId, email)).thenReturn(java.util.Optional.of(rejectedMember));
+        when(workspaceMemberRepository.save(any(WorkspaceMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WorkspaceMemberInviteToken inviteToken = WorkspaceMemberInviteToken.builder()
+                .token("token-new")
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        ArgumentCaptor<WorkspaceMember> tokenMemberCaptor = ArgumentCaptor.forClass(WorkspaceMember.class);
+        when(workspaceMemberInviteTokenService.getOrCreateActiveToken(tokenMemberCaptor.capture(), eq(true)))
+                .thenReturn(inviteToken);
+
+        workspaceMemberService.inviteWorkspaceMember(workspaceId, email, role);
+
+        WorkspaceMember tokenMember = tokenMemberCaptor.getValue();
+        assertEquals(WorkspaceMemberStatus.PENDING, tokenMember.getStatus());
+        assertEquals(false, tokenMember.isDeleted());
+    }
+
+    @Test
+    void inviteWorkspaceMember_whenAcceptedMemberExists_throwsWorkspaceMemberExistsException() {
+        String email = "invitee@example.com";
+
+        Workspace workspace = Workspace.builder()
+                .id(workspaceId)
+                .name("Test workspace")
+                .ownerUserId(ownerId)
+                .deleted(false)
+                .build();
+
+        WorkspaceMember acceptedMember = WorkspaceMember.builder()
+                .id(UUID.randomUUID())
+                .workspaceId(workspaceId)
+                .email(email)
+                .role(WorkspaceRole.VIEWER)
+                .status(WorkspaceMemberStatus.ACCEPTED)
+                .deleted(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(workspace));
+        when(workspaceMemberRepository.findByWorkspaceIdAndEmail(workspaceId, email)).thenReturn(java.util.Optional.of(acceptedMember));
+
+        assertThrows(WorkspaceMemberExistsException.class, () ->
+                workspaceMemberService.inviteWorkspaceMember(workspaceId, email, WorkspaceRole.VIEWER));
+
+        verifyNoInteractions(workspaceMemberInviteTokenService, workspaceMemberInvitedEventProducer);
+        verify(workspaceMemberRepository, never()).save(any());
     }
 }
