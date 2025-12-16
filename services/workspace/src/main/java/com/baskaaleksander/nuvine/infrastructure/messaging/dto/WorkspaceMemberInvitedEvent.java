@@ -4,6 +4,7 @@ public record WorkspaceMemberInvitedEvent(
         String email,
         String workspaceId,
         String workspaceName,
-        String role
+        String role,
+        String token
 ) {
 }

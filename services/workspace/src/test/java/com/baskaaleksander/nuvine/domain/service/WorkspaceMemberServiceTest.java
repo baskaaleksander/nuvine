@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberAddedEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberInvitedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,10 @@ class WorkspaceMemberServiceTest {
     private AuthClient authClient;
     @Mock
     private WorkspaceMemberAddedEventProducer workspaceMemberAddedEventProducer;
+    @Mock
+    private WorkspaceMemberInvitedEventProducer workspaceMemberInvitedEventProducer;
+    @Mock
+    private WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
 
     @InjectMocks
     private WorkspaceMemberService workspaceMemberService;

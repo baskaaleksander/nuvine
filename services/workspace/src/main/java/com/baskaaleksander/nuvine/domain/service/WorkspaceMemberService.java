@@ -14,6 +14,7 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAd
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberAddedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberInvitedEventProducer;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberInviteToken;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class WorkspaceMemberService {
     private final AuthClient authClient;
     private final WorkspaceMemberAddedEventProducer workspaceMemberAddedEventProducer;
     private final WorkspaceMemberInvitedEventProducer workspaceMemberInvitedEventProducer;
+    private final WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
 
     public WorkspaceMembersResponse getWorkspaceMembers(UUID workspaceId) {
 
@@ -202,45 +204,47 @@ public class WorkspaceMemberService {
                 .findByWorkspaceIdAndEmail(workspaceId, email)
                 .orElse(null);
 
-        if (existing != null) {
-            if (existing.isDeleted() || existing.getStatus() == WorkspaceMemberStatus.REJECTED) {
-                existing.setDeleted(false);
-                existing.setStatus(WorkspaceMemberStatus.PENDING);
-                existing.setRole(role);
-                workspaceMemberRepository.save(existing);
-
-                workspaceMemberInvitedEventProducer.sendWorkspaceMemberInvitedEvent(
-                        new WorkspaceMemberInvitedEvent(
-                                email,
-                                workspaceId.toString(),
-                                workspace.getName(),
-                                role.toString()
-                        )
-                );
-
-                log.info("INVITE_WORKSPACE_MEMBER REINVITED workspaceId={}, role={}", workspaceId, role);
-                return;
-            }
-
+        if (existing != null && !existing.isDeleted() && existing.getStatus() == WorkspaceMemberStatus.ACCEPTED) {
             log.info("INVITE_WORKSPACE_MEMBER FAILED reason=member_exists workspaceId={}", workspaceId);
-            throw new WorkspaceMemberExistsException("Member already exists or has pending invitation");
+            throw new WorkspaceMemberExistsException("Member already exists");
         }
 
-        WorkspaceMember member = WorkspaceMember.builder()
-                .workspaceId(workspaceId)
-                .email(email)
-                .role(role)
-                .status(WorkspaceMemberStatus.PENDING)
-                .build();
+        boolean forceNewToken = false;
+        WorkspaceMember member;
 
-        workspaceMemberRepository.save(member);
+        if (existing != null) {
+            member = existing;
+
+            if (member.isDeleted() || member.getStatus() == WorkspaceMemberStatus.REJECTED) {
+                forceNewToken = true;
+            }
+
+            member.setDeleted(false);
+            member.setStatus(WorkspaceMemberStatus.PENDING);
+            member.setRole(role);
+            member.setEmail(email);
+            member = workspaceMemberRepository.save(member);
+        } else {
+            forceNewToken = true;
+            member = WorkspaceMember.builder()
+                    .workspaceId(workspaceId)
+                    .email(email)
+                    .role(role)
+                    .status(WorkspaceMemberStatus.PENDING)
+                    .build();
+
+            workspaceMemberRepository.save(member);
+        }
+
+        WorkspaceMemberInviteToken inviteToken = workspaceMemberInviteTokenService.getOrCreateActiveToken(member, forceNewToken);
 
         workspaceMemberInvitedEventProducer.sendWorkspaceMemberInvitedEvent(
                 new WorkspaceMemberInvitedEvent(
                         email,
                         workspaceId.toString(),
                         workspace.getName(),
-                        role.toString()
+                        role.toString(),
+                        inviteToken.getToken()
                 )
         );
 
