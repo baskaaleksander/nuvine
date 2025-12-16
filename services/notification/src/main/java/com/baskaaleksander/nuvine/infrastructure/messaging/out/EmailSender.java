@@ -205,6 +205,57 @@ public class EmailSender {
 
     }
 
+    public void sendMemberInvitedEmail(String to, String workspaceName, String role, String inviteUrl) throws MessagingException {
+        log.info("SEND_MEMBER_INVITED_EMAIL START to={}", MaskingUtil.maskEmail(to));
+
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+        messageHelper.setFrom(senderEmail);
+
+        final String templateName = EmailTemplates.WORKSPACE_MEMBER_INVITED.getTemplateName();
+        final String subject = EmailTemplates.WORKSPACE_MEMBER_INVITED.getSubject();
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("email", to);
+        variables.put("workspaceName", workspaceName);
+        variables.put("role", role);
+        variables.put("inviteUrl", inviteUrl);
+
+        Context context = new Context();
+        context.setVariables(variables);
+        messageHelper.setSubject(subject);
+
+        try {
+            String htmlContent = templateEngine.process(templateName, context);
+            String plainContent = String.format(
+                    """
+                            You have been invited to join a workspace on Nuvine.
+                            
+                            Workspace: %s
+                            Your assigned role: %s
+                            
+                            You can accept the invitation using the link below:
+                            %s
+                            
+                            If you didn't expect this invitation, you can safely ignore this email.
+                            
+                            Visit us at https://nuvine.org
+                            """,
+                    workspaceName,
+                    role,
+                    inviteUrl
+            );
+            messageHelper.setText(plainContent, htmlContent);
+
+            messageHelper.setTo(to);
+            sender.send(message);
+            log.info("SEND_MEMBER_INVITED_EMAIL SUCCESS email={}", MaskingUtil.maskEmail(to));
+        } catch (Exception e) {
+            log.error("SEND_MEMBER_INVITED_EMAIL FAILED to={}", MaskingUtil.maskEmail(to), e);
+            throw e;
+        }
+    }
+
     public void sendPaymentActionRequiredEmail(String to, String invoiceId, String invoiceUrl, String workspaceId, String workspaceName) throws MessagingException {
         log.info("SEND_PAYMENT_ACTION_REQUIRED_EMAIL START to={}", MaskingUtil.maskEmail(to));
 
