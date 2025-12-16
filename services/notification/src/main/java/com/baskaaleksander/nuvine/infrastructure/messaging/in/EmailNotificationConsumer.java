@@ -107,4 +107,22 @@ public class EmailNotificationConsumer {
             throw e;
         }
     }
+
+    // using email as userid for simplicity of event
+    @KafkaListener(topics = "${topics.workspace-member-invited-topic}", groupId = "${spring.kafka.consumer.group-id:notification-service}")
+    public void onWorkspaceMemberInvited(WorkspaceMemberInvitedEvent event) throws MessagingException {
+        log.info("WORKSPACE_MEMBER_INVITED_EVENT RECEIVED email={}", MaskingUtil.maskEmail(event.email()));
+        try {
+            emailSender.sendMemberInvitedEmail(event.email(), event.workspaceName(), event.role(), frontendUrl + "/ws/invite?token=" + event.token());
+            service.createNotification(
+                    new CreateNotificationRequest(
+                            event.email(),
+                            NotificationType.WORKSPACE_MEMBER_INVITED,
+                            event.toString()
+                    ));
+        } catch (Exception e) {
+            log.error("WORKSPACE_MEMBER_INVITED_EVENT FAILED email={}", MaskingUtil.maskEmail(event.email()), e);
+            throw e;
+        }
+    }
 }

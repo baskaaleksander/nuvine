@@ -40,4 +40,6 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     void updateDeletedById(UUID id, boolean deleted);
 
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
+
+    Optional<WorkspaceMember> findByWorkspaceIdAndEmail(UUID workspaceId, String email);
 }

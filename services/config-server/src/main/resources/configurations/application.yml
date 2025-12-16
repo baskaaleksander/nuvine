@@ -51,6 +51,7 @@ topics:
   document-ingestion-completed-topic: document-ingestion-completed-topic
   payment-action-required-topic: payment-action-required-topic
   log-token-usage-topic: log-token-usage-topic
+  workspace-member-invited-topic: workspace-member-invited-topic
 
 crypto:
   notifications:

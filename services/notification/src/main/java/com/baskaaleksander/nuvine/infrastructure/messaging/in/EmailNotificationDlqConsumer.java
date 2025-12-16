@@ -6,6 +6,7 @@ import com.baskaaleksander.nuvine.domain.service.NotificationEntityService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,8 @@ public class EmailNotificationDlqConsumer {
             topics = {
                     "${topics.email-verification-topic}.DLT",
                     "${topics.password-reset-topic}.DLT",
-                    "${topics.user-registered-topic}.DLT"
+                    "${topics.user-registered-topic}.DLT",
+                    "${topics.workspace-member-invited-topic}.DLT"
             },
             groupId = "${spring.kafka.consumer.group-id:notification-service}-dlq"
     )
@@ -107,6 +109,19 @@ public class EmailNotificationDlqConsumer {
             return new CreateFailedNotificationRequest(
                     event.userId(),
                     NotificationType.USER_REGISTERED,
+                    payloadJson,
+                    originalTopic,
+                    originalPartition,
+                    originalOffset,
+                    exceptionMessage,
+                    exceptionClass
+            );
+        }
+
+        if (payload instanceof WorkspaceMemberInvitedEvent event) {
+            return new CreateFailedNotificationRequest(
+                    event.email(),
+                    NotificationType.WORKSPACE_MEMBER_INVITED,
                     payloadJson,
                     originalTopic,
                     originalPartition,

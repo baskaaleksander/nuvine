@@ -8,8 +8,13 @@ import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
+import com.baskaaleksander.nuvine.domain.model.Workspace;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberStatus;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberAddedEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceMemberInvitedEventProducer;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberInviteToken;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +35,8 @@ public class WorkspaceMemberService {
     private final WorkspaceRepository workspaceRepository;
     private final AuthClient authClient;
     private final WorkspaceMemberAddedEventProducer workspaceMemberAddedEventProducer;
+    private final WorkspaceMemberInvitedEventProducer workspaceMemberInvitedEventProducer;
+    private final WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
 
     public WorkspaceMembersResponse getWorkspaceMembers(UUID workspaceId) {
 
@@ -64,7 +71,7 @@ public class WorkspaceMemberService {
             log.info("ADD_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}, userId={}", workspaceId, userId);
             throw new WorkspaceRoleConflictException("Owner role is not allowed");
         }
-
+        
         WorkspaceMember existing = workspaceMemberRepository
                 .findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElse(null);
@@ -176,5 +183,71 @@ public class WorkspaceMemberService {
         return workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, uuid)
                 .map(workspaceMemberMapper::toWorkspaceMemberResponse)
                 .orElseThrow(() -> new WorkspaceMemberNotFoundException("Workspace member not found"));
+    }
+
+    @Transactional
+    public void inviteWorkspaceMember(UUID workspaceId, String email, WorkspaceRole role) {
+        log.info("INVITE_WORKSPACE_MEMBER START workspaceId={}, role={}", workspaceId, role);
+
+        if (role == WorkspaceRole.OWNER) {
+            log.info("INVITE_WORKSPACE_MEMBER FAILED reason=owner_not_allowed workspaceId={}", workspaceId);
+            throw new WorkspaceRoleConflictException("Owner role is not allowed");
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("INVITE_WORKSPACE_MEMBER FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
+
+        WorkspaceMember existing = workspaceMemberRepository
+                .findByWorkspaceIdAndEmail(workspaceId, email)
+                .orElse(null);
+
+        if (existing != null && !existing.isDeleted() && existing.getStatus() == WorkspaceMemberStatus.ACCEPTED) {
+            log.info("INVITE_WORKSPACE_MEMBER FAILED reason=member_exists workspaceId={}", workspaceId);
+            throw new WorkspaceMemberExistsException("Member already exists");
+        }
+
+        boolean forceNewToken = false;
+        WorkspaceMember member;
+
+        if (existing != null) {
+            member = existing;
+
+            if (member.isDeleted() || member.getStatus() == WorkspaceMemberStatus.REJECTED) {
+                forceNewToken = true;
+            }
+
+            member.setDeleted(false);
+            member.setStatus(WorkspaceMemberStatus.PENDING);
+            member.setRole(role);
+            member.setEmail(email);
+            member = workspaceMemberRepository.save(member);
+        } else {
+            forceNewToken = true;
+            member = WorkspaceMember.builder()
+                    .workspaceId(workspaceId)
+                    .email(email)
+                    .role(role)
+                    .status(WorkspaceMemberStatus.PENDING)
+                    .build();
+
+            member = workspaceMemberRepository.save(member);
+        }
+
+        WorkspaceMemberInviteToken inviteToken = workspaceMemberInviteTokenService.getOrCreateActiveToken(member, forceNewToken);
+
+        workspaceMemberInvitedEventProducer.sendWorkspaceMemberInvitedEvent(
+                new WorkspaceMemberInvitedEvent(
+                        email,
+                        workspaceId.toString(),
+                        workspace.getName(),
+                        role.toString(),
+                        inviteToken.getToken()
+                )
+        );
+
+        log.info("INVITE_WORKSPACE_MEMBER END workspaceId={}", workspaceId);
     }
 }

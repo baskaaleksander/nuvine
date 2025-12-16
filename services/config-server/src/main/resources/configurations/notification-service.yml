@@ -22,7 +22,8 @@ spring:
           passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent,
           userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent,
           workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
-          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
+          workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer

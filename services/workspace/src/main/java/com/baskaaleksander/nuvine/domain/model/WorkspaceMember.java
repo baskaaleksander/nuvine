@@ -28,12 +28,22 @@ public class WorkspaceMember {
     @Column(name = "workspace_id", nullable = false)
     private UUID workspaceId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
+
+    @Column(name = "email", nullable = false)
+    private String email;
+
+    @Column(name = "user_name")
+    private String userName;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private WorkspaceRole role;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private WorkspaceMemberStatus status;
 
     @Column(nullable = false)
     private boolean deleted = false;
