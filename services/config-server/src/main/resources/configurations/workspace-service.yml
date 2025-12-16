@@ -26,7 +26,8 @@ spring:
       properties:
         spring.json.type.mapping: >
           workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
-          documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent
+          documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent,
+          workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent
 keycloak:
   auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
   client-id: workspace-service
