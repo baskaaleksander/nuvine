@@ -45,5 +45,15 @@ subscription:
     client-id: subscription-service
     client-secret: ${KEYCLOAK_SUBSCRIPTION_SERVICE_SECRET}
 
+topics:
+  usage-logs-dlq-topic: usage-logs-dlq
+  usage-logs-dead-letter-topic: usage-logs-dead-letter
+
+dlq:
+  usage-logs:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
+
 server:
   port: 8120
