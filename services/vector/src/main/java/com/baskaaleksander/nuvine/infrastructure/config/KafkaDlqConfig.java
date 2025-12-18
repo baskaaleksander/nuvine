@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedDlqMessage;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestDlqMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,10 +22,17 @@ public class KafkaDlqConfig {
     private String bootstrapServers;
 
     @Value("${dlq.embedding-completed.processing-delay-ms:300000}")
-    private long processingDelayMs;
+    private long embeddingCompletedProcessingDelayMs;
 
     @Value("${dlq.embedding-completed.batch-size:100}")
-    private int batchSize;
+    private int embeddingCompletedBatchSize;
+
+    @Value("${dlq.vector-processing-request.processing-delay-ms:300000}")
+    private long vectorProcessingRequestProcessingDelayMs;
+
+    @Value("${dlq.vector-processing-request.batch-size:100}")
+    private int vectorProcessingRequestBatchSize;
+
 
     @Bean
     public ConsumerFactory<String, EmbeddingCompletedDlqMessage> dlqConsumerFactory() {
@@ -33,9 +41,9 @@ public class KafkaDlqConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "vector-dlq-worker");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, batchSize);
-        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, (int) processingDelayMs);
-        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, (int) processingDelayMs + 60000);
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, embeddingCompletedBatchSize);
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, (int) embeddingCompletedProcessingDelayMs);
+        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, (int) embeddingCompletedProcessingDelayMs + 60000);
 
         JsonDeserializer<EmbeddingCompletedDlqMessage> deserializer = new JsonDeserializer<>(EmbeddingCompletedDlqMessage.class);
         deserializer.addTrustedPackages("com.baskaaleksander.nuvine.infrastructure.messaging.dto");
@@ -54,7 +62,40 @@ public class KafkaDlqConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(dlqConsumerFactory());
         factory.setBatchListener(true);
-        factory.getContainerProperties().setIdleBetweenPolls(processingDelayMs);
+        factory.getContainerProperties().setIdleBetweenPolls(embeddingCompletedProcessingDelayMs);
+        return factory;
+    }
+
+
+    @Bean
+    public ConsumerFactory<String, VectorProcessingRequestDlqMessage> vectorProcessingRequestDlqConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "vector-processing-request-dlq-worker");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, vectorProcessingRequestBatchSize);
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, (int) vectorProcessingRequestProcessingDelayMs);
+        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, (int) vectorProcessingRequestProcessingDelayMs + 60000);
+
+        JsonDeserializer<VectorProcessingRequestDlqMessage> deserializer = new JsonDeserializer<>(VectorProcessingRequestDlqMessage.class);
+        deserializer.addTrustedPackages("com.baskaaleksander.nuvine.infrastructure.messaging.dto");
+        deserializer.setUseTypeHeaders(false);
+
+        return new DefaultKafkaConsumerFactory<>(
+                props,
+                new StringDeserializer(),
+                deserializer
+        );
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, VectorProcessingRequestDlqMessage> vectorProcessingRequestDlqKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, VectorProcessingRequestDlqMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(vectorProcessingRequestDlqConsumerFactory());
+        factory.setBatchListener(true);
+        factory.getContainerProperties().setIdleBetweenPolls(vectorProcessingRequestProcessingDelayMs);
         return factory;
     }
 }
