@@ -29,7 +29,8 @@ spring:
         spring.json.type.mapping: >
           embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent,
           vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent,
-          embeddingCompletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedDlqMessage
+          embeddingCompletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedDlqMessage,
+          vectorProcessingRequestDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestDlqMessage
 
 qdrant:
   host: localhost
@@ -43,9 +44,15 @@ server:
 topics:
   embedding-completed-dlq-topic: embedding-completed-dlq
   embedding-completed-dead-letter-topic: embedding-completed-dead-letter
+  vector-processing-request-dlq-topic: vector-processing-request-dlq
+  vector-processing-request-dead-letter-topic: vector-processing-request-dead-letter
 
 dlq:
   embedding-completed:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
+  vector-processing-request:
     max-retry-attempts: 10
     processing-delay-ms: 300000
     batch-size: 100
