@@ -15,6 +15,12 @@ public class KafkaTopicConfig {
     @Value("${topics.vector-processing-completed-topic}")
     private String vectorProcessingCompletedTopic;
 
+    @Value("${topics.embedding-completed-dlq-topic}")
+    private String embeddingCompletedDlqTopic;
+
+    @Value("${topics.embedding-completed-dead-letter-topic}")
+    private String embeddingCompletedDeadLetterTopic;
+
     @Bean
     public NewTopic embeddingRequestTopic() {
         return TopicBuilder
@@ -26,6 +32,20 @@ public class KafkaTopicConfig {
     public NewTopic vectorProcessingCompletedTopic() {
         return TopicBuilder
                 .name(vectorProcessingCompletedTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic embeddingCompletedDlqTopic() {
+        return TopicBuilder
+                .name(embeddingCompletedDlqTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic embeddingCompletedDeadLetterTopic() {
+        return TopicBuilder
+                .name(embeddingCompletedDeadLetterTopic)
                 .build();
     }
 }
