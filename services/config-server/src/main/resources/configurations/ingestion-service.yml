@@ -35,7 +35,18 @@ spring:
         spring.json.type.mapping: >
           documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent,
           vectorProcessingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent,
-          documentIngestionCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionCompletedEvent
+          documentIngestionCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionCompletedEvent,
+          vectorProcessingCompletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedDlqMessage
+
+topics:
+  vector-processing-completed-dlq-topic: vector-processing-completed-dlq
+  vector-processing-completed-dead-letter-topic: vector-processing-completed-dead-letter
+
+dlq:
+  vector-processing-completed:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
 
 s3:
   bucket-name: ${MINIO_BUCKET_NAME}
