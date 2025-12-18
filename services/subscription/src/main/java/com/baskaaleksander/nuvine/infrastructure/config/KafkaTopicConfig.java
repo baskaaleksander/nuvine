@@ -9,11 +9,17 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-    @Value("topics.payment-action-required-topic")
+    @Value("${topics.payment-action-required-topic}")
     private String paymentActionRequiredTopic;
 
-    @Value("topics.log-token-usage-topic")
+    @Value("${topics.log-token-usage-topic}")
     private String logTokenUsageTopic;
+
+    @Value("${topics.usage-logs-dlq-topic}")
+    private String usageLogsDlqTopic;
+
+    @Value("${topics.usage-logs-dead-letter-topic}")
+    private String usageLogsDeadLetterTopic;
 
     @Bean
     public NewTopic paymentActionRequiredTopic() {
@@ -26,6 +32,20 @@ public class KafkaTopicConfig {
     public NewTopic logTokenUsageTopic() {
         return TopicBuilder
                 .name(logTokenUsageTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic usageLogsDlqTopic() {
+        return TopicBuilder
+                .name(usageLogsDlqTopic)
+                .build();
+    }
+
+    @Bean
+    public NewTopic usageLogsDeadLetterTopic() {
+        return TopicBuilder
+                .name(usageLogsDeadLetterTopic)
                 .build();
     }
 }
