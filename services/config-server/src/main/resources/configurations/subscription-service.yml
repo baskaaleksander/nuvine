@@ -22,7 +22,8 @@ spring:
         spring.json.add.type.headers: true
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
-          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
+          dlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DlqMessage
     consumer:
       group-id: subscription-service
       auto-offset-reset: earliest
