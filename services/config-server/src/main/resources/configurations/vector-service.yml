@@ -28,7 +28,8 @@ spring:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
           embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent,
-          vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent
+          vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent,
+          embeddingCompletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedDlqMessage
 
 qdrant:
   host: localhost
@@ -38,3 +39,13 @@ qdrant:
 
 server:
   port: 8100
+
+topics:
+  embedding-completed-dlq-topic: embedding-completed-dlq
+  embedding-completed-dead-letter-topic: embedding-completed-dead-letter
+
+dlq:
+  embedding-completed:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
