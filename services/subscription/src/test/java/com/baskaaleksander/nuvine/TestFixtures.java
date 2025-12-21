@@ -325,7 +325,7 @@ public final class TestFixtures {
                 DEFAULT_USER_ID.toString()
         );
     }
-    
+
     public static CheckLimitRequest checkLimitRequest() {
         return new CheckLimitRequest(
                 DEFAULT_WORKSPACE_ID,
