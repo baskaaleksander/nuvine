@@ -98,7 +98,6 @@ class UsageDlqWorkerTest {
         DlqMessage dlqMessage1 = TestFixtures.dlqMessage();
         DlqMessage dlqMessage2 = TestFixtures.dlqMessage();
         List<DlqMessage> messages = List.of(dlqMessage1, dlqMessage2);
-
         dlqWorker.processDlqBatch(messages);
 
         verify(usageService).logTokenUsage(dlqMessage1.originalEvent());
