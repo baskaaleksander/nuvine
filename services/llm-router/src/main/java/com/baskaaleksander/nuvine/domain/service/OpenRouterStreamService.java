@@ -45,25 +45,22 @@ public class OpenRouterStreamService {
             return;
         }
 
+        log.info(data);
+
         String cleanData = data;
         if (data.startsWith("data:")) {
             cleanData = data.substring(5);
         }
 
-        String trimmed = cleanData.trim();
 
-        if (trimmed.isEmpty()) {
-            return;
-        }
-
-        if ("[DONE]".equals(trimmed)) {
+        if ("[DONE]".equals(cleanData)) {
             sink.next(new LlmChunk("done", null, null, null, null));
             return;
         }
 
         try {
             OpenRouterStreamEvent event =
-                    objectMapper.readValue(trimmed, OpenRouterStreamEvent.class);
+                    objectMapper.readValue(cleanData, OpenRouterStreamEvent.class);
 
             if (event.usage() != null) {
                 log.info("STREAM_USAGE emitted: {}", event.usage());
@@ -94,10 +91,10 @@ public class OpenRouterStreamService {
                     ));
                 }
             }
-            
+
 
         } catch (Exception e) {
-            log.error("Failed to parse stream data: '{}'", trimmed, e);
+            log.error("Failed to parse stream data: '{}'", cleanData, e);
             sink.next(new LlmChunk("error", null, null, null, null));
         }
     }
