@@ -111,15 +111,96 @@ public class WebhookService {
     }
 
     private void handlePaymentIntentPaymentFailed(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.PaymentIntent paymentIntent;
 
+            try {
+                paymentIntent = (com.stripe.model.PaymentIntent) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            Payment payment = paymentRepository.findByStripePaymentIntentId(paymentIntent.getId())
+                    .orElse(null);
+
+            if (payment != null) {
+                payment.setStatus(PaymentStatus.FAILED);
+                paymentRepository.save(payment);
+                log.warn("Payment intent failed, updated payment: {}", payment.getId());
+            } else {
+                log.warn("Payment intent failed but no matching payment found: {}", paymentIntent.getId());
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to handle payment intent failed event", e);
+        }
     }
 
     private void handlePaymentIntentSucceeded(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.PaymentIntent paymentIntent;
 
+            try {
+                paymentIntent = (com.stripe.model.PaymentIntent) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            Payment payment = paymentRepository.findByStripePaymentIntentId(paymentIntent.getId())
+                    .orElse(null);
+
+            if (payment != null) {
+                payment.setStatus(PaymentStatus.SUCCEEDED);
+                payment.setAmountPaid(convertStripeAmount(paymentIntent.getAmountReceived()));
+                paymentRepository.save(payment);
+                log.info("Payment intent succeeded, updated payment: {}", payment.getId());
+            } else {
+                log.info("Payment intent succeeded but no matching payment found: {}", paymentIntent.getId());
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to handle payment intent succeeded event", e);
+        }
     }
 
     private void handleInvoiceFinalized(Event event) {
+        try {
+            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+            com.stripe.model.Invoice stripeInvoice;
 
+            try {
+                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
+            } catch (Exception e) {
+                log.error("Failed to deserialize event data", e);
+                return;
+            }
+
+            String stripeSubscriptionId = extractSubscriptionId(stripeInvoice);
+
+            if (stripeSubscriptionId == null) {
+                log.info("Invoice finalized but no associated subscription: {}", stripeInvoice.getId());
+                return;
+            }
+
+            Subscription existingSubscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+
+            if (existingSubscription == null) {
+                log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
+                return;
+            }
+
+            Payment payment = createOrUpdatePaymentFromInvoice(stripeInvoice, existingSubscription);
+            payment.setStatus(PaymentStatus.PENDING);
+            paymentRepository.save(payment);
+            log.info("Payment pending recorded for finalized invoice: {}", stripeInvoice.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to handle invoice finalized event", e);
+        }
     }
 
     private void handleInvoicePaymentActionRequired(Event event) {
@@ -151,6 +232,11 @@ public class WebhookService {
                 log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
                 return;
             }
+
+            Payment payment = createOrUpdatePaymentFromInvoice(stripeInvoice, existingSubscription);
+            payment.setStatus(PaymentStatus.REQUIRES_ACTION);
+            paymentRepository.save(payment);
+            log.info("Payment action required recorded for invoice: {}", stripeInvoice.getId());
 
             WorkspaceInternalSubscriptionResponse workspace = searchWorkspace(existingSubscription.getWorkspaceId());
             UserInternalResponse owner = searchUser(workspace.ownerId());
@@ -212,6 +298,11 @@ public class WebhookService {
                 return;
             }
 
+            Payment payment = createOrUpdatePaymentFromInvoice(stripeInvoice, existingSubscription);
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+            log.warn("Payment failure recorded for invoice: {}", stripeInvoice.getId());
+
             existingSubscription.setStatus(SubscriptionStatus.PAST_DUE);
             existingSubscription.setUpdatedAt(Instant.now());
 
@@ -258,6 +349,11 @@ public class WebhookService {
                 log.error("Subscription not found for stripe subscription id: {}", stripeSubscriptionId);
                 return;
             }
+
+            Payment payment = createOrUpdatePaymentFromInvoice(stripeInvoice, existingSubscription);
+            payment.setStatus(PaymentStatus.SUCCEEDED);
+            paymentRepository.save(payment);
+            log.info("Payment saved for subscription id: {}", stripeSubscriptionId);
 
             if (existingSubscription.getStatus() == SubscriptionStatus.PAST_DUE
                     || existingSubscription.getStatus() == SubscriptionStatus.UNPAID) {
@@ -508,7 +604,7 @@ public class WebhookService {
 
         String stripePaymentIntent = extractPaymentIntentId(stripeInvoice);
         payment.setStripePaymentIntentId(stripePaymentIntent);
-        
+
         payment.setAmountDue(convertStripeAmount(stripeInvoice.getAmountDue()));
         payment.setAmountPaid(convertStripeAmount(stripeInvoice.getAmountPaid()));
         payment.setCurrency(stripeInvoice.getCurrency().toUpperCase());
