@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
@@ -35,6 +36,7 @@ public class WebhookService {
     private final SubscriptionRepository subscriptionRepository;
     private final PaymentSessionRepository paymentSessionRepository;
     private final WorkspaceServiceClient workspaceServiceClient;
+    private final PaymentRepository paymentRepository;
     private final PlanRepository planRepository;
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
     private final AuthServiceClient authServiceClient;
@@ -492,5 +494,13 @@ public class WebhookService {
             log.error("SEARCH_USER FAILED", e);
             throw new RuntimeException("Failed to search user, try again later.");
         }
+    }
+
+    private String extractSubscriptionId(com.stripe.model.Invoice invoice) {
+        if (invoice.getParent() != null &&
+                invoice.getParent().getSubscriptionDetails() != null) {
+            return invoice.getParent().getSubscriptionDetails().getSubscription();
+        }
+        return null;
     }
 }

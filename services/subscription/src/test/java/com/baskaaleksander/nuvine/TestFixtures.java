@@ -215,7 +215,7 @@ public final class TestFixtures {
                 .amountDue(BigDecimal.valueOf(29.99))
                 .amountPaid(BigDecimal.valueOf(29.99))
                 .currency("USD")
-                .status(PaymentStatus.PAID)
+                .status(PaymentStatus.SUCCEEDED)
                 .billingPeriodStart(now.minus(30, ChronoUnit.DAYS))
                 .billingPeriodEnd(now)
                 .invoicePdfUrl("https://stripe.com/invoice/test123.pdf")

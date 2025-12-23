@@ -293,19 +293,19 @@ class BillingServiceTest {
             PaymentFilterRequest filter = PaymentFilterRequest.builder()
                     .startDate(LocalDate.now().minusDays(30))
                     .endDate(LocalDate.now())
-                    .status(PaymentStatus.PAID)
+                    .status(PaymentStatus.SUCCEEDED)
                     .build();
 
             Page<Payment> page = new PageImpl<>(List.of());
 
             when(paymentRepository.findByWorkspaceIdAndDateRangeAndStatus(
-                    eq(workspaceId), any(Instant.class), any(Instant.class), eq(PaymentStatus.PAID), any(Pageable.class)))
+                    eq(workspaceId), any(Instant.class), any(Instant.class), eq(PaymentStatus.SUCCEEDED), any(Pageable.class)))
                     .thenReturn(page);
 
             billingService.getPayments(workspaceId, filter);
 
             verify(paymentRepository).findByWorkspaceIdAndDateRangeAndStatus(
-                    eq(workspaceId), any(Instant.class), any(Instant.class), eq(PaymentStatus.PAID), any(Pageable.class));
+                    eq(workspaceId), any(Instant.class), any(Instant.class), eq(PaymentStatus.SUCCEEDED), any(Pageable.class));
         }
     }
 
