@@ -2,10 +2,10 @@ package com.baskaaleksander.nuvine.domain.model;
 
 public enum PaymentStatus {
     PENDING,
-    PAID,
+    PROCESSING,
+    SUCCEEDED,
     FAILED,
-    CANCELED,
     REFUNDED,
-    PARTIALLY_REFUNDED,
-    VOID
+    CANCELED,
+    REQUIRES_ACTION
 }

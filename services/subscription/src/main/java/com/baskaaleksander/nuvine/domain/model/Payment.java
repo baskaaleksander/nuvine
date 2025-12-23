@@ -79,5 +79,6 @@ public class Payment {
     private Instant updatedAt;
 
     @Column(name = "metadata_json", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String metadataJson;
 }

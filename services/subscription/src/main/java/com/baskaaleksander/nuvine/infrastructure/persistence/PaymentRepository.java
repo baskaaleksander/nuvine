@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -42,4 +44,14 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             @Param("status") PaymentStatus status,
             Pageable pageable
     );
+
+    Optional<Payment> findByStripeInvoiceId(String stripeInvoiceId);
+
+    Optional<Payment> findByStripePaymentIntentId(String stripePaymentIntentId);
+
+    List<Payment> findByWorkspaceId(UUID workspaceId);
+
+    List<Payment> findBySubscriptionId(UUID subscriptionId);
+
+    List<Payment> findByWorkspaceIdAndStatus(UUID workspaceId, PaymentStatus status);
 }
