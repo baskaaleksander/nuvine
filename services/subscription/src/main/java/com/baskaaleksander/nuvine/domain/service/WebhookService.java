@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -494,6 +495,64 @@ public class WebhookService {
             log.error("SEARCH_USER FAILED", e);
             throw new RuntimeException("Failed to search user, try again later.");
         }
+    }
+
+    private Payment createOrUpdatePaymentFromInvoice(com.stripe.model.Invoice stripeInvoice,
+                                                     Subscription subscription) {
+        Payment payment = paymentRepository.findByStripeInvoiceId(stripeInvoice.getId())
+                .orElse(new Payment());
+
+        payment.setWorkspaceId(subscription.getWorkspaceId());
+        payment.setSubscriptionId(subscription.getId());
+        payment.setStripeInvoiceId(stripeInvoice.getId());
+
+        String stripePaymentIntent = extractPaymentIntentId(stripeInvoice);
+        payment.setStripePaymentIntentId(stripePaymentIntent);
+        
+        payment.setAmountDue(convertStripeAmount(stripeInvoice.getAmountDue()));
+        payment.setAmountPaid(convertStripeAmount(stripeInvoice.getAmountPaid()));
+        payment.setCurrency(stripeInvoice.getCurrency().toUpperCase());
+        payment.setBillingPeriodStart(Instant.ofEpochSecond(stripeInvoice.getPeriodStart()));
+        payment.setBillingPeriodEnd(Instant.ofEpochSecond(stripeInvoice.getPeriodEnd()));
+        payment.setInvoicePdfUrl(stripeInvoice.getInvoicePdf());
+        payment.setDescription(buildPaymentDescription(stripeInvoice));
+
+        if (stripeInvoice.getMetadata() != null && !stripeInvoice.getMetadata().isEmpty()) {
+            payment.setMetadataJson(convertMetadataToJson(stripeInvoice.getMetadata()));
+        }
+
+        return payment;
+    }
+
+    private BigDecimal convertStripeAmount(Long amountInCents) {
+        if (amountInCents == null) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(amountInCents).divide(BigDecimal.valueOf(100));
+    }
+
+    private String buildPaymentDescription(com.stripe.model.Invoice invoice) {
+        if (invoice.getLines() != null && !invoice.getLines().getData().isEmpty()) {
+            return invoice.getLines().getData().get(0).getDescription();
+        }
+        return "Subscription payment";
+    }
+
+    private String convertMetadataToJson(Map<String, String> metadata) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Failed to convert metadata to JSON", e);
+            return "{}";
+        }
+    }
+
+    private String extractPaymentIntentId(com.stripe.model.Invoice invoice) {
+        if (invoice.getPayments() != null && invoice.getPayments().getData() != null
+                && !invoice.getPayments().getData().isEmpty()) {
+            return invoice.getPayments().getData().get(0).getPayment().getPaymentIntent();
+        }
+        return null;
     }
 
     private String extractSubscriptionId(com.stripe.model.Invoice invoice) {
