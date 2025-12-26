@@ -24,7 +24,8 @@ public class WorkspaceController {
             @RequestBody @Valid WorkspaceCreateRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        return workspaceService.createWorkspace(request.name(), UUID.fromString(jwt.getSubject()));
+        String email = jwt.getClaimAsString("email");
+        return workspaceService.createWorkspace(request.name(), UUID.fromString(jwt.getSubject()), email);
     }
 
     @GetMapping
