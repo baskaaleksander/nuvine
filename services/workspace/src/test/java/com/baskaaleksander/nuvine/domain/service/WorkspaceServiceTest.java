@@ -11,6 +11,7 @@ import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
@@ -48,6 +49,8 @@ public class WorkspaceServiceTest {
     private WorkspaceMapper workspaceMapper;
     @Mock
     private WorkspaceMemberMapper workspaceMemberMapper;
+    @Mock
+    private AuthClient authClient;
 
     @InjectMocks
     private WorkspaceService workspaceService;
@@ -65,6 +68,7 @@ public class WorkspaceServiceTest {
     private WorkspaceMember deletedMember;
     private WorkspaceMemberResponse memberResponse;
     private String updatedWorkspaceName;
+    private UserInternalResponse userInternalResponse;
 
     @BeforeEach
     void setUp() {
@@ -147,6 +151,13 @@ public class WorkspaceServiceTest {
         );
 
         updatedWorkspaceName = "Updated Workspace";
+
+        userInternalResponse = new UserInternalResponse(
+                ownerUserId,
+                "firstName",
+                "lastName",
+                "user@example.com"
+        );
     }
 
     @Test
@@ -170,8 +181,9 @@ public class WorkspaceServiceTest {
         when(workspaceRepository.existsByNameAndOwnerId(workspaceName, ownerUserId)).thenReturn(false);
         when(workspaceRepository.save(any(Workspace.class))).thenReturn(savedWorkspace);
         when(workspaceMapper.toWorkspaceCreateResponse(savedWorkspace)).thenReturn(workspaceCreateResponse);
+        when(authClient.getUserByEmail("user@example.com")).thenReturn(userInternalResponse);
 
-        WorkspaceCreateResponse result = workspaceService.createWorkspace(workspaceName, ownerUserId, "placeholder");
+        WorkspaceCreateResponse result = workspaceService.createWorkspace(workspaceName, ownerUserId, "user@example.com");
 
         InOrder inOrder = inOrder(workspaceRepository, workspaceMemberRepository, workspaceMapper);
         inOrder.verify(workspaceRepository).existsByNameAndOwnerId(workspaceName, ownerUserId);
