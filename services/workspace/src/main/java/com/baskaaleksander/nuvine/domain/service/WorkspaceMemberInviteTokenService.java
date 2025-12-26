@@ -1,17 +1,16 @@
 package com.baskaaleksander.nuvine.domain.service;
 
 import com.baskaaleksander.nuvine.application.dto.InvitationAction;
+import com.baskaaleksander.nuvine.application.dto.InvitationTokenCheckResponse;
 import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
-import com.baskaaleksander.nuvine.domain.exception.InvitationEmailMismatchException;
-import com.baskaaleksander.nuvine.domain.exception.InvitationTokenExpiredException;
-import com.baskaaleksander.nuvine.domain.exception.InvitationTokenNotFoundException;
-import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberInviteToken;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberStatus;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberInviteTokenRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
+import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +29,7 @@ public class WorkspaceMemberInviteTokenService {
 
     private final WorkspaceMemberInviteTokenRepository workspaceMemberInviteTokenRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final AuthClient authClient;
 
     public WorkspaceMemberInviteToken getOrCreateActiveToken(WorkspaceMember workspaceMember, boolean forceNew) {
@@ -117,5 +117,44 @@ public class WorkspaceMemberInviteTokenService {
         workspaceMemberInviteTokenRepository.save(inviteToken);
 
         log.info("RESPOND_TO_INVITATION END action={}", action);
+    }
+
+    public InvitationTokenCheckResponse invitationTokenCheck(String token, String authenticatedUserEmail) {
+        WorkspaceMemberInviteToken inviteToken = workspaceMemberInviteTokenRepository.findByToken(token)
+                .orElseThrow(() -> {
+                    log.info("INVITATION_TOKEN_CHECK FAILED reason=token_not_found");
+                    return new InvitationTokenNotFoundException("Invitation token not found");
+                });
+
+        if (inviteToken.getUsedAt() != null) {
+            log.info("INVITATION_TOKEN_CHECK FAILED reason=token_already_used tokenId={}", inviteToken.getId());
+            throw new InvitationTokenNotFoundException("Invitation token has already been used");
+        }
+
+        if (inviteToken.getExpiresAt().isBefore(Instant.now())) {
+            log.info("INVITATION_TOKEN_CHECK FAILED reason=token_expired tokenId={}", inviteToken.getId());
+            throw new InvitationTokenExpiredException("Invitation token has expired");
+        }
+
+        WorkspaceMember member = inviteToken.getWorkspaceMember();
+
+        if (member.getStatus() != WorkspaceMemberStatus.PENDING) {
+            log.info("INVITATION_TOKEN_CHECK FAILED reason=member_not_pending workspaceMemberId={}", member.getId());
+            throw new InvitationTokenNotFoundException("Invitation is no longer valid");
+        }
+
+        if (!member.getEmail().equalsIgnoreCase(authenticatedUserEmail)) {
+            log.info("INVITATION_TOKEN_CHECK FAILED reason=email_mismatch workspaceMemberId={}", member.getId());
+            throw new InvitationEmailMismatchException("Email does not match the invitation");
+        }
+
+        UUID workspaceId = member.getWorkspaceId();
+
+        String workspaceName = workspaceRepository.getWorkspaceNameById(workspaceId)
+                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace not found"));
+
+        return new InvitationTokenCheckResponse(
+                workspaceName
+        );
     }
 }

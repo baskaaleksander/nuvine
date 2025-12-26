@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
@@ -28,4 +29,7 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
     @Modifying
     @Query("UPDATE Workspace w SET w.deleted = true WHERE w.id = :workspaceId")
     void deleteWorkspace(UUID workspaceId);
+
+    @Query("SELECT w.name FROM Workspace w WHERE w.id = :id")
+    Optional<String> getWorkspaceNameById(UUID id);
 }
