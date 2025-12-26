@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.InvitationResponseRequest;
+import com.baskaaleksander.nuvine.application.dto.InvitationTokenCheckResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberInviteTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,5 +26,14 @@ public class InvitationController {
         String email = jwt.getClaimAsString("email");
         workspaceMemberInviteTokenService.respondToInvitation(token, request.action(), email);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{token}/check")
+    public ResponseEntity<InvitationTokenCheckResponse> checkInvitationToken(
+            @PathVariable String token,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String email = jwt.getClaimAsString("email");
+        return ResponseEntity.ok(workspaceMemberInviteTokenService.invitationTokenCheck(token, email));
     }
 }
