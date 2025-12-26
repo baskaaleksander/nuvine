@@ -155,7 +155,7 @@ public class WorkspaceServiceTest {
 
         InvalidWorkspaceNameException exception = assertThrows(
                 InvalidWorkspaceNameException.class,
-                () -> workspaceService.createWorkspace(workspaceName, ownerUserId)
+                () -> workspaceService.createWorkspace(workspaceName, ownerUserId, "placeholder")
         );
 
         assertEquals("Workspace with name " + workspaceName + " already exists", exception.getMessage());
@@ -171,7 +171,7 @@ public class WorkspaceServiceTest {
         when(workspaceRepository.save(any(Workspace.class))).thenReturn(savedWorkspace);
         when(workspaceMapper.toWorkspaceCreateResponse(savedWorkspace)).thenReturn(workspaceCreateResponse);
 
-        WorkspaceCreateResponse result = workspaceService.createWorkspace(workspaceName, ownerUserId);
+        WorkspaceCreateResponse result = workspaceService.createWorkspace(workspaceName, ownerUserId, "placeholder");
 
         InOrder inOrder = inOrder(workspaceRepository, workspaceMemberRepository, workspaceMapper);
         inOrder.verify(workspaceRepository).existsByNameAndOwnerId(workspaceName, ownerUserId);

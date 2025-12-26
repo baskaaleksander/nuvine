@@ -5,12 +5,11 @@ import com.baskaaleksander.nuvine.application.mapper.WorkspaceMapper;
 import com.baskaaleksander.nuvine.application.mapper.WorkspaceMemberMapper;
 import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.InvalidWorkspaceNameException;
+import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
-import com.baskaaleksander.nuvine.domain.model.BillingTier;
-import com.baskaaleksander.nuvine.domain.model.Workspace;
-import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
-import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
+import com.baskaaleksander.nuvine.domain.model.*;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
@@ -34,8 +33,9 @@ public class WorkspaceService {
     private final ProjectRepository projectRepository;
     private final WorkspaceMapper workspaceMapper;
     private final WorkspaceMemberMapper workspaceMemberMapper;
+    private final AuthClient authClient;
 
-    public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId) {
+    public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId, String ownerEmail) {
 
         log.info("CREATE_WORKSPACE START userId={}", ownerUserId);
 
@@ -52,9 +52,22 @@ public class WorkspaceService {
 
         Workspace savedWorkspace = workspaceRepository.save(workspace);
 
+        UserInternalResponse user;
+        try {
+            user = authClient.getUserByEmail(ownerEmail);
+        } catch (Exception ex) {
+            log.info("RESPOND_TO_INVITATION FAILED reason=user_not_found email={}", ownerEmail);
+            throw new UserNotFoundException("User not found");
+        }
+
+        String ownerName = user.firstName() + " " + user.lastName();
+
         WorkspaceMember member = WorkspaceMember.builder()
                 .workspaceId(savedWorkspace.getId())
                 .userId(ownerUserId)
+                .email(ownerEmail)
+                .userName(ownerName)
+                .status(WorkspaceMemberStatus.ACCEPTED)
                 .role(WorkspaceRole.OWNER)
                 .build();
 
