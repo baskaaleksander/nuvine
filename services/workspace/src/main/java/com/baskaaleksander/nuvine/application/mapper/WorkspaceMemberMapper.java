@@ -9,10 +9,13 @@ public class WorkspaceMemberMapper {
 
     public WorkspaceMemberResponse toWorkspaceMemberResponse(WorkspaceMember workspaceMember) {
         return new WorkspaceMemberResponse(
-                workspaceMember.getId(),
+                workspaceMember.getId() != null ? workspaceMember.getId() : null,
                 workspaceMember.getWorkspaceId(),
-                workspaceMember.getUserId(),
+                workspaceMember.getUserId() != null ? workspaceMember.getUserId() : null,
+                workspaceMember.getEmail(),
+                workspaceMember.getUserName() != null ? workspaceMember.getUserName() : null,
                 workspaceMember.getRole(),
+                workspaceMember.getStatus(),
                 workspaceMember.getCreatedAt()
         );
     }
