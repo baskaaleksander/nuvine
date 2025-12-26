@@ -26,8 +26,7 @@ public class VectorProcessingCompletedDlqConfig {
     @Value("${dlq.vector-processing-completed.batch-size:100}")
     private int batchSize;
 
-    @Bean
-    public ConsumerFactory<String, VectorProcessingCompletedDlqMessage> vectorProcessingCompletedDlqConsumerFactory() {
+    private ConsumerFactory<String, VectorProcessingCompletedDlqMessage> createVectorProcessingCompletedDlqConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "vector-processing-completed-dlq-worker");
@@ -52,7 +51,7 @@ public class VectorProcessingCompletedDlqConfig {
     public ConcurrentKafkaListenerContainerFactory<String, VectorProcessingCompletedDlqMessage> vectorProcessingCompletedDlqKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, VectorProcessingCompletedDlqMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(vectorProcessingCompletedDlqConsumerFactory());
+        factory.setConsumerFactory(createVectorProcessingCompletedDlqConsumerFactory());
         factory.setBatchListener(true);
         factory.getContainerProperties().setIdleBetweenPolls(processingDelayMs);
         return factory;
