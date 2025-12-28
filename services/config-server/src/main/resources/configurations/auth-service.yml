@@ -127,7 +127,7 @@ bucket4j:
             time: 15
             unit: minutes
 
-    - name: check_password_reset_token_limit s
+    - name: check_password_reset_token_limit
       cache-name: auth-service-buckets
       rate-limit:
         bandwidths:

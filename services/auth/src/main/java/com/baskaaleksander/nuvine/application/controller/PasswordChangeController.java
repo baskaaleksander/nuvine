@@ -5,6 +5,8 @@ import com.baskaaleksander.nuvine.application.dto.ForgotPasswordRequest;
 import com.baskaaleksander.nuvine.application.dto.PasswordChangeRequest;
 import com.baskaaleksander.nuvine.application.dto.PasswordResetRequest;
 import com.baskaaleksander.nuvine.domain.service.PasswordChangeService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +25,13 @@ public class PasswordChangeController {
     private final PasswordChangeService service;
 
     @PostMapping("/forgot")
+    @RateLimiting(
+            name = "forgot_password_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> forgotPassword(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid ForgotPasswordRequest request
     ) {
         service.requestPasswordReset(request.email());
@@ -31,7 +39,13 @@ public class PasswordChangeController {
     }
 
     @PostMapping("/reset")
+    @RateLimiting(
+            name = "reset_password_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> resetPassword(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid PasswordResetRequest request
     ) {
         service.resetPassword(request);
@@ -39,7 +53,13 @@ public class PasswordChangeController {
     }
 
     @PostMapping("/change")
+    @RateLimiting(
+            name = "password_change_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> changePassword(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid PasswordChangeRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -48,7 +68,13 @@ public class PasswordChangeController {
     }
 
     @PostMapping("/check-token")
+    @RateLimiting(
+            name = "check_password_reset_token_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> checkToken(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid CheckTokenRequest request
     ) {
         service.checkToken(request.token());
