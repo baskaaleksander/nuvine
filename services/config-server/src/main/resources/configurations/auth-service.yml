@@ -1,4 +1,9 @@
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_AUTH_URL}
     username: ${POSTGRES_USER}
@@ -17,7 +22,17 @@ spring:
       properties:
         spring.json.type.mapping: emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent, passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent, userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent
 
-
+bucket4j:
+  enabled: true
+  methods:
+    - name: restrictive_limit
+      cache-name: auth-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+            refill-speed: greedy
 
 server:
   port: 8040
