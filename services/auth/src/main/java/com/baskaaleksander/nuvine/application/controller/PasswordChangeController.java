@@ -55,7 +55,7 @@ public class PasswordChangeController {
     @PostMapping("/change")
     @RateLimiting(
             name = "password_change_limit",
-            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            cacheKey = "@jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> changePassword(

@@ -25,7 +25,7 @@ public class EmailVerificationController {
     @PostMapping("/request")
     @RateLimiting(
             name = "email_verify_request_limit",
-            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            cacheKey = "@jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> requestVerificationLink(
@@ -53,7 +53,7 @@ public class EmailVerificationController {
     @PostMapping("/change")
     @RateLimiting(
             name = "email_change_limit",
-            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            cacheKey = "@jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> changeEmail(
