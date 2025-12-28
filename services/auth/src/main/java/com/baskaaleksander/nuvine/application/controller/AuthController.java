@@ -2,17 +2,16 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.AuthService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -24,14 +23,26 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
+    @RateLimiting(
+            name = "restrictive_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<UserResponse> registerUser(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid RegisterRequest request
     ) {
         return ResponseEntity.status(CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
+    @RateLimiting(
+            name = "restrictive_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<TokenResponse> loginUser(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid LoginRequest request
     ) {
         var tokenRes = authService.login(request);
@@ -131,11 +142,4 @@ public class AuthController {
                 .build();
     }
 
-    @GetMapping("/test")
-    public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt, Authentication auth) {
-        return Map.of(
-                "jwt_roles", jwt.getClaim("realm_access"),
-                "authorities", auth.getAuthorities()
-        );
-    }
 }
