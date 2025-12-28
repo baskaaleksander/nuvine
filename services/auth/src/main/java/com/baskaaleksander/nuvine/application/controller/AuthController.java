@@ -24,7 +24,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @RateLimiting(
-            name = "restrictive_limit",
+            name = "register_limit",
             cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
             ratePerMethod = true
     )
@@ -37,7 +37,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @RateLimiting(
-            name = "restrictive_limit",
+            name = "login_limit",
             cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
             ratePerMethod = true
     )
@@ -66,7 +66,13 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @RateLimiting(
+            name = "refresh_token_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<TokenResponse> refreshToken(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String refreshToken
     ) {
         var tokenRes = authService.refreshToken(refreshToken);
@@ -95,7 +101,13 @@ public class AuthController {
     }
 
     @PatchMapping("/me")
+    @RateLimiting(
+            name = "profile_update_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<MeResponse> updateMe(
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody @Valid UpdateMeRequest request
     ) {
@@ -103,7 +115,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @RateLimiting(
+            name = "logout_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> logout(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
@@ -123,7 +141,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout-all")
+    @RateLimiting(
+            name = "logout_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> logoutAll(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
