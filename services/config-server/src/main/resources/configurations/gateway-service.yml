@@ -11,6 +11,12 @@ spring:
           discovery:
             locator:
               enabled: true
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 17
+                redis-rate-limiter.burstCapacity: 30
+                key-resolver: "#{@ipKeyResolver}"
           routes:
             - id: admin-users
               uri: lb://auth-service
