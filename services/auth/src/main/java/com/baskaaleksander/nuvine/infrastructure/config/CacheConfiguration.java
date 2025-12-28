@@ -49,7 +49,7 @@ public class CacheConfiguration {
         MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
         configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.MINUTES, 10)))
+                        new Duration(TimeUnit.HOURS, 2)))
                 .setStatisticsEnabled(true);
 
         if (manager.getCache("auth-service-buckets") != null) {
