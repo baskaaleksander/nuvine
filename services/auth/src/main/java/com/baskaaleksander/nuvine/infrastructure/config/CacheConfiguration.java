@@ -55,8 +55,14 @@ public class CacheConfiguration {
         CacheManager manager = cachingProvider.getCacheManager();
 
         MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 2);
+        MutableConfiguration<String, Object> standardConfig = createConfig(TimeUnit.HOURS, 1);
+        MutableConfiguration<String, Object> shortConfig = createConfig(TimeUnit.MINUTES, 5);
+
 
         createCache(manager, redissonClient, "auth-service-buckets", rateBucketConfig);
+        createCache(manager, redissonClient, "users", standardConfig);
+        createCache(manager, redissonClient, "users-internal", standardConfig);
+        createCache(manager, redissonClient, "users-admin", standardConfig);
 
         return manager;
     }
