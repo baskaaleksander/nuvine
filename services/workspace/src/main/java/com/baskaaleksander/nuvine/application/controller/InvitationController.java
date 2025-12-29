@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.application.controller;
 import com.baskaaleksander.nuvine.application.dto.InvitationResponseRequest;
 import com.baskaaleksander.nuvine.application.dto.InvitationTokenCheckResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceMemberInviteTokenService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,11 @@ public class InvitationController {
     private final WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
 
     @PostMapping("/{token}")
+    @RateLimiting(
+            name = "respond_to_invitation_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> respondToInvitation(
             @PathVariable String token,
             @RequestBody @Valid InvitationResponseRequest request,

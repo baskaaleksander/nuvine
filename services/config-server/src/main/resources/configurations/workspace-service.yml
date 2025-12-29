@@ -110,3 +110,13 @@ bucket4j:
             - capacity: 100
               time: 1
               unit: hours
+    - name: respond_to_invitation_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 20
+            time: 1
+            unit: hours
