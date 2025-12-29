@@ -1,4 +1,13 @@
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_CHAT_URL}
     username: ${POSTGRES_USER}
@@ -27,3 +36,21 @@ chat:
     client-secret: ${KEYCLOAK_CHAT_SERVICE_SECRET}
 server:
   port: 8110
+
+bucket4j:
+  enabled: true
+  cache-to-use: jcache
+  methods:
+    - name: completion_limit
+      cache-name: chat-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 20
+            time: 1
+            unit: minutes
+          - capacity: 200
+            time: 1
+            unit: hours
+          - capacity: 2000
+            time: 1
+            unit: days
