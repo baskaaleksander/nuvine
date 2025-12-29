@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,8 @@ public class EmailVerificationService {
     private final EmailVerificationEventProducer eventProducer;
     private final KeycloakClientProvider keycloakClientProvider;
     private final EmailVerificationTokenGenerationService tokenGenerationService;
+    private final UserCacheService cacheService;
+
     @Value("${keycloak.realm}")
     private String realm;
 
@@ -86,6 +89,7 @@ public class EmailVerificationService {
 
         userResource.update(user);
         log.info("KEYCLOAK_EMAIL_VERIFY SUCCESS userId={}", userId);
+        cacheService.evictUserById(UUID.fromString(userId));
     }
 
     @Transactional
@@ -127,6 +131,8 @@ public class EmailVerificationService {
                 MaskingUtil.maskEmail(oldEmail),
                 MaskingUtil.maskEmail(newEmail)
         );
+        cacheService.evictUserInternalByEmail(oldEmail);
+        cacheService.evictUserById(user.getId());
     }
 
     private void updateKeycloakUserEmail(String userId, String newEmail) {
@@ -143,4 +149,5 @@ public class EmailVerificationService {
         userResource.update(user);
         log.info("KEYCLOAK_EMAIL_CHANGE SUCCESS userId={}", userId);
     }
+
 }

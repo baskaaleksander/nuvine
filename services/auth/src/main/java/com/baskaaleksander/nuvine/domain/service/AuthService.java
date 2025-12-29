@@ -20,6 +20,9 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +44,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRegisteredEventProducer userRegisteredEventProducer;
     private final EmailVerificationTokenGenerationService tokenGenerationService;
+    private final UserCacheService cacheService;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -220,7 +224,8 @@ public class AuthService {
         return response;
     }
 
-    public void logoutAll(String refreshToken) {
+    @CacheEvict(value = "users", key = "#jwt.subject")
+    public void logoutAll(String refreshToken, Jwt jwt) {
         var dbToken = refreshTokenRepository.findByToken(refreshToken);
 
         dbToken.ifPresent(token -> {
@@ -229,7 +234,8 @@ public class AuthService {
         });
     }
 
-    public void logout(String refreshToken) {
+    @CacheEvict(value = "users", key = "#jwt.subject")
+    public void logout(String refreshToken, Jwt jwt) {
         log.info("LOGOUT START token={}", MaskingUtil.maskToken(refreshToken));
         try {
             refreshTokenRepository.revokeToken(refreshToken);
@@ -237,6 +243,7 @@ public class AuthService {
         }
     }
 
+    @Cacheable(value = "users", key = "#jwt.subject")
     public MeResponse getMe(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -269,6 +276,8 @@ public class AuthService {
     }
 
     @Transactional
+    @CachePut(value = "users", key = "#jwt.subject")
+    @CacheEvict(value = {"users-internal", "users-admin"}, key = "#jwt.subject")
     public MeResponse updateMe(Jwt jwt, UpdateMeRequest request) {
         log.info("UPDATE_ME START email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
         User user = userRepository.findById(UUID.fromString(jwt.getSubject()))
@@ -285,6 +294,7 @@ public class AuthService {
 
         log.info("UPDATE_ME SUCCESS email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
 
+        cacheService.evictUserInternalByEmail(user.getEmail());
         return getMe(jwt);
     }
 }

@@ -121,11 +121,12 @@ public class AuthController {
             ratePerMethod = true
     )
     public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
-        authService.logout(token);
+        authService.logout(token, jwt);
 
         ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
@@ -147,11 +148,12 @@ public class AuthController {
             ratePerMethod = true
     )
     public ResponseEntity<Void> logoutAll(
+            @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
-        authService.logoutAll(token);
+        authService.logoutAll(token, jwt);
 
         ResponseCookie clearCookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)

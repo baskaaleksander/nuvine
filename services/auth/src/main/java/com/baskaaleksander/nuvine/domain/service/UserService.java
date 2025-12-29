@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class UserService {
     private String realm;
 
 
+    @Cacheable(value = "users-admin", key = "#userId")
     public AdminUserResponse getUserById(String userId) {
 
         log.info("GET_USER_BY_ID START userId={}", userId);
@@ -87,6 +89,7 @@ public class UserService {
         );
     }
 
+    @Cacheable(value = "users-internal", key = "#id.toString()")
     public UserInternalResponse checkInternalUser(UUID id) {
         log.info("GET_USER_INTERNAL START userId={}", id);
         User user = userRepository.findById(id)
@@ -105,6 +108,7 @@ public class UserService {
         );
     }
 
+    @Cacheable(value = "users-internal", key = "#email")
     public UserInternalResponse checkInternalUserByEmail(String email) {
         log.info("GET_USER_INTERNAL_BY_EMAIL START");
         User user = userRepository.findByEmail(email)
