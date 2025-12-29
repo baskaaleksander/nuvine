@@ -89,7 +89,7 @@ public class UserService {
         );
     }
 
-    @Cacheable(value = "users-internal", key = "#id")
+    @Cacheable(value = "users-internal", key = "#id.toString()")
     public UserInternalResponse checkInternalUser(UUID id) {
         log.info("GET_USER_INTERNAL START userId={}", id);
         User user = userRepository.findById(id)
