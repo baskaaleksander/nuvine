@@ -8,6 +8,8 @@ import com.baskaaleksander.nuvine.domain.service.UploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +22,8 @@ public class FileStorageController {
 
     @PostMapping("/upload-url")
     public ResponseEntity<UploadUrlResponse> generatePresignedUploadUrl(
-            @RequestBody @Valid UploadUrlRequest request
+            @RequestBody @Valid UploadUrlRequest request,
+            @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.ok(uploadService.generatePresignedUploadUrl(
                 request.documentId(),
