@@ -74,8 +74,8 @@ bucket4j:
       cache-name: ingestion-service-buckets
       rate-limit:
         bandwidths:
-          - capacity: 10
-            time: 5
+          - capacity: 5
+            time: 15
             unit: minutes
 
 server:
