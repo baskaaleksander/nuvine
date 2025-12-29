@@ -5,6 +5,15 @@ ingestion:
     client-secret: ${KEYCLOAK_INGESTION_SERVICE_SECRET}
 
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_INGESTION_URL}
     username: ${POSTGRES_USER}
@@ -56,6 +65,18 @@ s3:
     secret: ${MINIO_ACCESS_SECRET}
   webhook:
     secret: ${MINIO_WEBHOOK_SECRET}
+
+bucket4j:
+  enabled: true
+  cache-to-use: jcache
+  methods:
+    - name: ingestion_job_limit
+      cache-name: ingestion-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 5
+            unit: minutes
 
 server:
   port: 8080

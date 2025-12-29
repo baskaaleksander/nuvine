@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.domain.service.IngestionInternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -17,7 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/internal/ingestion/jobs")
 @RequiredArgsConstructor
-//@PreAuthorize("hasRole('INTERNAL_SERVICE')")
+@PreAuthorize("hasRole('INTERNAL_SERVICE')")
 public class IngestionInternalController {
 
     private final IngestionInternalService service;
