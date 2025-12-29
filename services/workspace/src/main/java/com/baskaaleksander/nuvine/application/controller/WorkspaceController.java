@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -20,6 +21,11 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     @PostMapping
+    @RateLimiting(
+            name = "create_workspace_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public WorkspaceCreateResponse createWorkspace(
             @RequestBody @Valid WorkspaceCreateRequest request,
             @AuthenticationPrincipal Jwt jwt
@@ -52,6 +58,11 @@ public class WorkspaceController {
 
     @PatchMapping("/{workspaceId}")
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    @RateLimiting(
+            name = "update_workspace_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> updateWorkspace(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid WorkspaceUpdateRequest request,
@@ -72,6 +83,11 @@ public class WorkspaceController {
 
     @DeleteMapping("/{workspaceId}")
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
+    @RateLimiting(
+            name = "delete_workspace_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> deleteWorkspace(
             @PathVariable UUID workspaceId,
             @AuthenticationPrincipal Jwt jwt
