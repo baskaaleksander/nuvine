@@ -7,6 +7,7 @@ import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
 import com.baskaaleksander.nuvine.domain.service.IngestionCommandService;
 import com.baskaaleksander.nuvine.domain.service.IngestionInternalService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,11 @@ public class IngestionInternalController {
         return ResponseEntity.ok(service.getJobByDocId(documentId));
     }
 
+    @RateLimiting(
+            name = "ingestion_job_limit",
+            cacheKey = "#documentId",
+            ratePerMethod = true
+    )
     @PostMapping("/{documentId}/start")
     public ResponseEntity<Void> startJob(
             @PathVariable String documentId
@@ -54,6 +60,11 @@ public class IngestionInternalController {
         return ResponseEntity.accepted().build();
     }
 
+    @RateLimiting(
+            name = "ingestion_job_limit",
+            cacheKey = "#documentId",
+            ratePerMethod = true
+    )
     @PostMapping("/{documentId}/retry")
     public ResponseEntity<Void> retryJob(
             @PathVariable String documentId
