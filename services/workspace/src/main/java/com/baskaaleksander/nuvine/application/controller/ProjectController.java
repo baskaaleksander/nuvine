@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.ProjectService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,11 @@ public class ProjectController {
 
     @PostMapping("/api/v1/workspaces/{workspaceId}/projects")
     @PreAuthorize("@projectAccess.canManageProjectsInWorkspace(#workspaceId, #jwt.getSubject())")
+    @RateLimiting(
+            name = "create_project_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<ProjectResponse> createProject(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid CreateProjectRequest request,
@@ -56,6 +62,11 @@ public class ProjectController {
 
     @PatchMapping("/api/v1/projects/{projectId}")
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
+    @RateLimiting(
+            name = "update_project_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> updateProject(
             @PathVariable UUID projectId,
             @RequestBody @Valid UpdateProjectRequest request,
@@ -67,6 +78,11 @@ public class ProjectController {
 
     @DeleteMapping("/api/v1/projects/{projectId}")
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
+    @RateLimiting(
+            name = "delete_project_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> deleteProject(
             @PathVariable UUID projectId,
             @AuthenticationPrincipal Jwt jwt

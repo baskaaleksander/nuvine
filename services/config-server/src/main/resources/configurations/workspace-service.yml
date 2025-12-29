@@ -120,3 +120,33 @@ bucket4j:
           - capacity: 20
             time: 1
             unit: hours
+    - name: create_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        - bandwidths:
+            - capacity: 10
+              time: 1
+              unit: minutes
+            - capacity: 100
+              time: 1
+              unit: hours
+    - name: update_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        - bandwidths:
+            - capacity: 10
+              time: 1
+              unit: minutes
+            - capacity: 100
+              time: 1
+              unit: hours
+    - name: delete_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        - bandwidths:
+            - capacity: 10
+              time: 1
+              unit: minutes
+            - capacity: 100
+              time: 1
+              unit: hours
