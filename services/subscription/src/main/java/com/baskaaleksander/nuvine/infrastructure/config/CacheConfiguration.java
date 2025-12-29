@@ -52,11 +52,11 @@ public class CacheConfiguration {
                         new Duration(TimeUnit.HOURS, 1)))
                 .setStatisticsEnabled(true);
 
-        if (manager.getCache("ingestion-service-buckets") != null) {
-            manager.destroyCache("ingestion-service-buckets");
+        if (manager.getCache("subscription-service-buckets") != null) {
+            manager.destroyCache("subscription-service-buckets");
         }
 
-        manager.createCache("ingestion-service-buckets",
+        manager.createCache("subscription-service-buckets",
                 RedissonConfiguration.fromInstance(redissonClient, configuration));
 
         return manager;
