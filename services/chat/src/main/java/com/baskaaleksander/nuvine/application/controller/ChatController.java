@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.ChatService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -25,6 +26,11 @@ public class ChatController {
 
     @PreAuthorize("@chatAccess.canCreateMessage(#request.conversationId, #jwt.getSubject(), #request.projectId, #request.workspaceId)")
     @PostMapping("/completions")
+    @RateLimiting(
+            name = "completion_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<ConversationMessageResponse> completions(
             @RequestBody @Valid CompletionRequest request,
             @AuthenticationPrincipal Jwt jwt
@@ -36,6 +42,11 @@ public class ChatController {
     @PostMapping(
             value = "/completions/stream",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    @RateLimiting(
+            name = "completion_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
     )
     public SseEmitter completionStream(
             @RequestBody CompletionRequest request,

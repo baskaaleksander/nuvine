@@ -1,4 +1,13 @@
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_WORKSPACE_URL}
     username: ${POSTGRES_USER}
@@ -49,3 +58,180 @@ dlq:
     max-retry-attempts: 10
     processing-delay-ms: 300000
     batch-size: 100
+
+bucket4j:
+  enabled: true
+  cache-to-use: jcache
+  methods:
+    - name: create_document_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 5
+            unit: minutes
+
+    - name: update_document_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: delete_document_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 50
+            time: 1
+            unit: hours
+
+    - name: document_upload_completed_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: document_status_update_internal_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: respond_to_invitation_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 20
+            time: 1
+            unit: hours
+
+    - name: create_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: update_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: delete_project_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 50
+            time: 1
+            unit: hours
+
+    - name: create_workspace_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 50
+            time: 1
+            unit: hours
+
+    - name: update_workspace_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: delete_workspace_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 2
+            time: 1
+            unit: minutes
+          - capacity: 20
+            time: 1
+            unit: hours
+
+    - name: workspace_billing_tier_update_internal_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: invite_workspace_member_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 1
+            unit: minutes
+          - capacity: 50
+            time: 1
+            unit: hours
+
+    - name: remove_workspace_member_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours
+
+    - name: update_workspace_member_role_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 1
+            unit: minutes
+          - capacity: 100
+            time: 1
+            unit: hours

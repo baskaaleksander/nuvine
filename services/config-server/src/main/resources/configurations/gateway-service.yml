@@ -1,4 +1,9 @@
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   cloud:
     gateway:
       server:
@@ -6,6 +11,12 @@ spring:
           discovery:
             locator:
               enabled: true
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 17
+                redis-rate-limiter.burstCapacity: 30
+                key-resolver: "#{@ipKeyResolver}"
           routes:
             - id: admin-users
               uri: lb://auth-service

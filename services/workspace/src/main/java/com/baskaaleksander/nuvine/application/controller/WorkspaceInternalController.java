@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.application.controller;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceBillingTierUpdateRequest;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
 import com.baskaaleksander.nuvine.domain.service.WorkspaceInternalService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +25,11 @@ public class WorkspaceInternalController {
     }
 
     @PatchMapping("/{workspaceId}/billing-tier")
+    @RateLimiting(
+            name = "workspace_billing_tier_update_internal_limit",
+            cacheKey = "#workspaceId",
+            ratePerMethod = true
+    )
     public void updateWorkspaceBillingTier(
             @PathVariable UUID workspaceId,
             @RequestBody @Valid WorkspaceBillingTierUpdateRequest request

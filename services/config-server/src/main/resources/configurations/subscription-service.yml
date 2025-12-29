@@ -1,4 +1,13 @@
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_SUBSCRIPTION_URL}
     username: ${POSTGRES_USER}
@@ -58,3 +67,22 @@ dlq:
 
 server:
   port: 8120
+
+bucket4j:
+  enabled: true
+  cache-to-use: jcache
+  methods:
+    - name: payment_session_limit
+      cache-name: subscription-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 15
+            unit: minutes
+    - name: customer_portal_limit
+      cache-name: subscription-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 15
+            unit: minutes

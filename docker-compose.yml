@@ -134,6 +134,19 @@ services:
       - microservices-net
     restart: unless-stopped
 
+  redis:
+    container_name: ms_redis
+    image: redis:8.4.0
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes
+    networks:
+      - microservices-net
+    volumes:
+      - redis:/data
+
+
 networks:
   microservices-net:
     driver: bridge
@@ -146,3 +159,4 @@ volumes:
   qdrant:
   prometheus:
   grafana:
+  redis:

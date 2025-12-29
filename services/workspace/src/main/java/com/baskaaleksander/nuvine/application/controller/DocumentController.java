@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.DocumentService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,11 @@ public class DocumentController {
 
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     @PostMapping("/api/v1/projects/{projectId}/documents")
+    @RateLimiting(
+            name = "create_document_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<DocumentPublicResponse> createDocument(
             @RequestBody @Valid CreateDocumentRequest request,
             @PathVariable UUID projectId,
@@ -55,6 +61,11 @@ public class DocumentController {
 
     @PreAuthorize("@docAccess.canManageDocument(#documentId, #jwt.getSubject())")
     @PatchMapping("/api/v1/documents/{documentId}")
+    @RateLimiting(
+            name = "update_document_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<DocumentPublicResponse> updateDocument(
             @PathVariable UUID documentId,
             @RequestBody @Valid UpdateDocumentRequest request,
@@ -65,6 +76,11 @@ public class DocumentController {
 
     @PreAuthorize("@docAccess.canManageDocument(#documentId, #jwt.getSubject())")
     @DeleteMapping("/api/v1/documents/{documentId}")
+    @RateLimiting(
+            name = "delete_document_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> deleteDocument(
             @PathVariable UUID documentId,
             @AuthenticationPrincipal Jwt jwt

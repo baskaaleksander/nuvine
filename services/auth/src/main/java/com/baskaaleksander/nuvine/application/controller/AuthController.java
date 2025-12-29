@@ -2,17 +2,16 @@ package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.service.AuthService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -24,14 +23,26 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
+    @RateLimiting(
+            name = "register_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<UserResponse> registerUser(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid RegisterRequest request
     ) {
         return ResponseEntity.status(CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
+    @RateLimiting(
+            name = "login_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<TokenResponse> loginUser(
+            HttpServletRequest httpRequest,
             @RequestBody @Valid LoginRequest request
     ) {
         var tokenRes = authService.login(request);
@@ -55,7 +66,13 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @RateLimiting(
+            name = "refresh_token_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<TokenResponse> refreshToken(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String refreshToken
     ) {
         var tokenRes = authService.refreshToken(refreshToken);
@@ -84,7 +101,13 @@ public class AuthController {
     }
 
     @PatchMapping("/me")
+    @RateLimiting(
+            name = "profile_update_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<MeResponse> updateMe(
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody @Valid UpdateMeRequest request
     ) {
@@ -92,7 +115,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @RateLimiting(
+            name = "logout_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> logout(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
@@ -112,7 +141,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout-all")
+    @RateLimiting(
+            name = "logout_limit",
+            cacheKey = "@rateLimitHelper.getClientIP(#httpRequest)",
+            ratePerMethod = true
+    )
     public ResponseEntity<Void> logoutAll(
+            HttpServletRequest httpRequest,
             @CookieValue("refresh_token") String token
     ) {
 
@@ -131,11 +166,4 @@ public class AuthController {
                 .build();
     }
 
-    @GetMapping("/test")
-    public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt, Authentication auth) {
-        return Map.of(
-                "jwt_roles", jwt.getClaim("realm_access"),
-                "authorities", auth.getAuthorities()
-        );
-    }
 }

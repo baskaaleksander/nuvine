@@ -14,6 +14,15 @@ s3:
   webhook:
     secret: ${MINIO_WEBHOOK_SECRET}
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   cloud:
     openfeign:
       okhttp:
@@ -21,3 +30,22 @@ spring:
 
 server:
   port: 8070
+
+bucket4j:
+  enabled: true
+  cache-to-use: jcache
+  methods:
+    - name: download_limit
+      cache-name: file-storage-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 10
+            time: 5
+            unit: minutes
+    - name: upload_limit
+      cache-name: file-storage-service-buckets
+      rate-limit:
+        bandwidths:
+          - capacity: 5
+            time: 5
+            unit: minutes
