@@ -90,3 +90,23 @@ bucket4j:
             - capacity: 100
               time: 1
               unit: hours
+    - name: document_upload_completed_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        - bandwidths:
+            - capacity: 10
+              time: 1
+              unit: minutes
+            - capacity: 100
+              time: 1
+              unit: hours
+    - name: document_status_update_internal_limit
+      cache-name: workspace-service-buckets
+      rate-limit:
+        - bandwidths:
+            - capacity: 10
+              time: 1
+              unit: minutes
+            - capacity: 100
+              time: 1
+              unit: hours

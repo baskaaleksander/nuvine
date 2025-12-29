@@ -4,6 +4,7 @@ import com.baskaaleksander.nuvine.application.dto.DocumentInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.UpdateDocumentStatusRequest;
 import com.baskaaleksander.nuvine.application.dto.UploadCompletedRequest;
 import com.baskaaleksander.nuvine.domain.service.DocumentInternalService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,11 @@ public class DocumentInternalController {
 
     @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @PatchMapping("/{documentId}/upload-completed")
+    @RateLimiting(
+            name = "document_upload_completed_limit",
+            cacheKey = "#documentId",
+            ratePerMethod = true
+    )
     public ResponseEntity<DocumentInternalResponse> uploadCompleted(
             @RequestBody @Valid UploadCompletedRequest request,
             @PathVariable UUID documentId
@@ -43,6 +49,11 @@ public class DocumentInternalController {
 
     @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     @PatchMapping("/{documentId}/status")
+    @RateLimiting(
+            name = "document_status_update_internal_limit",
+            cacheKey = "#documentId",
+            ratePerMethod = true
+    )
     public ResponseEntity<DocumentInternalResponse> updateStatus(
             @RequestBody @Valid UpdateDocumentStatusRequest request,
             @PathVariable UUID documentId
