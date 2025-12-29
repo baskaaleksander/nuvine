@@ -2,6 +2,8 @@ package com.baskaaleksander.nuvine.infrastructure.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.Codec;
+import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
 import org.redisson.jcache.configuration.RedissonConfiguration;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,9 +36,15 @@ public class CacheConfiguration {
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();
+
+        Codec jsonCodec = new JsonJacksonCodec();
+
+
         config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
                 .setPassword(redisPassword);
+
+        config.setCodec(jsonCodec);
         return Redisson.create(config);
     }
 
@@ -46,19 +54,33 @@ public class CacheConfiguration {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
+        MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 2);
+
+        createCache(manager, redissonClient, "auth-service-buckets", rateBucketConfig);
+
+        return manager;
+    }
+
+    private MutableConfiguration<String, Object> createConfig(
+            TimeUnit timeUnit,
+            long timeDuration
+    ) {
         MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
         configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.HOURS, 2)))
+                        new Duration(timeUnit, timeDuration)))
                 .setStatisticsEnabled(true);
 
-        if (manager.getCache("auth-service-buckets") != null) {
-            manager.destroyCache("auth-service-buckets");
+        return configuration;
+    }
+
+    private void createCache(CacheManager manager, RedissonClient redissonClient,
+                             String cacheName, MutableConfiguration<String, Object> config) {
+        if (manager.getCache(cacheName) != null) {
+            manager.destroyCache(cacheName);
         }
 
-        manager.createCache("auth-service-buckets",
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
-
-        return manager;
+        manager.createCache(cacheName,
+                RedissonConfiguration.fromInstance(redissonClient, config));
     }
 }
