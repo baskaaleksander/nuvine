@@ -5,6 +5,7 @@ import com.baskaaleksander.nuvine.application.dto.CustomerPortalSessionResponse;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionRequest;
 import com.baskaaleksander.nuvine.application.dto.PaymentSessionResponse;
 import com.baskaaleksander.nuvine.domain.service.SubscriptionService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,11 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
 
     @PostMapping("/payment-session")
+    @RateLimiting(
+            name = "payment_session_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<PaymentSessionResponse> createPaymentSession(
             @RequestBody @Valid PaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt
@@ -40,6 +46,11 @@ public class SubscriptionController {
     }
 
     @PostMapping("/customer-portal-session")
+    @RateLimiting(
+            name = "customer_portal_limit",
+            cacheKey = "@jwt.getSubject()",
+            ratePerMethod = true
+    )
     public ResponseEntity<CustomerPortalSessionResponse> createCustomerPortalSession(
             @RequestBody @Valid CustomerPortalSessionRequest request,
             @AuthenticationPrincipal Jwt jwt
