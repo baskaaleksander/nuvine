@@ -44,6 +44,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRegisteredEventProducer userRegisteredEventProducer;
     private final EmailVerificationTokenGenerationService tokenGenerationService;
+    private final UserCacheService cacheService;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -293,6 +294,7 @@ public class AuthService {
 
         log.info("UPDATE_ME SUCCESS email={}", MaskingUtil.maskEmail(jwt.getClaimAsString("email")));
 
+        cacheService.evictUserInternalByEmail(user.getEmail());
         return getMe(jwt);
     }
 }

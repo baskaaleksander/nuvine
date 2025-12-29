@@ -131,6 +131,7 @@ public class EmailVerificationService {
                 MaskingUtil.maskEmail(oldEmail),
                 MaskingUtil.maskEmail(newEmail)
         );
+        cacheService.evictUserInternalByEmail(oldEmail);
         cacheService.evictUserById(user.getId());
     }
 

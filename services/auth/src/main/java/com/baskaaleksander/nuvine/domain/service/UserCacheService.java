@@ -21,6 +21,10 @@ public class UserCacheService {
         evict("users-admin", key);
     }
 
+    public void evictUserInternalByEmail(String email) {
+        evict("users-internal", email);
+    }
+
     private void evict(String cacheName, String key) {
         Cache<String, Object> cache = cacheManager.getCache(cacheName);
         if (cache != null) {

@@ -108,6 +108,7 @@ public class UserService {
         );
     }
 
+    @Cacheable(value = "users-internal", key = "#email")
     public UserInternalResponse checkInternalUserByEmail(String email) {
         log.info("GET_USER_INTERNAL_BY_EMAIL START");
         User user = userRepository.findByEmail(email)
