@@ -49,14 +49,14 @@ public class CacheConfiguration {
         MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
         configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.HOURS, 1)))
+                        new Duration(TimeUnit.HOURS, 2)))
                 .setStatisticsEnabled(true);
 
-        if (manager.getCache("file-storage-service-buckets") != null) {
-            manager.destroyCache("file-storage-service-buckets");
+        if (manager.getCache("workspace-service-buckets") != null) {
+            manager.destroyCache("workspace-service-buckets");
         }
 
-        manager.createCache("file-storage-service-buckets",
+        manager.createCache("workspace-service-buckets",
                 RedissonConfiguration.fromInstance(redissonClient, configuration));
 
         return manager;
