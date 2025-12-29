@@ -1,11 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.application.dto.KeycloakTokenResponse;
-import com.baskaaleksander.nuvine.application.dto.LoginRequest;
-import com.baskaaleksander.nuvine.application.dto.MeResponse;
-import com.baskaaleksander.nuvine.application.dto.RegisterRequest;
-import com.baskaaleksander.nuvine.application.dto.UpdateMeRequest;
-import com.baskaaleksander.nuvine.application.dto.UserResponse;
+import com.baskaaleksander.nuvine.application.dto.*;
 import com.baskaaleksander.nuvine.domain.exception.EmailExistsException;
 import com.baskaaleksander.nuvine.domain.exception.InvalidTokenException;
 import com.baskaaleksander.nuvine.domain.exception.TokenNotFoundException;
@@ -17,17 +12,12 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.UserRegisteredEventPr
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.RefreshTokenRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.UserRepository;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.resource.RealmResource;
-import org.keycloak.admin.client.resource.RoleMappingResource;
-import org.keycloak.admin.client.resource.RoleResource;
-import org.keycloak.admin.client.resource.RoleScopeResource;
-import org.keycloak.admin.client.resource.RolesResource;
-import org.keycloak.admin.client.resource.UserResource;
-import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.MappingsRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -39,7 +29,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -47,18 +36,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -95,6 +76,8 @@ class AuthServiceTest {
     private RoleRepresentation roleRepresentation;
     @Mock
     private Response keycloakResponse;
+    @Mock
+    private UserCacheService cacheService;
 
     @InjectMocks
     private AuthService authService;
@@ -105,6 +88,7 @@ class AuthServiceTest {
     private static final String REALM = "test-realm";
     private UserResponse keycloakUserResponse;
     private KeycloakTokenResponse loginResponse;
+    private Jwt jwt;
 
     @BeforeEach
     void setUp() {
@@ -124,6 +108,10 @@ class AuthServiceTest {
                 registerRequest.lastName(),
                 registerRequest.email(),
                 List.of("ROLE_USER"));
+        jwt = Jwt.withTokenValue("token")
+                .subject("test123")
+                .header("alg", "none")
+                .claim("email", "email@example.com").build();
         ReflectionTestUtils.setField(authService, "realm", REALM);
     }
 
@@ -244,7 +232,7 @@ class AuthServiceTest {
     void logoutAllDoesNothingWhenTokenMissing() {
         when(refreshTokenRepository.findByToken("token")).thenReturn(Optional.empty());
 
-        authService.logoutAll("token");
+        authService.logoutAll("token", jwt);
 
         verify(refreshTokenRepository, never()).revokeAllTokensByEmail(anyString());
     }
@@ -257,18 +245,18 @@ class AuthServiceTest {
                 .build();
         when(refreshTokenRepository.findByToken("token")).thenReturn(Optional.of(stored));
 
-        authService.logoutAll("token");
+        authService.logoutAll("token", jwt);
 
         verify(refreshTokenRepository).revokeAllTokensByEmail(userEntity.getEmail());
     }
 
     @Test
     void logoutRevokesTokenAndSwallowsErrors() {
-        authService.logout("token");
+        authService.logout("token", jwt);
         verify(refreshTokenRepository).revokeToken("token");
 
         doThrow(new RuntimeException("error")).when(refreshTokenRepository).revokeToken("token");
-        assertDoesNotThrow(() -> authService.logout("token"));
+        assertDoesNotThrow(() -> authService.logout("token", jwt));
     }
 
     @Test

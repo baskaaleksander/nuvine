@@ -1,10 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
-import com.baskaaleksander.nuvine.domain.exception.EmailVerificationTokenNotFoundException;
-import com.baskaaleksander.nuvine.domain.exception.InvalidCredentialsException;
-import com.baskaaleksander.nuvine.domain.exception.InvalidEmailVerificationTokenException;
-import com.baskaaleksander.nuvine.domain.exception.UserConflictException;
-import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
+import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.EmailVerificationToken;
 import com.baskaaleksander.nuvine.domain.model.User;
 import com.baskaaleksander.nuvine.infrastructure.config.KeycloakClientProvider;
@@ -30,17 +26,10 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceTest {
@@ -65,6 +54,8 @@ class EmailVerificationServiceTest {
     private UserResource userResource;
     @Mock
     private UserRepresentation userRepresentation;
+    @Mock
+    private UserCacheService cacheService;
 
     @InjectMocks
     private EmailVerificationService emailVerificationService;
@@ -118,7 +109,7 @@ class EmailVerificationServiceTest {
         verify(eventProducer).sendEmailVerificationEvent(eventCaptor.capture());
         EmailVerificationEvent event = eventCaptor.getValue();
         assertEquals(email, event.email());
-        assertEquals(token.toString(), event.token());
+        assertEquals(token.getToken(), event.token());
         assertEquals(user.getId().toString(), event.userId());
     }
 
