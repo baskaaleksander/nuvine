@@ -15,6 +15,7 @@ import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final ProjectRepository projectRepository;
     private final DocumentMapper documentMapper;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
     public DocumentPublicResponse createDocument(String name, UUID userId, UUID projectId) {
         log.info("CREATE_DOCUMENT START projectId={}", projectId);
@@ -76,6 +78,7 @@ public class DocumentService {
         );
     }
 
+    @Cacheable(value = "entity-document", key = "#documentId.toString()")
     public DocumentPublicResponse getDocument(UUID documentId) {
         log.info("GET_DOCUMENT START documentId={}", documentId);
 
@@ -116,6 +119,7 @@ public class DocumentService {
 
         document.setName(name);
         Document documentSaved = documentRepository.save(document);
+        entityCacheEvictionService.evictDocument(documentId);
         log.info("UPDATE_DOCUMENT END documentId={}", documentId);
 
         return documentMapper.toDocumentResponse(documentSaved);
@@ -137,7 +141,8 @@ public class DocumentService {
 
         document.setDeleted(true);
         documentRepository.save(document);
-        
+        entityCacheEvictionService.evictDocument(documentId);
+
         log.info("DELETE_DOCUMENT END documentId={}", documentId);
     }
 }
