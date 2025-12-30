@@ -15,6 +15,7 @@ import java.util.UUID;
 public class DocumentStatusOrchestrator {
 
     private final DocumentRepository documentRepository;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
     public void handleDocumentIngestionCompleted(String documentId) {
         log.info("DOCUMENT_INGESTION_COMPLETED_EVENT received documentId={}", documentId);
@@ -28,5 +29,6 @@ public class DocumentStatusOrchestrator {
         document.setStatus(DocumentStatus.PROCESSED);
 
         documentRepository.save(document);
+        entityCacheEvictionService.evictDocument(UUID.fromString(documentId));
     }
 }
