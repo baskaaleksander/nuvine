@@ -13,10 +13,13 @@ import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobReposito
 import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobSpec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import static com.baskaaleksander.nuvine.infrastructure.config.CacheConfiguration.INGESTION_JOB_CACHE;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +62,7 @@ public class IngestionInternalService {
         );
     }
 
+    @Cacheable(cacheNames = INGESTION_JOB_CACHE, key = "#docId.toString()")
     public IngestionJobResponse getJobByDocId(UUID docId) {
         log.info("GET_JOB_BY_DOC_ID START docId={}", docId);
         IngestionJob job = ingestionJobRepository.findByDocumentId(docId)

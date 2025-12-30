@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.infrastructure.messaging.in;
 import com.baskaaleksander.nuvine.domain.exception.IngestionJobNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
+import com.baskaaleksander.nuvine.domain.service.IngestionJobCacheService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class DocumentUploadDlqConsumer {
 
     private final IngestionJobRepository jobRepository;
+    private final IngestionJobCacheService ingestionJobCacheService;
 
     @KafkaListener(
             topics = "${topics.document-uploaded-topic}.DLT"
@@ -40,6 +42,8 @@ public class DocumentUploadDlqConsumer {
         job.setLastError("FAILED_AFTER_MAX_RETRIES (attempts=" + deliveryAttempt + ")");
 
         jobRepository.save(job);
+
+        ingestionJobCacheService.evictByDocumentId(documentId);
 
         log.error(
                 "INGESTION_PROCESS PERMANENT_FAILURE documentId={} originalTopic={} partition={} offset={} attempts={}",

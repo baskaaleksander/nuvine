@@ -26,6 +26,7 @@ public class IngestionService {
     private final ExtractionService extractionService;
     private final ChunkerService chunkerService;
     private final VectorProcessingEventProducer vectorProcessingEventProducer;
+    private final IngestionJobCacheService ingestionJobCacheService;
 
     public void process(DocumentUploadedEvent event) {
         IngestionJob job = createIngestionJob(event);
@@ -114,6 +115,8 @@ public class IngestionService {
         job.setVersion(savedJob.getVersion());
         job.setUpdatedAt(savedJob.getUpdatedAt());
 
+        ingestionJobCacheService.evictByDocumentId(job.getDocumentId());
+
         return savedJob;
     }
 
@@ -122,6 +125,8 @@ public class IngestionService {
         IngestionJob savedJob = ingestionJobRepository.save(job);
 
         job.setVersion(savedJob.getVersion());
+
+        ingestionJobCacheService.evictByDocumentId(job.getDocumentId());
 
         return savedJob;
     }
@@ -136,6 +141,8 @@ public class IngestionService {
         }
 
         ingestionJobRepository.save(job);
+
+        ingestionJobCacheService.evictByDocumentId(job.getDocumentId());
     }
 
     private <T> T executeStage(
