@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.out.DocumentUploadedE
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -22,7 +23,9 @@ public class DocumentInternalService {
     private final DocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
     private final DocumentUploadedEventProducer eventProducer;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
+    @Cacheable(value = "entity-document-internal", key = "#id.toString()")
     public DocumentInternalResponse getDocumentById(UUID id) {
         Document document = documentRepository.findById(id).orElseThrow(() -> new DocumentNotFoundException("Document not found"));
         if (document.isDeleted()) {
@@ -46,6 +49,7 @@ public class DocumentInternalService {
         document.setSizeBytes(sizeBytes);
         document.setStatus(DocumentStatus.UPLOADED);
         documentRepository.save(document);
+        entityCacheEvictionService.evictDocument(documentId);
 
         eventProducer.sendDocumentUploadedEvent(
                 new DocumentUploadedEvent(
@@ -73,6 +77,7 @@ public class DocumentInternalService {
 
         document.setStatus(status);
         documentRepository.save(document);
+        entityCacheEvictionService.evictDocument(documentId);
         return documentMapper.toInternalResponse(document);
     }
 }
