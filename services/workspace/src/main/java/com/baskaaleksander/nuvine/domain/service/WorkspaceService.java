@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class WorkspaceService {
     private final WorkspaceMapper workspaceMapper;
     private final WorkspaceMemberMapper workspaceMemberMapper;
     private final AuthClient authClient;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
     public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId, String ownerEmail) {
 
@@ -103,6 +105,7 @@ public class WorkspaceService {
         );
     }
 
+    @Cacheable(value = "entity-workspace", key = "#workspaceId.toString()")
     public WorkspaceResponseWithStats getWorkspace(UUID workspaceId) {
         log.info("GET_WORKSPACE START workspaceId={}", workspaceId);
         Workspace workspace = workspaceRepository.findById(workspaceId)
@@ -156,9 +159,12 @@ public class WorkspaceService {
 
         workspaceRepository.updateWorkspaceName(workspaceId, name);
 
+        entityCacheEvictionService.evictWorkspace(workspaceId);
+
         log.info("UPDATE_WORKSPACE SUCCESS workspaceId={}", workspaceId);
     }
 
+    @Cacheable(value = "entity-workspace-member", key = "#workspaceId.toString() + ':' + #userId.toString()")
     public WorkspaceMemberResponse getSelfWorkspaceMember(UUID workspaceId, UUID userId) {
         log.info("GET_SELF_WORKSPACE_MEMBER START workspaceId={} userId={}", workspaceId, userId);
         WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
@@ -187,5 +193,7 @@ public class WorkspaceService {
         workspaceMemberRepository.deleteAllMembersByWorkspaceId(workspaceId);
 
         workspaceRepository.deleteWorkspace(workspaceId);
+
+        entityCacheEvictionService.evictWorkspace(workspaceId);
     }
 }

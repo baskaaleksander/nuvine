@@ -107,6 +107,11 @@
             <artifactId>bucket4j-spring-boot-starter</artifactId>
             <version>0.13.0</version>
         </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>3.0.3</version>
+        </dependency>
 
         <!-- Actuator -->
         <dependency>

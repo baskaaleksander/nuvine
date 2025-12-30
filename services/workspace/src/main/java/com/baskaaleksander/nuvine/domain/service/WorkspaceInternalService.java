@@ -8,6 +8,7 @@ import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepos
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -19,7 +20,9 @@ public class WorkspaceInternalService {
 
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
+    @Cacheable(value = "entity-workspace-subscription", key = "#workspaceId.toString()")
     public WorkspaceInternalSubscriptionResponse getWorkspaceSubscription(UUID workspaceId) {
         log.info("GET_WORKSPACE_INTERNAL START workspaceId={}", workspaceId);
         var workspace = workspaceRepository.findById(workspaceId)
@@ -54,5 +57,7 @@ public class WorkspaceInternalService {
 
         workspace.setBillingTier(BillingTier.fromString(billingTierCode));
         workspaceRepository.save(workspace);
+
+        entityCacheEvictionService.evictWorkspace(workspaceId);
     }
 }

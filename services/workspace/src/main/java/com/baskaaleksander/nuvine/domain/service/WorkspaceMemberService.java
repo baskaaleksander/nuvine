@@ -19,6 +19,7 @@ import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepos
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,8 @@ public class WorkspaceMemberService {
     private final WorkspaceMemberAddedEventProducer workspaceMemberAddedEventProducer;
     private final WorkspaceMemberInvitedEventProducer workspaceMemberInvitedEventProducer;
     private final WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
+    private final AccessCacheEvictionService accessCacheEvictionService;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
     public WorkspaceMembersResponse getWorkspaceMembers(UUID workspaceId) {
 
@@ -81,6 +84,9 @@ public class WorkspaceMemberService {
                 workspaceMemberRepository.updateDeletedById(existing.getId(), false);
                 workspaceMemberRepository.updateMemberRole(userId, workspaceId, role);
 
+                accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, userId);
+                entityCacheEvictionService.evictWorkspaceMember(workspaceId, userId);
+
                 log.info("ADD_WORKSPACE_MEMBER REACTIVATED workspaceId={}, userId={}, role={}", workspaceId, userId, role);
                 return;
             }
@@ -106,6 +112,9 @@ public class WorkspaceMemberService {
                         role.toString()
                 )
         );
+
+        accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, userId);
+        entityCacheEvictionService.evictWorkspaceMember(workspaceId, userId);
 
         log.info("ADD_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
@@ -139,6 +148,11 @@ public class WorkspaceMemberService {
 
             workspaceMemberRepository.updateMemberRole(userId, workspaceId, WorkspaceRole.OWNER);
             workspaceMemberRepository.updateMemberRole(ownerId, workspaceId, WorkspaceRole.MODERATOR);
+
+            accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, userId);
+            accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, ownerId);
+            entityCacheEvictionService.evictWorkspaceMember(workspaceId, userId);
+            entityCacheEvictionService.evictWorkspaceMember(workspaceId, ownerId);
         } else {
             if (member.getRole() == WorkspaceRole.OWNER) {
                 log.info("UPDATE_WORKSPACE_MEMBER_ROLE FAILED reason=owner_cannot_be_downgraded workspaceId={}, userId={}", workspaceId, userId);
@@ -149,6 +163,9 @@ public class WorkspaceMemberService {
                 throw new WorkspaceRoleConflictException("Cannot assign same role");
             }
             workspaceMemberRepository.updateMemberRole(userId, workspaceId, role);
+
+            accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, userId);
+            entityCacheEvictionService.evictWorkspaceMember(workspaceId, userId);
         }
 
         log.info("UPDATE_WORKSPACE_MEMBER_ROLE END workspaceId={}", workspaceId);
@@ -176,9 +193,13 @@ public class WorkspaceMemberService {
 
         workspaceMemberRepository.updateDeletedById(existing.getId(), true);
 
+        accessCacheEvictionService.evictAccessForUserInWorkspace(workspaceId, userId);
+        entityCacheEvictionService.evictWorkspaceMember(workspaceId, userId);
+
         log.info("REMOVE_WORKSPACE_MEMBER END workspaceId={}, userId={}", workspaceId, userId);
     }
 
+    @Cacheable(value = "entity-workspace-member", key = "#workspaceId.toString() + ':' + #uuid.toString()")
     public WorkspaceMemberResponse getWorkspaceMember(UUID workspaceId, UUID uuid) {
         return workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, uuid)
                 .map(workspaceMemberMapper::toWorkspaceMemberResponse)
