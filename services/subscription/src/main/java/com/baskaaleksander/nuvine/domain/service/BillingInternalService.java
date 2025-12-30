@@ -7,8 +7,6 @@ import com.baskaaleksander.nuvine.domain.exception.PlanNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.persistence.LlmModelRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionUsageCounterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +25,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BillingInternalService {
     private final LlmModelRepository llmModelRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final PlanRepository planRepository;
+    private final SubscriptionCacheService subscriptionCacheService;
+    private final PlanService planService;
     private final SubscriptionUsageCounterRepository usageCounterRepository;
     private final ModelPricingService modelPricingService;
 
@@ -49,13 +47,13 @@ public class BillingInternalService {
                         "Model not found: " + request.providerKey() + ":" + request.modelKey()
                 ));
 
-        Subscription subscription = subscriptionRepository
+        Subscription subscription = subscriptionCacheService
                 .findByWorkspaceId(request.workspaceId())
                 .orElseThrow(() -> new SubscriptionNotFoundException(
                         "Subscription not found for workspace: " + request.workspaceId()
                 ));
 
-        Plan plan = planRepository
+        Plan plan = planService
                 .findById(subscription.getPlanId())
                 .orElseThrow(() -> new PlanNotFoundException(
                         "Plan not found: " + subscription.getPlanId()
@@ -159,7 +157,7 @@ public class BillingInternalService {
 
     @Transactional
     public void releaseReservation(UUID workspaceId, BigDecimal amount) {
-        Subscription subscription = subscriptionRepository
+        Subscription subscription = subscriptionCacheService
                 .findByWorkspaceId(workspaceId)
                 .orElseThrow();
 

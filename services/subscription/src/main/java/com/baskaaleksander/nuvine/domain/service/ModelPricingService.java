@@ -8,6 +8,7 @@ import com.baskaaleksander.nuvine.domain.model.ModelPricing;
 import com.baskaaleksander.nuvine.infrastructure.persistence.LlmModelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,12 +24,14 @@ public class ModelPricingService {
     private final LlmModelRepository llmModelRepository;
     private final ModelPricingMapper modelPricingMapper;
 
+    @Cacheable(cacheNames = "model-pricing", key = "#providerKey + ':' + #modelKey")
     public ModelPricing getModelPricing(String modelKey, String providerKey) {
         return llmModelRepository.findActiveModel(providerKey, modelKey, Instant.now())
                 .map(LlmModel::getPricing)
                 .orElseThrow(() -> new ModelNotFoundException("Model not found"));
     }
 
+    @Cacheable(cacheNames = "all-active-models", key = "'all'")
     public List<ModelPricingResponse> getAllActivePricing() {
         return llmModelRepository.findAllActiveModels(Instant.now())
                 .stream()

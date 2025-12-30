@@ -6,11 +6,9 @@ import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
 import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.*;
-import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -38,10 +36,10 @@ import java.util.UUID;
 public class SubscriptionService {
 
     private final StripeClient stripeClient;
-    private final PlanRepository planRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final AuthServiceClient authServiceClient;
-    private final WorkspaceServiceClient workspaceServiceClient;
+    private final PlanService planService;
+    private final SubscriptionCacheService subscriptionCacheService;
+    private final AuthServiceCacheWrapper authServiceCacheWrapper;
+    private final WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
     private final PaymentSessionRepository paymentSessionRepository;
 
     @Value("${stripe.success-url}")
@@ -59,7 +57,7 @@ public class SubscriptionService {
             throw new ForbiddenAccessException("User is not the owner");
         }
 
-        Subscription subscription = subscriptionRepository
+        Subscription subscription = subscriptionCacheService
                 .findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new SubscriptionNotFoundException("Subscription not found"));
 
@@ -94,9 +92,9 @@ public class SubscriptionService {
             return new PaymentSessionResponse(paymentSession.getStripeUrl(), paymentSession.getStripeSessionId());
         }
 
-        var plan = planRepository.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
+        var plan = planService.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
 
-        var subscription = subscriptionRepository.findByWorkspaceId(workspaceId).orElse(null);
+        var subscription = subscriptionCacheService.findByWorkspaceId(workspaceId).orElse(null);
 
         if (intent == PaymentSessionIntent.SUBSCRIPTION_CREATE && subscription != null) {
             throw new SubscriptionConflictException("Subscription already exists");
@@ -251,7 +249,7 @@ public class SubscriptionService {
 
     private WorkspaceInternalSubscriptionResponse searchWorkspace(UUID workspaceId) {
         try {
-            return workspaceServiceClient.getWorkspaceSubscription(workspaceId);
+            return workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {
@@ -268,7 +266,7 @@ public class SubscriptionService {
 
     private UserInternalResponse searchUser(UUID userId) {
         try {
-            return authServiceClient.getUserInternalResponse(userId);
+            return authServiceCacheWrapper.getUserInternalResponse(userId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {

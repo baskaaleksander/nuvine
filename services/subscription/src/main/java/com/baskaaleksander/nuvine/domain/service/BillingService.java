@@ -6,7 +6,9 @@ import com.baskaaleksander.nuvine.application.pagination.PaginationUtil;
 import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.PlanNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
-import com.baskaaleksander.nuvine.infrastructure.persistence.*;
+import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentRepository;
+import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionUsageCounterRepository;
+import com.baskaaleksander.nuvine.infrastructure.persistence.UsageLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,8 +26,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BillingService {
 
-    private final SubscriptionRepository subscriptionRepository;
-    private final PlanRepository planRepository;
+    private final SubscriptionCacheService subscriptionCacheService;
+    private final PlanService planService;
     private final SubscriptionUsageCounterRepository usageCounterRepository;
     private final UsageLogRepository usageLogRepository;
     private final PaymentRepository paymentRepository;
@@ -36,11 +38,11 @@ public class BillingService {
         log.info("GET_SUBSCRIPTION_STATUS START workspaceId={}", workspaceId);
 
         try {
-            Subscription subscription = subscriptionRepository.findByWorkspaceId(workspaceId)
+            Subscription subscription = subscriptionCacheService.findByWorkspaceId(workspaceId)
                     .orElseThrow(() -> new SubscriptionNotFoundException(
                             "No subscription found for workspace: " + workspaceId));
 
-            Plan plan = planRepository.findById(subscription.getPlanId())
+            Plan plan = planService.findById(subscription.getPlanId())
                     .orElseThrow(() -> new PlanNotFoundException(
                             "Plan not found: " + subscription.getPlanId()));
 

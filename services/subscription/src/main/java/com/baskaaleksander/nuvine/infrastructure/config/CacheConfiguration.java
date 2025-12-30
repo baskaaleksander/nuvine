@@ -46,19 +46,44 @@ public class CacheConfiguration {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
-        MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
-        configuration.setStoreByValue(false)
-                .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.HOURS, 1)))
-                .setStatisticsEnabled(true);
+        MutableConfiguration<String, Object> configuration = createConfig(TimeUnit.HOURS, 1);
+        MutableConfiguration<String, Object> modelPricingConfig = createConfig(TimeUnit.MINUTES, 30);
+        MutableConfiguration<String, Object> subscriptionConfig = createConfig(TimeUnit.SECONDS, 30);
+        MutableConfiguration<String, Object> externalServiceConfig = createConfig(TimeUnit.MINUTES, 5);
+        MutableConfiguration<String, Object> keycloakTokenConfig = createConfig(TimeUnit.MINUTES, 4);
 
-        if (manager.getCache("subscription-service-buckets") != null) {
-            manager.destroyCache("subscription-service-buckets");
-        }
-
-        manager.createCache("subscription-service-buckets",
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
+        createCache(manager, redissonClient, "subscription-service-buckets", configuration);
+        createCache(manager, redissonClient, "model-pricing", modelPricingConfig);
+        createCache(manager, redissonClient, "all-active-models", modelPricingConfig);
+        createCache(manager, redissonClient, "plans", configuration);
+        createCache(manager, redissonClient, "subscriptions", subscriptionConfig);
+        createCache(manager, redissonClient, "users", externalServiceConfig);
+        createCache(manager, redissonClient, "workspaces", externalServiceConfig);
+        createCache(manager, redissonClient, "keycloak-tokens", keycloakTokenConfig);
 
         return manager;
+    }
+
+    private MutableConfiguration<String, Object> createConfig(
+            TimeUnit timeUnit,
+            long timeDuration
+    ) {
+        MutableConfiguration<String, Object> config = new MutableConfiguration<>();
+        config.setStoreByValue(false)
+                .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
+                        new Duration(timeUnit, timeDuration)))
+                .setStatisticsEnabled(true);
+
+        return config;
+    }
+
+    private void createCache(CacheManager manager, RedissonClient redissonClient,
+                             String cacheName, MutableConfiguration<String, Object> config) {
+        if (manager.getCache(cacheName) != null) {
+            manager.destroyCache(cacheName);
+        }
+
+        manager.createCache(cacheName,
+                RedissonConfiguration.fromInstance(redissonClient, config));
     }
 }
