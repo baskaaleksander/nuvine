@@ -25,6 +25,7 @@ public class KeycloakClientCredentialsTokenProvider {
     private String cachedToken;
     private long expiresAt = 0;
 
+    // todo: cache this
     public synchronized String getAccessToken() {
         long now = System.currentTimeMillis();
 
