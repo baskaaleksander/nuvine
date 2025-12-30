@@ -46,19 +46,33 @@ public class CacheConfiguration {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
+        MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.DAYS, 2);
+
+        createCache(manager, redissonClient, "chat-service-buckets", rateBucketConfig);
+
+        return manager;
+    }
+
+    private MutableConfiguration<String, Object> createConfig(
+            TimeUnit timeUnit,
+            long timeDuration
+    ) {
         MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
         configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.DAYS, 2)))
+                        new Duration(timeUnit, timeDuration)))
                 .setStatisticsEnabled(true);
 
-        if (manager.getCache("chat-service-buckets") != null) {
-            manager.destroyCache("chat-service-buckets");
+        return configuration;
+    }
+
+    private void createCache(CacheManager manager, RedissonClient redissonClient,
+                             String cacheName, MutableConfiguration<String, Object> config) {
+        if (manager.getCache(cacheName) != null) {
+            manager.destroyCache(cacheName);
         }
 
-        manager.createCache("chat-service-buckets",
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
-
-        return manager;
+        manager.createCache(cacheName,
+                RedissonConfiguration.fromInstance(redissonClient, config));
     }
 }
