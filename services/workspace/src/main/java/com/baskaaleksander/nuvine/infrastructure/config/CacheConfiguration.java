@@ -46,19 +46,37 @@ public class CacheConfiguration {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
-        MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
-        configuration.setStoreByValue(false)
-                .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.HOURS, 2)))
-                .setStatisticsEnabled(true);
+        MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 2);
 
         if (manager.getCache("workspace-service-buckets") != null) {
             manager.destroyCache("workspace-service-buckets");
         }
 
-        manager.createCache("workspace-service-buckets",
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
+        createCache(manager, redissonClient, "workspace-service-buckets", rateBucketConfig);
 
         return manager;
+    }
+
+    private MutableConfiguration<String, Object> createConfig(
+            TimeUnit timeUnit,
+            long timeDuration
+    ) {
+        MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
+        configuration.setStoreByValue(false)
+                .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
+                        new Duration(timeUnit, timeDuration)))
+                .setStatisticsEnabled(true);
+
+        return configuration;
+    }
+
+    private void createCache(CacheManager manager, RedissonClient redissonClient,
+                             String cacheName, MutableConfiguration<String, Object> config) {
+        if (manager.getCache(cacheName) != null) {
+            manager.destroyCache(cacheName);
+        }
+
+        manager.createCache(cacheName,
+                RedissonConfiguration.fromInstance(redissonClient, config));
     }
 }
