@@ -6,8 +6,8 @@ import com.baskaaleksander.nuvine.application.dto.UserInternalResponse;
 import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionResponse;
 import com.baskaaleksander.nuvine.domain.exception.*;
 import com.baskaaleksander.nuvine.domain.model.*;
-import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
@@ -38,8 +38,8 @@ public class SubscriptionService {
     private final StripeClient stripeClient;
     private final PlanService planService;
     private final SubscriptionCacheService subscriptionCacheService;
-    private final AuthServiceClient authServiceClient;
-    private final WorkspaceServiceClient workspaceServiceClient;
+    private final AuthServiceCacheWrapper authServiceCacheWrapper;
+    private final WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
     private final PaymentSessionRepository paymentSessionRepository;
 
     @Value("${stripe.success-url}")
@@ -249,7 +249,7 @@ public class SubscriptionService {
 
     private WorkspaceInternalSubscriptionResponse searchWorkspace(UUID workspaceId) {
         try {
-            return workspaceServiceClient.getWorkspaceSubscription(workspaceId);
+            return workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {
@@ -266,7 +266,7 @@ public class SubscriptionService {
 
     private UserInternalResponse searchUser(UUID userId) {
         try {
-            return authServiceClient.getUserInternalResponse(userId);
+            return authServiceCacheWrapper.getUserInternalResponse(userId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {

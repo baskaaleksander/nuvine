@@ -49,12 +49,15 @@ public class CacheConfiguration {
         MutableConfiguration<String, Object> configuration = createConfig(TimeUnit.HOURS, 1);
         MutableConfiguration<String, Object> modelPricingConfig = createConfig(TimeUnit.MINUTES, 30);
         MutableConfiguration<String, Object> subscriptionConfig = createConfig(TimeUnit.SECONDS, 30);
+        MutableConfiguration<String, Object> externalServiceConfig = createConfig(TimeUnit.MINUTES, 5);
 
         createCache(manager, redissonClient, "subscription-service-buckets", configuration);
         createCache(manager, redissonClient, "model-pricing", modelPricingConfig);
         createCache(manager, redissonClient, "all-active-models", modelPricingConfig);
         createCache(manager, redissonClient, "plans", configuration);
         createCache(manager, redissonClient, "subscriptions", subscriptionConfig);
+        createCache(manager, redissonClient, "users", externalServiceConfig);
+        createCache(manager, redissonClient, "workspaces", externalServiceConfig);
 
         return manager;
     }

@@ -6,8 +6,8 @@ import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionR
 import com.baskaaleksander.nuvine.domain.exception.UserNotFoundException;
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
-import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentRepository;
@@ -36,11 +36,11 @@ public class WebhookService {
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionCacheService subscriptionCacheService;
     private final PaymentSessionRepository paymentSessionRepository;
-    private final WorkspaceServiceClient workspaceServiceClient;
+    private final WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
     private final PaymentRepository paymentRepository;
     private final PlanService planService;
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
-    private final AuthServiceClient authServiceClient;
+    private final AuthServiceCacheWrapper authServiceCacheWrapper;
     private final StripeClient stripeClient;
 
 
@@ -310,7 +310,7 @@ public class WebhookService {
             subscriptionRepository.save(existingSubscription);
             subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
-            workspaceServiceClient.updateWorkspaceBillingTier(
+            workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
                     new WorkspaceBillingTierUpdateRequest("FREE")
             );
@@ -371,7 +371,7 @@ public class WebhookService {
                     return;
                 }
 
-                workspaceServiceClient.updateWorkspaceBillingTier(
+                workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                         existingSubscription.getWorkspaceId(),
                         new WorkspaceBillingTierUpdateRequest(plan.getCode())
                 );
@@ -427,7 +427,7 @@ public class WebhookService {
             subscriptionRepository.save(existingSubscription);
             subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
-            workspaceServiceClient.updateWorkspaceBillingTier(
+            workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
                     new WorkspaceBillingTierUpdateRequest("FREE")
             );
@@ -491,7 +491,7 @@ public class WebhookService {
                 log.info("Updating workspace billing tier for workspace id: {}", existingSubscription.getWorkspaceId());
 
                 String billingTierCode = "canceled".equals(stripeStatus) ? "FREE" : plan.getCode();
-                workspaceServiceClient.updateWorkspaceBillingTier(
+                workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                         existingSubscription.getWorkspaceId(),
                         new WorkspaceBillingTierUpdateRequest(billingTierCode)
                 );
@@ -558,7 +558,7 @@ public class WebhookService {
                 return;
             }
 
-            workspaceServiceClient.updateWorkspaceBillingTier(UUID.fromString(workspaceId), new WorkspaceBillingTierUpdateRequest(plan.getCode()));
+            workspaceServiceCacheWrapper.updateWorkspaceBillingTier(UUID.fromString(workspaceId), new WorkspaceBillingTierUpdateRequest(plan.getCode()));
         } catch (Exception e) {
             log.error("Failed to handle customer subscription created event", e);
         }
@@ -566,7 +566,7 @@ public class WebhookService {
 
     private WorkspaceInternalSubscriptionResponse searchWorkspace(UUID workspaceId) {
         try {
-            return workspaceServiceClient.getWorkspaceSubscription(workspaceId);
+            return workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {
@@ -583,7 +583,7 @@ public class WebhookService {
 
     private UserInternalResponse searchUser(UUID userId) {
         try {
-            return authServiceClient.getUserInternalResponse(userId);
+            return authServiceCacheWrapper.getUserInternalResponse(userId);
         } catch (FeignException e) {
             int status = e.status();
             if (status == 404) {
