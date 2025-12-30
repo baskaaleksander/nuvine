@@ -52,6 +52,7 @@ public class CacheConfiguration {
         createCache(manager, redissonClient, "subscription-service-buckets", configuration);
         createCache(manager, redissonClient, "model-pricing", modelPricingConfig);
         createCache(manager, redissonClient, "all-active-models", modelPricingConfig);
+        createCache(manager, redissonClient, "plans", configuration);
 
         return manager;
     }

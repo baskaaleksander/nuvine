@@ -12,7 +12,6 @@ import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequ
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.model.Event;
@@ -38,7 +37,7 @@ public class WebhookService {
     private final PaymentSessionRepository paymentSessionRepository;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final PaymentRepository paymentRepository;
-    private final PlanRepository planRepository;
+    private final PlanService planService;
     private final PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
     private final AuthServiceClient authServiceClient;
     private final StripeClient stripeClient;
@@ -362,7 +361,7 @@ public class WebhookService {
                 existingSubscription.setUpdatedAt(Instant.now());
 
 
-                Plan plan = planRepository.findById(existingSubscription.getPlanId()).orElse(null);
+                Plan plan = planService.findById(existingSubscription.getPlanId()).orElse(null);
 
                 if (plan == null) {
                     log.error("Plan not found for plan id: {}", existingSubscription.getPlanId());
@@ -476,7 +475,7 @@ public class WebhookService {
             subscriptionRepository.save(existingSubscription);
 
             if ("active".equals(stripeStatus) || "canceled".equals(stripeStatus)) {
-                Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
+                Plan plan = planService.findById(UUID.fromString(planId)).orElse(null);
 
                 if (plan == null) {
                     log.error("Plan not found for plan id: {}", existingSubscription.getPlanId());
@@ -545,7 +544,7 @@ public class WebhookService {
 
             subscriptionRepository.save(subscription);
 
-            Plan plan = planRepository.findById(UUID.fromString(planId)).orElse(null);
+            Plan plan = planService.findById(UUID.fromString(planId)).orElse(null);
 
             if (plan == null) {
                 log.error("Plan not found for plan id: {}", planId);

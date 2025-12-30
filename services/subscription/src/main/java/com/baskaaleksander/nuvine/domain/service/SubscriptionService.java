@@ -9,7 +9,6 @@ import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
@@ -38,7 +37,7 @@ import java.util.UUID;
 public class SubscriptionService {
 
     private final StripeClient stripeClient;
-    private final PlanRepository planRepository;
+    private final PlanService planService;
     private final SubscriptionRepository subscriptionRepository;
     private final AuthServiceClient authServiceClient;
     private final WorkspaceServiceClient workspaceServiceClient;
@@ -94,7 +93,7 @@ public class SubscriptionService {
             return new PaymentSessionResponse(paymentSession.getStripeUrl(), paymentSession.getStripeSessionId());
         }
 
-        var plan = planRepository.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
+        var plan = planService.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
 
         var subscription = subscriptionRepository.findByWorkspaceId(workspaceId).orElse(null);
 
