@@ -1,4 +1,13 @@
 spring:
+  cache:
+    type: jcache
+    jcache:
+      provider: org.redisson.jcache.JCachingProvider
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
   datasource:
     url: ${POSTGRES_VECTOR_URL}
     username: ${POSTGRES_USER}
