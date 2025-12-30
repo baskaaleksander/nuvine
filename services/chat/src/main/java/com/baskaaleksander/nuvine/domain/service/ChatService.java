@@ -39,6 +39,7 @@ public class ChatService {
     private final RagPromptBuilder ragPromptBuilder;
     private final ConversationPersistenceService conversationPersistenceService;
     private final TokenCountingService tokenCountingService;
+    private final ConversationCacheService conversationCacheService;
 
     public ConversationMessageResponse completion(CompletionRequest request, String userId) {
         UUID workspaceId = request.workspaceId();
@@ -555,39 +556,25 @@ public class ChatService {
             String subject,
             PaginationRequest request
     ) {
-        Pageable pageable = PaginationUtil.getPageable(request);
-
         log.info(
                 "CHAT_MESSAGES LIST_START convoId={} page={} size={}",
                 conversationId,
-                pageable.getPageNumber(),
-                pageable.getPageSize()
+                request.getPage(),
+                request.getSize()
         );
 
-        Page<ConversationMessage> page =
-                conversationMessageRepository.findAllByConversationId(conversationId, pageable);
-
-        List<ConversationMessageResponse> content = page.getContent().stream()
-                .map(mapper::toResponse)
-                .toList();
+        PagedResponse<ConversationMessageResponse> response =
+                conversationCacheService.findMessages(conversationId, request);
 
         log.info(
                 "CHAT_MESSAGES LIST_END convoId={} page={} size={} totalElements={}",
                 conversationId,
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements()
+                response.page(),
+                response.size(),
+                response.totalElements()
         );
 
-        return new PagedResponse<>(
-                content,
-                page.getTotalPages(),
-                page.getTotalElements(),
-                page.getSize(),
-                page.getNumber(),
-                page.isLast(),
-                page.hasNext()
-        );
+        return response;
     }
 
     public List<UserConversationResponse> getUserConversations(String ownerId, UUID projectId) {
@@ -595,9 +582,10 @@ public class ChatService {
 
         log.info("CHAT_USER_CONVERSATIONS START ownerId={}", ownerUuid);
 
-        List<UserConversationResponse> result = conversationMessageRepository
-                .findUserConversations(ownerUuid, projectId)
-                .stream()
+        List<UserConversationResponse> cached =
+                conversationCacheService.findUserConversations(ownerUuid, projectId);
+
+        List<UserConversationResponse> result = cached.stream()
                 .map(cm -> {
                     String cleaned = MarkdownCleaner.clean(cm.lastMessage());
                     String preview = cleaned.substring(0, Math.min(cleaned.length(), 100));

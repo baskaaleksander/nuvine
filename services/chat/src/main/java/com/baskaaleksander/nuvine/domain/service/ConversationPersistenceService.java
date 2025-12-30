@@ -22,6 +22,7 @@ public class ConversationPersistenceService {
     private final ConversationMessageRepository conversationMessageRepository;
     private final LogTokenUsageEventProducer logTokenUsageEventProducer;
     private final SubscriptionServiceClient subscriptionServiceClient;
+    private final ConversationCacheService conversationCacheService;
 
     public ConversationMessage persistSyncCompletion(
             UUID conversationId,
@@ -99,6 +100,8 @@ public class ConversationPersistenceService {
                 )
         );
 
+        conversationCacheService.evictAfterNewMessage(ownerId, request.projectId(), conversationId);
+
         return savedAssistant;
     }
 
@@ -171,6 +174,7 @@ public class ConversationPersistenceService {
                 )
         );
 
+        conversationCacheService.evictAfterNewMessage(ctx.ownerId(), request.projectId(), ctx.conversationId());
 
         log.info(
                 "CONVERSATION_PERSIST_STREAM END convoId={} model={} userMsgId={} assistantMsgId={}",
@@ -228,6 +232,8 @@ public class ConversationPersistenceService {
                 userMessage.getId(),
                 savedAssistant.getId()
         );
+
+        conversationCacheService.evictAfterNewMessage(ownerId, request.projectId(), conversationId);
 
         return savedAssistant;
     }
