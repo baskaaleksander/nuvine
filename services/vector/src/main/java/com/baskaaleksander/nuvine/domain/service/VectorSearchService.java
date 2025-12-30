@@ -5,11 +5,14 @@ import com.baskaaleksander.nuvine.infrastructure.client.LlmRouterInternalClient;
 import io.qdrant.client.grpc.Points;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static com.baskaaleksander.nuvine.infrastructure.config.CacheConfiguration.TEXT_SEARCH_CACHE;
 
 @Service
 @Slf4j
@@ -19,8 +22,9 @@ public class VectorSearchService {
     private final VectorStorageService storageService;
     private final LlmRouterInternalClient llmRouterInternalClient;
 
+    @Cacheable(value = TEXT_SEARCH_CACHE, key = "@textSearchCacheKeyGenerator.generateKey(#request)")
     public VectorSearchResponse searchByText(TextVectorSearchRequest request) {
-        log.info("VECTOR_SEARCH_BY_TEXT START projectId={}", request.projectId());
+        log.info("VECTOR_SEARCH_BY_TEXT START projectId={} (cache miss)", request.projectId());
         EmbeddingResponse embeddingResponse = llmRouterInternalClient.embed(
                 new EmbeddingRequest(List.of(request.query()), "text-embedding-3-small")
         );
