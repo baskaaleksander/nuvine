@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching
 public class CacheConfiguration {
 
+    public static final String INGESTION_JOB_CACHE = "ingestion-jobs";
+
     @Value("${spring.data.redis.host}")
     private String redisHost;
 
@@ -57,6 +59,13 @@ public class CacheConfiguration {
         }
 
         manager.createCache("ingestion-service-buckets",
+                RedissonConfiguration.fromInstance(redissonClient, configuration));
+
+        if (manager.getCache(INGESTION_JOB_CACHE) != null) {
+            manager.destroyCache(INGESTION_JOB_CACHE);
+        }
+
+        manager.createCache(INGESTION_JOB_CACHE,
                 RedissonConfiguration.fromInstance(redissonClient, configuration));
 
         return manager;
