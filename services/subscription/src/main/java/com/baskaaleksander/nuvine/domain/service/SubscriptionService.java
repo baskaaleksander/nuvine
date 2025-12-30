@@ -9,7 +9,6 @@ import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -38,7 +37,7 @@ public class SubscriptionService {
 
     private final StripeClient stripeClient;
     private final PlanService planService;
-    private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionCacheService subscriptionCacheService;
     private final AuthServiceClient authServiceClient;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final PaymentSessionRepository paymentSessionRepository;
@@ -58,7 +57,7 @@ public class SubscriptionService {
             throw new ForbiddenAccessException("User is not the owner");
         }
 
-        Subscription subscription = subscriptionRepository
+        Subscription subscription = subscriptionCacheService
                 .findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new SubscriptionNotFoundException("Subscription not found"));
 
@@ -95,7 +94,7 @@ public class SubscriptionService {
 
         var plan = planService.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
 
-        var subscription = subscriptionRepository.findByWorkspaceId(workspaceId).orElse(null);
+        var subscription = subscriptionCacheService.findByWorkspaceId(workspaceId).orElse(null);
 
         if (intent == PaymentSessionIntent.SUBSCRIPTION_CREATE && subscription != null) {
             throw new SubscriptionConflictException("Subscription already exists");

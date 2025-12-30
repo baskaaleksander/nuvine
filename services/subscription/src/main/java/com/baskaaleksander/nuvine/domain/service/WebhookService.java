@@ -34,6 +34,7 @@ import java.util.UUID;
 public class WebhookService {
 
     private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionCacheService subscriptionCacheService;
     private final PaymentSessionRepository paymentSessionRepository;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final PaymentRepository paymentRepository;
@@ -245,6 +246,7 @@ public class WebhookService {
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
+            subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
             String hostedInvoiceUrl = stripeInvoice.getHostedInvoiceUrl();
 
@@ -306,6 +308,7 @@ public class WebhookService {
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
+            subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
             workspaceServiceClient.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
@@ -390,6 +393,7 @@ public class WebhookService {
             existingSubscription.setCurrentPeriodStart(Instant.ofEpochSecond(periodStart));
             existingSubscription.setCurrentPeriodEnd(Instant.ofEpochSecond(periodEnd));
             subscriptionRepository.save(existingSubscription);
+            subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
         } catch (Exception e) {
             log.error("Failed to handle invoice paid event", e);
@@ -421,6 +425,7 @@ public class WebhookService {
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
+            subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
             workspaceServiceClient.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
@@ -473,6 +478,7 @@ public class WebhookService {
             existingSubscription.setUpdatedAt(Instant.now());
 
             subscriptionRepository.save(existingSubscription);
+            subscriptionCacheService.evictSubscriptionCache(existingSubscription.getWorkspaceId());
 
             if ("active".equals(stripeStatus) || "canceled".equals(stripeStatus)) {
                 Plan plan = planService.findById(UUID.fromString(planId)).orElse(null);
@@ -543,6 +549,7 @@ public class WebhookService {
                     .build();
 
             subscriptionRepository.save(subscription);
+            subscriptionCacheService.evictSubscriptionCache(UUID.fromString(workspaceId));
 
             Plan plan = planService.findById(UUID.fromString(planId)).orElse(null);
 
