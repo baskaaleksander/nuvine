@@ -18,6 +18,7 @@ public class IngestionStatusOrchestrator {
 
     private final IngestionJobRepository ingestionJobRepository;
     private final DocumentIngestionCompletedEventProducer documentIngestionCompletedEventProducer;
+    private final IngestionJobCacheService ingestionJobCacheService;
 
     public void handleVectorProcessingCompleted(String ingestionJobId) {
         log.info("VECTOR_PROCESSING_COMPLETED_EVENT received ingestionJobId={}", ingestionJobId);
@@ -39,5 +40,7 @@ public class IngestionStatusOrchestrator {
         );
 
         ingestionJobRepository.save(job);
+
+        ingestionJobCacheService.evictByDocumentId(job.getDocumentId());
     }
 }

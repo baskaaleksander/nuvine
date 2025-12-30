@@ -27,6 +27,7 @@ public class IngestionCommandService {
     private final IngestionService ingestionService;
     private final DocumentUploadedEventProducer producer;
     private final IngestionJobRepository ingestionJobRepository;
+    private final IngestionJobCacheService ingestionJobCacheService;
 
     public void startIngestionJob(String documentId) {
         DocumentInternalResponse document = fetchDocumentOrThrow(documentId);
@@ -58,6 +59,8 @@ public class IngestionCommandService {
         job.setLastError(null);
 
         ingestionJobRepository.save(job);
+
+        ingestionJobCacheService.evictByDocumentId(job.getDocumentId());
 
         startIngestionJob(documentId);
     }
