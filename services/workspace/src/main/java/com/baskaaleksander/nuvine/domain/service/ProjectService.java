@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMapper projectMapper;
     private final DocumentRepository documentRepository;
+    private final EntityCacheEvictionService entityCacheEvictionService;
 
     public ProjectResponse createProject(UUID workspaceId, CreateProjectRequest request) {
         log.info("CREATE_PROJECT START workspaceId={}", workspaceId);
@@ -73,6 +75,7 @@ public class ProjectService {
         );
     }
 
+    @Cacheable(value = "entity-project", key = "#projectId.toString()")
     public ProjectDetailedResponse getProjectById(UUID projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException("Project not found"));
@@ -130,6 +133,7 @@ public class ProjectService {
 
         if (updated) {
             projectRepository.save(project);
+            entityCacheEvictionService.evictProject(projectId);
 
             log.info("UPDATE_PROJECT SUCCESS projectId={} nameChanged={} descriptionChanged={}",
                     projectId, nameChanged, descriptionChanged);
@@ -153,6 +157,7 @@ public class ProjectService {
 
         project.setDeleted(true);
         projectRepository.save(project);
+        entityCacheEvictionService.evictProject(projectId);
 
         log.info("DELETE_PROJECT END projectId={}", projectId);
     }
