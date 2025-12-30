@@ -50,6 +50,7 @@ public class CacheConfiguration {
         MutableConfiguration<String, Object> modelPricingConfig = createConfig(TimeUnit.MINUTES, 30);
         MutableConfiguration<String, Object> subscriptionConfig = createConfig(TimeUnit.SECONDS, 30);
         MutableConfiguration<String, Object> externalServiceConfig = createConfig(TimeUnit.MINUTES, 5);
+        MutableConfiguration<String, Object> keycloakTokenConfig = createConfig(TimeUnit.MINUTES, 4);
 
         createCache(manager, redissonClient, "subscription-service-buckets", configuration);
         createCache(manager, redissonClient, "model-pricing", modelPricingConfig);
@@ -58,6 +59,7 @@ public class CacheConfiguration {
         createCache(manager, redissonClient, "subscriptions", subscriptionConfig);
         createCache(manager, redissonClient, "users", externalServiceConfig);
         createCache(manager, redissonClient, "workspaces", externalServiceConfig);
+        createCache(manager, redissonClient, "keycloak-tokens", keycloakTokenConfig);
 
         return manager;
     }

@@ -2,6 +2,7 @@ package com.baskaaleksander.nuvine.infrastructure.auth;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,16 +23,8 @@ public class KeycloakClientCredentialsTokenProvider {
     private final KeycloakClientCredentialsProperties properties;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private String cachedToken;
-    private long expiresAt = 0;
-
-    public synchronized String getAccessToken() {
-        long now = System.currentTimeMillis();
-
-        if (cachedToken != null && now < expiresAt) {
-            return cachedToken;
-        }
-
+    @Cacheable(cacheNames = "keycloak-tokens", key = "'service-account-token'")
+    public String getAccessToken() {
         log.info("Fetching new Keycloak service-account token");
 
         HttpHeaders headers = new HttpHeaders();
@@ -48,10 +41,6 @@ public class KeycloakClientCredentialsTokenProvider {
                 restTemplate.postForEntity(properties.getTokenUrl(), request, Map.class);
 
         String accessToken = (String) response.getBody().get("access_token");
-        Integer expiresIn = (Integer) response.getBody().get("expires_in");
-
-        this.cachedToken = accessToken;
-        this.expiresAt = now + (expiresIn - 10) * 1000;
 
         return accessToken;
     }
