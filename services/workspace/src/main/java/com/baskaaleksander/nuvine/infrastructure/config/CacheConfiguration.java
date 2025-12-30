@@ -63,6 +63,13 @@ public class CacheConfiguration {
         createCache(manager, redissonClient, "access-project-view", accessConfig);
         createCache(manager, redissonClient, "access-document-view", accessConfig);
 
+        createCache(manager, redissonClient, "entity-workspace", accessConfig);
+        createCache(manager, redissonClient, "entity-workspace-subscription", accessConfig);
+        createCache(manager, redissonClient, "entity-workspace-member", accessConfig);
+        createCache(manager, redissonClient, "entity-project", accessConfig);
+        createCache(manager, redissonClient, "entity-document", accessConfig);
+        createCache(manager, redissonClient, "entity-document-internal", accessConfig);
+
         return manager;
     }
 
