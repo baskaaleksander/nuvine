@@ -2,6 +2,8 @@ package com.baskaaleksander.nuvine.infrastructure.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.Codec;
+import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
 import org.redisson.jcache.configuration.RedissonConfiguration;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,9 +36,13 @@ public class CacheConfiguration {
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();
+        Codec jsonCodec = new JsonJacksonCodec();
+
         config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
                 .setPassword(redisPassword);
+
+        config.setCodec(jsonCodec);
         return Redisson.create(config);
     }
 
@@ -47,12 +53,15 @@ public class CacheConfiguration {
         CacheManager manager = cachingProvider.getCacheManager();
 
         MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 2);
-
-        if (manager.getCache("workspace-service-buckets") != null) {
-            manager.destroyCache("workspace-service-buckets");
-        }
+        MutableConfiguration<String, Object> accessConfig = createConfig(TimeUnit.MINUTES, 15);
 
         createCache(manager, redissonClient, "workspace-service-buckets", rateBucketConfig);
+
+        createCache(manager, redissonClient, "access-workspace-view", accessConfig);
+        createCache(manager, redissonClient, "access-workspace-edit", accessConfig);
+        createCache(manager, redissonClient, "access-project-manage", accessConfig);
+        createCache(manager, redissonClient, "access-project-view", accessConfig);
+        createCache(manager, redissonClient, "access-document-view", accessConfig);
 
         return manager;
     }
