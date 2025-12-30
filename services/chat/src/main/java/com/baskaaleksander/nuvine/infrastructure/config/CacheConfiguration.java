@@ -22,6 +22,10 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching
 public class CacheConfiguration {
 
+    public static final String KEYCLOAK_TOKEN_CACHE = "keycloak-tokens";
+    public static final String USER_CONVERSATIONS_CACHE = "user-conversations";
+    public static final String CONVERSATION_MESSAGES_CACHE = "conversation-messages";
+
     @Value("${spring.data.redis.host}")
     private String redisHost;
 
@@ -47,8 +51,16 @@ public class CacheConfiguration {
         CacheManager manager = cachingProvider.getCacheManager();
 
         MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.DAYS, 2);
-
         createCache(manager, redissonClient, "chat-service-buckets", rateBucketConfig);
+
+        MutableConfiguration<String, Object> keycloakTokenConfig = createConfig(TimeUnit.MINUTES, 4);
+        createCache(manager, redissonClient, KEYCLOAK_TOKEN_CACHE, keycloakTokenConfig);
+
+        MutableConfiguration<String, Object> userConversationsConfig = createConfig(TimeUnit.MINUTES, 5);
+        createCache(manager, redissonClient, USER_CONVERSATIONS_CACHE, userConversationsConfig);
+
+        MutableConfiguration<String, Object> messagesConfig = createConfig(TimeUnit.MINUTES, 10);
+        createCache(manager, redissonClient, CONVERSATION_MESSAGES_CACHE, messagesConfig);
 
         return manager;
     }
