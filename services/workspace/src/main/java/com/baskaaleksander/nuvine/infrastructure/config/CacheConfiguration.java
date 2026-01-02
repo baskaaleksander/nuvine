@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching
 public class CacheConfiguration {
 
+    public static final String KEYCLOAK_TOKEN_CACHE = "keycloak-tokens";
+
     @Value("${spring.data.redis.host}")
     private String redisHost;
 
@@ -69,6 +71,9 @@ public class CacheConfiguration {
         createCache(manager, redissonClient, "entity-project", accessConfig);
         createCache(manager, redissonClient, "entity-document", accessConfig);
         createCache(manager, redissonClient, "entity-document-internal", accessConfig);
+
+        MutableConfiguration<String, Object> keycloakTokenConfig = createConfig(TimeUnit.MINUTES, 4);
+        createCache(manager, redissonClient, KEYCLOAK_TOKEN_CACHE, keycloakTokenConfig);
 
         return manager;
     }
