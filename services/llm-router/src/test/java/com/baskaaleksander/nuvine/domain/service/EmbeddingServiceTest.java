@@ -4,7 +4,7 @@ import com.baskaaleksander.nuvine.application.dto.EmbeddingRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingResponse;
 import com.baskaaleksander.nuvine.domain.model.Chunk;
 import com.baskaaleksander.nuvine.domain.model.EmbeddedChunk;
-import com.baskaaleksander.nuvine.infrastructure.ai.client.OpenAIEmbeddingClient;
+import com.baskaaleksander.nuvine.infrastructure.ai.service.OpenAIEmbeddingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 class EmbeddingServiceTest {
 
     @Mock
-    private OpenAIEmbeddingClient embeddingClient;
+    private OpenAIEmbeddingService embeddingClient;
 
     @InjectMocks
     private EmbeddingService embeddingService;
