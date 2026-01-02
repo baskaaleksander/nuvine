@@ -4,7 +4,7 @@ import com.baskaaleksander.nuvine.application.dto.EmbeddingRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingResponse;
 import com.baskaaleksander.nuvine.domain.model.Chunk;
 import com.baskaaleksander.nuvine.domain.model.EmbeddedChunk;
-import com.baskaaleksander.nuvine.infrastructure.ai.client.OpenAIEmbeddingClient;
+import com.baskaaleksander.nuvine.infrastructure.ai.service.OpenAIEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmbeddingService {
 
-    private final OpenAIEmbeddingClient embeddingClient;
+    private final OpenAIEmbeddingService embeddingClient;
 
     public List<EmbeddedChunk> createEmbeddings(List<Chunk> chunks) {
         List<List<Float>> embeddings = createEmbedding(chunks.stream().map(Chunk::content).toList());

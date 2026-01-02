@@ -3,8 +3,8 @@ package com.baskaaleksander.nuvine.infrastructure.ai.service;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingApiRequest;
 import com.baskaaleksander.nuvine.application.dto.EmbeddingApiResponse;
 import com.baskaaleksander.nuvine.infrastructure.ai.client.OpenAIEmbeddingClient;
-import com.baskaaleksander.nuvine.infrastructure.config.OpenAIConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -15,7 +15,9 @@ import java.util.List;
 public class OpenAIEmbeddingService {
 
     private final OpenAIEmbeddingClient client;
-    private final OpenAIConfig.OpenAIProperties props;
+
+    @Value("${openai.embedding-model}")
+    private String embeddingModel;
 
     public List<List<Float>> embed(List<String> texts) {
         if (texts == null || texts.isEmpty()) {
@@ -23,7 +25,7 @@ public class OpenAIEmbeddingService {
         }
 
         EmbeddingApiRequest requestBody = new EmbeddingApiRequest(
-                props.embeddingModel(),
+                embeddingModel,
                 texts
         );
 
