@@ -44,7 +44,6 @@ public class WebhookService {
     private final StripeClient stripeClient;
 
 
-    //todo: implement payment's logging related webhooks
     public void handleEvent(Event event) {
         switch (event.getType()) {
             case "customer.subscription.created" -> handleCustomerSubscriptionCreated(event);
@@ -321,7 +320,6 @@ public class WebhookService {
         }
     }
 
-    // todo add payment monitoring
     private void handleInvoicePaid(Event event) {
         try {
             EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
