@@ -1,6 +1,7 @@
 package com.baskaaleksander.nuvine.application.controller;
 
 import com.baskaaleksander.nuvine.application.dto.*;
+import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
 import com.baskaaleksander.nuvine.domain.service.DocumentService;
 import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -35,7 +37,6 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.createDocument(request.name(), UUID.fromString(jwt.getSubject()), projectId));
     }
 
-    //todo add filters
     @PreAuthorize("@projectAccess.canGetProject(#projectId, #jwt.getSubject())")
     @GetMapping("/api/v1/projects/{projectId}/documents")
     public ResponseEntity<PagedResponse<DocumentPublicResponse>> getDocuments(
@@ -44,10 +45,14 @@ public class DocumentController {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(defaultValue = "id") String sortField,
-            @RequestParam(defaultValue = "DESC") Sort.Direction direction
+            @RequestParam(defaultValue = "DESC") Sort.Direction direction,
+            @RequestParam(required = false) DocumentStatus status,
+            @RequestParam(required = false) Instant createdAtFrom,
+            @RequestParam(required = false) Instant createdAtTo
     ) {
-        PaginationRequest request = new PaginationRequest(page, size, sortField, direction);
-        return ResponseEntity.ok(documentService.getDocuments(projectId, request));
+        PaginationRequest paginationRequest = new PaginationRequest(page, size, sortField, direction);
+        DocumentFilterRequest filterRequest = new DocumentFilterRequest(status, createdAtFrom, createdAtTo);
+        return ResponseEntity.ok(documentService.getDocuments(projectId, paginationRequest, filterRequest));
     }
 
     @PreAuthorize("@docAccess.canGetDocument(#documentId, #jwt.getSubject())")

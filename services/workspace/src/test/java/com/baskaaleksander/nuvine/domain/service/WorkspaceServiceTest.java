@@ -10,6 +10,7 @@ import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.BillingTier;
 import com.baskaaleksander.nuvine.domain.model.Workspace;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
+import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberStatus;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
@@ -146,7 +147,10 @@ public class WorkspaceServiceTest {
                 activeMember.getId(),
                 activeMember.getWorkspaceId(),
                 activeMember.getUserId(),
+                "user@example.com",
+                "Test User",
                 activeMember.getRole(),
+                WorkspaceMemberStatus.ACCEPTED,
                 activeMember.getCreatedAt()
         );
 

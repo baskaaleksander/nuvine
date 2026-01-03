@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.DocumentFilterRequest;
 import com.baskaaleksander.nuvine.application.dto.DocumentPublicResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
@@ -43,6 +44,8 @@ class DocumentServiceTest {
     private ProjectRepository projectRepository;
     @Mock
     private DocumentMapper documentMapper;
+    @Mock
+    private EntityCacheEvictionService entityCacheEvictionService;
 
     @InjectMocks
     private DocumentService documentService;
@@ -143,18 +146,17 @@ class DocumentServiceTest {
     @Test
     void getDocuments_returnsPagedResponseWithMappedDocuments() {
         PaginationRequest request = new PaginationRequest(0, 5, "name", Sort.Direction.ASC);
+        DocumentFilterRequest filter = new DocumentFilterRequest(null, null, null);
         Pageable pageable = PaginationUtil.getPageable(request);
 
         Page<Document> page = new PageImpl<>(List.of(savedDocument), pageable, 1);
 
-        when(documentRepository.findAllByProjectId(projectId, pageable)).thenReturn(page);
+        when(documentRepository.findAllByProjectIdWithFilters(projectId, null, null, null, pageable)).thenReturn(page);
         when(documentMapper.toDocumentResponse(savedDocument)).thenReturn(documentResponse);
 
-        PagedResponse<DocumentPublicResponse> response = documentService.getDocuments(projectId, request);
+        PagedResponse<DocumentPublicResponse> response = documentService.getDocuments(projectId, request, filter);
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(documentRepository).findAllByProjectId(eq(projectId), pageableCaptor.capture());
-        assertEquals(pageable, pageableCaptor.getValue());
+        verify(documentRepository).findAllByProjectIdWithFilters(projectId, null, null, null, pageable);
 
         assertEquals(1, response.content().size());
         assertEquals(documentResponse, response.content().iterator().next());
@@ -171,12 +173,13 @@ class DocumentServiceTest {
     @Test
     void getDocuments_whenEmpty_returnsEmptyContent() {
         PaginationRequest request = new PaginationRequest(0, 5, "name", Sort.Direction.ASC);
+        DocumentFilterRequest filter = new DocumentFilterRequest(null, null, null);
         Pageable pageable = PaginationUtil.getPageable(request);
         Page<Document> page = new PageImpl<>(List.of(), pageable, 0);
 
-        when(documentRepository.findAllByProjectId(projectId, pageable)).thenReturn(page);
+        when(documentRepository.findAllByProjectIdWithFilters(projectId, null, null, null, pageable)).thenReturn(page);
 
-        PagedResponse<DocumentPublicResponse> response = documentService.getDocuments(projectId, request);
+        PagedResponse<DocumentPublicResponse> response = documentService.getDocuments(projectId, request, filter);
 
         assertEquals(0, response.content().size());
         assertEquals(0, response.totalElements());
