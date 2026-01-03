@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.domain.service;
 
+import com.baskaaleksander.nuvine.application.dto.DocumentFilterRequest;
 import com.baskaaleksander.nuvine.application.dto.DocumentPublicResponse;
 import com.baskaaleksander.nuvine.application.dto.PagedResponse;
 import com.baskaaleksander.nuvine.application.dto.PaginationRequest;
@@ -57,10 +58,16 @@ public class DocumentService {
         return documentMapper.toDocumentResponse(documentSaved);
     }
 
-    public PagedResponse<DocumentPublicResponse> getDocuments(UUID projectId, PaginationRequest request) {
+    public PagedResponse<DocumentPublicResponse> getDocuments(UUID projectId, PaginationRequest request, DocumentFilterRequest filter) {
         log.info("GET_DOCUMENTS START projectId={}", projectId);
         Pageable pageable = PaginationUtil.getPageable(request);
-        Page<Document> page = documentRepository.findAllByProjectId(projectId, pageable);
+        Page<Document> page = documentRepository.findAllByProjectIdWithFilters(
+                projectId,
+                filter.status(),
+                filter.createdAtFrom(),
+                filter.createdAtTo(),
+                pageable
+        );
 
         List<DocumentPublicResponse> content = page.getContent().stream()
                 .map(documentMapper::toDocumentResponse)
