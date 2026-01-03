@@ -94,7 +94,10 @@ class WorkspaceMemberServiceTest {
                 activeMember.getId(),
                 activeMember.getWorkspaceId(),
                 activeMember.getUserId(),
+                "user@example.com",
+                "Test User",
                 activeMember.getRole(),
+                WorkspaceMemberStatus.ACCEPTED,
                 activeMember.getCreatedAt()
         );
 
