@@ -42,4 +42,6 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
     Optional<WorkspaceMember> findByWorkspaceIdAndEmail(UUID workspaceId, String email);
+
+    List<WorkspaceMember> findAllByUserId(UUID userId);
 }
