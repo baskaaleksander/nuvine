@@ -38,7 +38,8 @@ spring:
           workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
           documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent,
           workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent,
-          documentIngestionDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionDlqMessage
+          documentIngestionDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionDlqMessage,
+          workspaceMemberDataUpdateDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberDataUpdateDlqMessage
 keycloak:
   auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
   client-id: workspace-service
@@ -53,9 +54,15 @@ server:
 topics:
   document-ingestion-dlq-topic: document-ingestion-dlq
   document-ingestion-dead-letter-topic: document-ingestion-dead-letter
+  workspace-member-data-update-dlq-topic: workspace-member-data-update-dlq
+  workspace-member-data-update-dead-letter-topic: workspace-member-data-update-dead-letter
 
 dlq:
   document-ingestion:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
+  workspace-member-data-update:
     max-retry-attempts: 10
     processing-delay-ms: 300000
     batch-size: 100
