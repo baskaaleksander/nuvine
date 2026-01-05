@@ -29,7 +29,7 @@ spring:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
           documentIngestionCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionCompletedEvent,
-          updateWorkspaceMemberDataEvent:com.baskaaleksander.nuvine.infrastructure.dto.UpdateWorkspaceMemberDataEvent
+          updateWorkspaceMemberDataEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UpdateWorkspaceMemberDataEvent
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

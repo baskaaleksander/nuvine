@@ -27,10 +27,10 @@ public class WorkspaceMemberDataUpdateEventConsumer {
     private final EntityCacheEvictionService entityCacheEvictionService;
     private final AccessCacheEvictionService accessCacheEvictionService;
 
-    @Value("${topics.workspace-member-data-update-topic}")
+    @Value("${topics.update-workspace-member-data-topic}")
     private String workspaceMemberDataUpdateTopic;
 
-    @KafkaListener(topics = "${topics.workspace-member-data-update-topic}")
+    @KafkaListener(topics = "${topics.update-workspace-member-data-topic}")
     @Transactional
     public void consumeWorkspaceMemberDataUpdateEvent(UpdateWorkspaceMemberDataEvent event) {
         log.info("WORKSPACE_MEMBER_DATA_UPDATE_EVENT received userId={}", event.userId());
