@@ -1,13 +1,17 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.Codec;
 import org.redisson.codec.JsonJacksonCodec;
+import org.redisson.codec.Kryo5Codec;
 import org.redisson.config.Config;
 import org.redisson.jcache.configuration.RedissonConfiguration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -36,9 +40,13 @@ public class CacheConfiguration {
     private String redisPassword;
 
     @Bean(destroyMethod = "shutdown")
+    @Primary
     public RedissonClient redissonClient() {
         Config config = new Config();
-        Codec jsonCodec = new JsonJacksonCodec();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        Codec jsonCodec = new JsonJacksonCodec(objectMapper);
 
         config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
@@ -48,17 +56,34 @@ public class CacheConfiguration {
         return Redisson.create(config);
     }
 
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClientForBucket4j() {
+        Config config = new Config();
+        Codec kryoCodec = new Kryo5Codec();
+
+        config.useSingleServer()
+                .setAddress("redis://" + redisHost + ":" + redisPort)
+                .setPassword(redisPassword);
+
+        config.setCodec(kryoCodec);
+        return Redisson.create(config);
+    }
+
     @Bean
     @Primary
-    public CacheManager jCacheCacheManager(RedissonClient redissonClient) {
+    public CacheManager jCacheCacheManager(
+            @Qualifier("redissonClient") RedissonClient redissonClient,
+            @Qualifier("redissonClientForBucket4j") RedissonClient redissonClientForBucket4j) {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
         MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 2);
         MutableConfiguration<String, Object> accessConfig = createConfig(TimeUnit.MINUTES, 15);
 
-        createCache(manager, redissonClient, "workspace-service-buckets", rateBucketConfig);
+        // Use Kryo5Codec client for Bucket4j caches (requires binary serialization)
+        createCache(manager, redissonClientForBucket4j, "workspace-service-buckets", rateBucketConfig);
 
+        // Use JsonJacksonCodec client for application caches
         createCache(manager, redissonClient, "access-workspace-view", accessConfig);
         createCache(manager, redissonClient, "access-workspace-edit", accessConfig);
         createCache(manager, redissonClient, "access-project-manage", accessConfig);

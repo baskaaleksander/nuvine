@@ -1,9 +1,15 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.Codec;
+import org.redisson.codec.JsonJacksonCodec;
+import org.redisson.codec.Kryo5Codec;
 import org.redisson.config.Config;
 import org.redisson.jcache.configuration.RedissonConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -34,40 +40,75 @@ public class CacheConfiguration {
     private String redisPassword;
 
     @Bean(destroyMethod = "shutdown")
+    @Primary
     public RedissonClient redissonClient() {
         Config config = new Config();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        Codec jsonCodec = new JsonJacksonCodec(objectMapper);
+
         config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
                 .setPassword(redisPassword);
+
+        config.setCodec(jsonCodec);
+        return Redisson.create(config);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClientForBucket4j() {
+        Config config = new Config();
+        Codec kryoCodec = new Kryo5Codec();
+
+        config.useSingleServer()
+                .setAddress("redis://" + redisHost + ":" + redisPort)
+                .setPassword(redisPassword);
+
+        config.setCodec(kryoCodec);
         return Redisson.create(config);
     }
 
     @Bean
     @Primary
-    public CacheManager jCacheCacheManager(RedissonClient redissonClient) {
+    public CacheManager jCacheCacheManager(
+            @Qualifier("redissonClient") RedissonClient redissonClient,
+            @Qualifier("redissonClientForBucket4j") RedissonClient redissonClientForBucket4j) {
         CachingProvider cachingProvider = Caching.getCachingProvider("org.redisson.jcache.JCachingProvider");
         CacheManager manager = cachingProvider.getCacheManager();
 
+        MutableConfiguration<String, Object> rateBucketConfig = createConfig(TimeUnit.HOURS, 1);
+        MutableConfiguration<String, Object> jobCacheConfig = createConfig(TimeUnit.HOURS, 1);
+
+        // Use Kryo5Codec client for Bucket4j caches (requires binary serialization)
+        createCache(manager, redissonClientForBucket4j, "ingestion-service-buckets", rateBucketConfig);
+
+        // Use JsonJacksonCodec client for application caches
+        createCache(manager, redissonClient, INGESTION_JOB_CACHE, jobCacheConfig);
+
+        return manager;
+    }
+
+    private MutableConfiguration<String, Object> createConfig(
+            TimeUnit timeUnit,
+            long timeDuration
+    ) {
         MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
         configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
-                        new Duration(TimeUnit.HOURS, 1)))
+                        new Duration(timeUnit, timeDuration)))
                 .setStatisticsEnabled(true);
 
-        if (manager.getCache("ingestion-service-buckets") != null) {
-            manager.destroyCache("ingestion-service-buckets");
+        return configuration;
+    }
+
+    private void createCache(CacheManager manager, RedissonClient redissonClient,
+                             String cacheName, MutableConfiguration<String, Object> config) {
+        if (manager.getCache(cacheName) != null) {
+            manager.destroyCache(cacheName);
         }
 
-        manager.createCache("ingestion-service-buckets",
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
-
-        if (manager.getCache(INGESTION_JOB_CACHE) != null) {
-            manager.destroyCache(INGESTION_JOB_CACHE);
-        }
-
-        manager.createCache(INGESTION_JOB_CACHE,
-                RedissonConfiguration.fromInstance(redissonClient, configuration));
-
-        return manager;
+        manager.createCache(cacheName,
+                RedissonConfiguration.fromInstance(redissonClient, config));
     }
 }

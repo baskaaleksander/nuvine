@@ -1,5 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.Codec;
@@ -38,7 +40,10 @@ public class CacheConfiguration {
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();
-        Codec jsonCodec = new JsonJacksonCodec();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        Codec jsonCodec = new JsonJacksonCodec(objectMapper);
 
         config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
