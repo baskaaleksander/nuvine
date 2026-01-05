@@ -28,7 +28,7 @@ public class ChatController {
     @PostMapping("/completions")
     @RateLimiting(
             name = "completion_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<ConversationMessageResponse> completions(
@@ -45,7 +45,7 @@ public class ChatController {
     )
     @RateLimiting(
             name = "completion_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public SseEmitter completionStream(
