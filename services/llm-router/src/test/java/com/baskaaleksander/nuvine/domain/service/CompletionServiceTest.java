@@ -5,12 +5,15 @@ import com.baskaaleksander.nuvine.application.dto.LlmChunk;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterChatRequest;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterChatResponse;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterChatStreamRequest;
+import com.baskaaleksander.nuvine.domain.exception.ModelCircuitBreakerOpenException;
 import com.baskaaleksander.nuvine.infrastructure.ai.client.OpenRouterClient;
+import com.baskaaleksander.nuvine.infrastructure.resilience.OpenRouterCircuitBreakerRegistry;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
@@ -21,7 +24,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class CompletionServiceTest {
@@ -32,8 +38,11 @@ class CompletionServiceTest {
     @Mock
     private OpenRouterStreamService openRouterStreamService;
 
-    @InjectMocks
+    @Mock
+    private OpenRouterCircuitBreakerRegistry circuitBreakerRegistry;
+
     private CompletionService completionService;
+    private CircuitBreaker circuitBreaker;
 
     private String model;
     private String prompt;
@@ -43,7 +52,13 @@ class CompletionServiceTest {
     void setUp() {
         model = "openai/gpt-4";
         prompt = "Hello, how are you?";
-        
+
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry.ofDefaults();
+        circuitBreaker = registry.circuitBreaker("test-circuit-breaker");
+        lenient().when(circuitBreakerRegistry.getCircuitBreaker(anyString())).thenReturn(circuitBreaker);
+
+        completionService = new CompletionService(client, openRouterStreamService, circuitBreakerRegistry);
+
         OpenRouterChatResponse.Choice.Message message = new OpenRouterChatResponse.Choice.Message("assistant", "I'm fine, thank you!");
         OpenRouterChatResponse.Choice choice = new OpenRouterChatResponse.Choice(0, message, "stop");
         OpenRouterChatResponse.Usage usage = new OpenRouterChatResponse.Usage(20, 10, 30, null, null);
@@ -108,8 +123,8 @@ class CompletionServiceTest {
         LlmChunk chunk1 = new LlmChunk("delta", "Hello", null, null, model);
         LlmChunk chunk2 = new LlmChunk("delta", " World", null, null, model);
         LlmChunk chunk3 = new LlmChunk("done", null, null, null, null);
-        
-        when(openRouterStreamService.stream(any(OpenRouterChatStreamRequest.class)))
+
+        when(openRouterStreamService.stream(any(OpenRouterChatStreamRequest.class), eq(model)))
                 .thenReturn(Flux.just(chunk1, chunk2, chunk3));
 
         Flux<LlmChunk> result = completionService.callStream(model, prompt, null);
@@ -119,13 +134,13 @@ class CompletionServiceTest {
                 .expectNext(chunk2)
                 .expectNext(chunk3)
                 .verifyComplete();
-        
-        verify(openRouterStreamService).stream(any(OpenRouterChatStreamRequest.class));
+
+        verify(openRouterStreamService).stream(any(OpenRouterChatStreamRequest.class), eq(model));
     }
 
     @Test
     void callStream_buildsCorrectStreamRequest() {
-        when(openRouterStreamService.stream(any(OpenRouterChatStreamRequest.class)))
+        when(openRouterStreamService.stream(any(OpenRouterChatStreamRequest.class), eq(model)))
                 .thenReturn(Flux.empty());
 
         List<OpenRouterChatStreamRequest.Message> existingMessages = new ArrayList<>();
@@ -134,8 +149,8 @@ class CompletionServiceTest {
         completionService.callStream(model, prompt, existingMessages).blockLast();
 
         ArgumentCaptor<OpenRouterChatStreamRequest> captor = ArgumentCaptor.forClass(OpenRouterChatStreamRequest.class);
-        verify(openRouterStreamService).stream(captor.capture());
-        
+        verify(openRouterStreamService).stream(captor.capture(), eq(model));
+
         OpenRouterChatStreamRequest capturedRequest = captor.getValue();
         assertEquals(model, capturedRequest.model());
         assertEquals(2, capturedRequest.messages().size());
@@ -147,5 +162,24 @@ class CompletionServiceTest {
         assertTrue(capturedRequest.stream());
         assertNotNull(capturedRequest.streamOptions());
         assertTrue(capturedRequest.streamOptions().includeUsage());
+    }
+
+    @Test
+    void call_circuitBreakerOpen_throwsModelCircuitBreakerOpenException() {
+        circuitBreaker.transitionToOpenState();
+
+        assertThrows(ModelCircuitBreakerOpenException.class,
+                () -> completionService.call(model, prompt, null));
+
+        verify(client, never()).createChatCompletion(any());
+    }
+
+    @Test
+    void call_usesCircuitBreakerForModel() {
+        when(client.createChatCompletion(any(OpenRouterChatRequest.class))).thenReturn(mockResponse);
+
+        completionService.call(model, prompt, null);
+
+        verify(circuitBreakerRegistry).getCircuitBreaker(model);
     }
 }

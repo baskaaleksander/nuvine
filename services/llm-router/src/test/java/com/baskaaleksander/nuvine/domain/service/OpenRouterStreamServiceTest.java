@@ -3,8 +3,13 @@ package com.baskaaleksander.nuvine.domain.service;
 import com.baskaaleksander.nuvine.application.dto.LlmChunk;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterChatStreamRequest;
 import com.baskaaleksander.nuvine.application.dto.OpenRouterStreamEvent;
+import com.baskaaleksander.nuvine.domain.exception.ModelCircuitBreakerOpenException;
+import com.baskaaleksander.nuvine.infrastructure.resilience.OpenRouterCircuitBreakerRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +24,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class OpenRouterStreamServiceTest {
@@ -39,8 +46,12 @@ class OpenRouterStreamServiceTest {
     @Mock
     private WebClient.ResponseSpec responseSpec;
 
+    @Mock
+    private OpenRouterCircuitBreakerRegistry circuitBreakerRegistry;
+
     private ObjectMapper objectMapper;
     private OpenRouterStreamService openRouterStreamService;
+    private CircuitBreaker circuitBreaker;
 
     private String model;
     private OpenRouterChatStreamRequest request;
@@ -48,8 +59,13 @@ class OpenRouterStreamServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        openRouterStreamService = new OpenRouterStreamService(openRouterWebClient, objectMapper);
-        
+
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry.ofDefaults();
+        circuitBreaker = registry.circuitBreaker("test-circuit-breaker");
+        lenient().when(circuitBreakerRegistry.getCircuitBreaker(anyString())).thenReturn(circuitBreaker);
+
+        openRouterStreamService = new OpenRouterStreamService(openRouterWebClient, objectMapper, circuitBreakerRegistry);
+
         model = "openai/gpt-4";
         request = new OpenRouterChatStreamRequest(
                 model,
@@ -160,5 +176,24 @@ class OpenRouterStreamServiceTest {
         StepVerifier.create(openRouterStreamService.stream(request))
                 .assertNext(chunk -> assertEquals("done", chunk.type()))
                 .verifyComplete();
+    }
+
+    @Test
+    void stream_circuitBreakerOpen_throwsModelCircuitBreakerOpenException() {
+        setupWebClientMocks(Flux.just("test data"));
+        circuitBreaker.transitionToOpenState();
+
+        StepVerifier.create(openRouterStreamService.stream(request, model))
+                .expectError(ModelCircuitBreakerOpenException.class)
+                .verify();
+    }
+
+    @Test
+    void stream_usesCircuitBreakerForModel() {
+        setupWebClientMocks(Flux.just("[DONE]"));
+
+        openRouterStreamService.stream(request, model).blockLast();
+
+        verify(circuitBreakerRegistry).getCircuitBreaker(model);
     }
 }
