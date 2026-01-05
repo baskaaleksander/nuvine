@@ -42,3 +42,32 @@ openrouter:
 
 api-key:
   openai: ${OPENAI_API_KEY}
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      openrouter-model:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+      openai-embeddings:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,circuitbreakers,circuitbreakerevents
+  health:
+    circuitbreakers:
+      enabled: true
