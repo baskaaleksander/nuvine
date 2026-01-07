@@ -146,6 +146,17 @@ services:
     volumes:
       - redis:/data
 
+  zipkin:
+    container_name: ms_zipkin
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks:
+      - microservices-net
+    volumes:
+      - zipkin:/data
+    restart: unless-stopped
+
 
 networks:
   microservices-net:
@@ -160,3 +171,4 @@ volumes:
   prometheus:
   grafana:
   redis:
+  zipkin:
