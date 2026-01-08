@@ -14,12 +14,12 @@ RUN addgroup -S app && adduser -S app -G app && \
 
 WORKDIR /app
 
-COPY --from=builder /app/target/auth-*.jar /app/app.jar
+COPY --from=builder /app/target/workspace-*.jar /app/app.jar
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 ENV SPRING_PROFILES_ACTIVE=prod
 
-EXPOSE 8040
+EXPOSE 8060
 
 USER app
 
