@@ -1,9 +1,9 @@
 eureka:
   instance:
-    hostname: discovery-service
+    hostname: discovery
   client:
     service-url:
-      defaultZone: http://discovery-service:8761/eureka/
+      defaultZone: http://discovery:8761/eureka/
 
 spring:
   security:
@@ -15,4 +15,4 @@ spring:
 application:
   frontend-url: ${FRONTEND_URL}
   config:
-    api-base-url: http://gateway-service:8222/api/v1
+    api-base-url: http://gateway:8222/api/v1

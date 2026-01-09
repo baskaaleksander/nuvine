@@ -1,7 +1,7 @@
 spring:
   data:
     redis:
-      host: redis
+      host: nuvine_redis
       port: 6379
       password: ${REDIS_PASSWORD}
   datasource:
@@ -18,7 +18,7 @@ keycloak:
 
 application:
   config:
-    auth-internal-url: http://gateway-service:8222/api/v1/internal/auth
+    auth-internal-url: http://gateway:8222/api/v1/internal/auth
 
 management:
   tracing:
