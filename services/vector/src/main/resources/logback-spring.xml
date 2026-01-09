@@ -7,7 +7,8 @@
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>
-                    %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] app=%X{springAppName:-${springAppName}} corrId=%X{correlationId} %logger{36} - %msg%n
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] app=%X{springAppName:-${springAppName}}
+                    corrId=%X{correlationId} %logger{36} - %msg%n
                 </pattern>
             </encoder>
         </appender>
@@ -19,14 +20,17 @@
     </springProfile>
     <springProfile name="prod">
 
-        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <customFields>{"app_name":"${springAppName}"}</customFields>
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] app=%X{springAppName:-${springAppName}}
+                    corrId=%X{correlationId} %logger{36} - %msg%n
+                </pattern>
             </encoder>
         </appender>
 
         <root level="INFO">
-            <appender-ref ref="JSON_CONSOLE"/>
+            <appender-ref ref="CONSOLE"/>
         </root>
 
     </springProfile>
