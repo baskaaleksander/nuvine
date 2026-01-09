@@ -1,0 +1,67 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: [ "nuvine_prometheus:9090" ]
+
+  - job_name: "gateway"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "gateway:8222" ]
+
+  - job_name: "auth"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "auth:8040" ]
+
+  - job_name: "chat"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "chat:8110" ]
+
+  - job_name: "llm-router"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "llm-router:8090" ]
+
+  - job_name: "vector"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "vector:8100" ]
+
+  - job_name: "ingestion"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "ingestion:8080" ]
+
+  - job_name: "file-storage"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "file-storage:8070" ]
+
+  - job_name: "notification"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "notification:8050" ]
+
+  - job_name: "workspace"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "workspace:8060" ]
+
+  - job_name: "subscription"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "subscription:8120" ]
+
+  - job_name: "config-server"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "config-server:8888" ]
+
+  - job_name: "discovery"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "discovery:8761" ]
