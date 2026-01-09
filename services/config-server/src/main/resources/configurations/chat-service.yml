@@ -3,15 +3,7 @@ spring:
     type: jcache
     jcache:
       provider: org.redisson.jcache.JCachingProvider
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: ${REDIS_PASSWORD}
   datasource:
-    url: ${POSTGRES_CHAT_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -19,7 +11,6 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -29,11 +20,6 @@ spring:
         spring.json.type.mapping: >
           logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
 
-chat:
-  keycloak:
-    auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
-    client-id: chat-service
-    client-secret: ${KEYCLOAK_CHAT_SERVICE_SECRET}
 server:
   port: 8110
 
@@ -54,11 +40,3 @@ bucket4j:
           - capacity: 2000
             time: 1
             unit: days
-
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans

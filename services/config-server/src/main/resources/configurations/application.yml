@@ -1,19 +1,11 @@
 eureka:
-  instance:
-    hostname: localhost
   client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
     eureka-service-url-poll-interval-seconds: 30
+
 spring:
   cloud:
     config:
       override.system-properties: false
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:9098/realms/nuvine
 
 management:
   endpoints:
@@ -58,8 +50,3 @@ crypto:
   notifications:
     secret: 6YaGkYwZHjU6wjatNb5TFrhPObNCz0LO
     fingerprint-secret: yowfPKLgdn47OYBPVrntz8TScmPbNr2Q
-
-application:
-  frontend-url: ${FRONTEND_URL}
-  config:
-    api-base-url: http://localhost:8222/api/v1

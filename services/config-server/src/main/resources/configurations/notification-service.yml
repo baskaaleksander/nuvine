@@ -1,15 +1,5 @@
 spring:
-  data:
-    mongodb:
-      username: ${MONGO_NOTIF_USERNAME}
-      password: ${MONGO_NOTIF_PASSWORD}
-      additional-hosts: ${MONGO_NOTIF_HOST}
-      port: ${MONGO_NOTIF_PORT}
-      database: ${MONGO_NOTIF_DATABASE}
-      authentication-database: ${MONGO_NOTIF_AUTH_DATABASE}
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}
-
     consumer:
       group-id: notification-service
       auto-offset-reset: earliest
@@ -31,11 +21,6 @@ spring:
       properties:
         spring.json.add.type.headers: true
   mail:
-    host: ${NOTIF_MAIL_HOST}
-    port: ${NOTIF_MAIL_PORT}
-    username: ${NOTIF_MAIL_USERNAME}
-    password: ${NOTIF_MAIL_PASSWORD}
-    email: ${NOTIF_MAIL_SENDER}
     properties:
       mail:
         smtp:
@@ -46,14 +31,6 @@ spring:
           connectiontimeout: 5000
           timeout: 3000
           writetimeout: 5000
-
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
 server:
   port: 8050
