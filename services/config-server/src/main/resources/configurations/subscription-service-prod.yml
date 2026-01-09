@@ -1,0 +1,32 @@
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  datasource:
+    url: ${SUBSCRIPTION_DB_URL}
+    username: ${SUBSCRIPTION_DB_USER}
+    password: ${SUBSCRIPTION_DB_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+
+stripe:
+  api-key: ${STRIPE_API_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  success-url: ${STRIPE_SUCCESS_URL}
+  cancel-url: ${STRIPE_CANCEL_URL}
+
+subscription:
+  keycloak:
+    auth-server-url: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+    client-id: subscription-service
+    client-secret: ${KEYCLOAK_SUBSCRIPTION_SERVICE_SECRET}
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
