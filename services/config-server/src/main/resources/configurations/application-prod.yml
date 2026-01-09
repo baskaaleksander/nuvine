@@ -1,0 +1,18 @@
+eureka:
+  instance:
+    hostname: discovery-service
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+
+application:
+  frontend-url: ${FRONTEND_URL}
+  config:
+    api-base-url: http://gateway-service:8222/api/v1
