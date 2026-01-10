@@ -3,7 +3,7 @@ spring:
     mongodb:
       username: ${NOTIFICATION_MONGO_USER}
       password: ${NOTIFICATION_MONGO_PASSWORD}
-      additional-hosts: ${NOTIFICATION_MONGO_HOST}
+      host: ${NOTIFICATION_MONGO_HOST}
       port: 27017
       database: ${NOTIFICATION_MONGO_DB}
       authentication-database: ${NOTIFICATION_MONGO_ADMIN_DB}
