@@ -1,18 +1,34 @@
 # Nuvine
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-21-blue">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen">
+  <img src="https://img.shields.io/badge/Build-Maven-orange">
+  <img src="https://img.shields.io/badge/Queue-Kafka-231F20">
+  <img src="https://img.shields.io/badge/DB-PostgreSQL-336791">
+  <img src="https://img.shields.io/badge/DocDB-MongoDB-47A248">
+  <img src="https://img.shields.io/badge/Cache-Redis-DC382D">
+  <img src="https://img.shields.io/badge/Auth-Keycloak-4D4DFF">
+  <img src="https://img.shields.io/badge/Storage-MinIO-C72E49">
+  <img src="https://img.shields.io/badge/Vector%20DB-Qdrant-00897B">
+  <img src="https://img.shields.io/badge/LLM-OpenAI%2FOpenRouter-111111">
+  <img src="https://img.shields.io/badge/Metrics-Prometheus-E6522C">
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey">
+</p>
+
 Nuvine is a cloud-native, AI-powered knowledge management platform built with a microservices architecture. The platform
 enables teams to organize, process, and interact with their documents using advanced RAG (Retrieval-Augmented
 Generation) capabilities, semantic search, and conversational AI. Built on Spring Boot 3.5 and Java 21, Nuvine leverages
 modern distributed systems patterns including event-driven architecture, service mesh, and distributed tracing to
 deliver a scalable, resilient solution for enterprise document intelligence.
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
 Nuvine consists of 12 microservices orchestrated through Docker Compose, communicating via Apache Kafka for asynchronous
 events and HTTP/REST for synchronous operations. The architecture follows Domain-Driven Design principles with clear
 bounded contexts and a layered approach.
 
-### System Architecture
+### 🗺️ System Architecture
 
 ```mermaid
 graph TB
@@ -88,7 +104,7 @@ graph TB
     style Keycloak fill:#f3e5f5
 ```
 
-### Document Processing Pipeline
+### 🔄 Document Processing Pipeline
 
 ```mermaid
 sequenceDiagram
@@ -139,7 +155,7 @@ sequenceDiagram
     Chat-->>User: Real-time answer with sources
 ```
 
-## Tech Stack
+## 🧰 Tech Stack
 
 - **Platform**: Java 21, Spring Boot 3.5 (Spring Cloud)
 - **Messaging**: Apache Kafka
@@ -149,9 +165,9 @@ sequenceDiagram
 - **AI/RAG**: Qdrant (vector DB), OpenAI + OpenRouter (LLM/embeddings)
 - **Observability**: Prometheus, Grafana, Zipkin, Micrometer
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
+### ✅ Prerequisites
 
 Ensure you have the following installed:
 
@@ -159,7 +175,7 @@ Ensure you have the following installed:
 - Java 21 JDK (for local development)
 - Maven 3.9+ (for building services)
 
-### Environment Variables
+### 🧩 Environment Variables
 
 The platform requires a `.env` file in `infra/docker`. Copy `.env.example` and adjust the values:
 
@@ -169,7 +185,8 @@ cp .env.example infra/docker/.env
 
 Key groups included in `.env.example`:
 
-- **Service databases (PostgreSQL)**: `AUTH_DB_*`, `WORKSPACE_DB_*`, `CHAT_DB_*`, `SUBSCRIPTION_DB_*`, `INGESTION_DB_*`, `LLM_ROUTER_DB_*`, `VECTOR_DB_*`
+- **Service databases (PostgreSQL)**: `AUTH_DB_*`, `WORKSPACE_DB_*`, `CHAT_DB_*`, `SUBSCRIPTION_DB_*`, `INGESTION_DB_*`,
+  `LLM_ROUTER_DB_*`, `VECTOR_DB_*`
 - **Notification database (MongoDB)**: `NOTIFICATION_MONGO_*`
 - **Auth/identity (Keycloak)**: `KC_*`, `KEYCLOAK_*`, plus per-service client secrets `KEYCLOAK_*_SERVICE_SECRET`
 - **Messaging**: `KAFKA_HOST`
@@ -181,7 +198,7 @@ Key groups included in `.env.example`:
 
 Keycloak realm/client setup: see `infra/keycloak/KEYCLOAK_SETUP.md` (realm import + client secrets).
 
-### Running with Docker Compose
+### 🐳 Running with Docker Compose
 
 1. Create env file:
    ```bash
@@ -200,6 +217,7 @@ Keycloak realm/client setup: see `infra/keycloak/KEYCLOAK_SETUP.md` (realm impor
    ```
 
 Access the platform:
+
 - API Gateway: http://localhost:8222
 - Keycloak Admin: http://localhost:9098 (admin credentials in `.env`)
 - Grafana: http://localhost:3000
@@ -207,7 +225,7 @@ Access the platform:
 - Zipkin: http://localhost:9411
 - MinIO Console: http://localhost:9001
 
-### Running Tests
+### 🧪 Running Tests
 
 ```bash
 # Run all tests
@@ -225,109 +243,119 @@ mvn test jacoco:report
 mvn test -Dgroups=integration
 ```
 
-## Service Details
+## 🧩 Service Details
 
-### Config Server (Port 8888)
+### ⚙️ Config Server
 
-Centralized configuration server using Spring Cloud Config. All microservices fetch their configuration from this server
-on startup. Must be started first before any other service.
+Centralized configuration server. All microservices fetch configuration from this service on startup.
 
-**Technology**: Spring Cloud Config Server, Git backend
-**Dependencies**: None (must start first)
+- **Port**: `8888`
+- **Tech**: Spring Cloud Config Server (Git backend)
+- **Dependencies**: None (start first)
 
-### Discovery Service (Port 8761)
+### 🧭 Discovery Service
 
-Netflix Eureka server providing service registration and discovery. Services register themselves on startup and discover
-other services dynamically.
+Service registration and discovery via Eureka.
 
-**Technology**: Spring Cloud Netflix Eureka
-**Dependencies**: Config Server
+- **Port**: `8761`
+- **Tech**: Spring Cloud Netflix Eureka
+- **Dependencies**: Config Server
 
-### API Gateway (Port 8222)
+### 🚪 API Gateway
 
-Spring Cloud Gateway providing unified entry point, request routing, authentication, rate limiting, and CORS handling.
-Routes requests to appropriate microservices based on path patterns.
+Unified entry point for routing, authentication, rate limiting, and CORS.
 
-**Technology**: Spring Cloud Gateway, Redis (rate limiting)
-**Key Routes**: /api/v1/auth/*, /api/v1/workspaces/*, /api/v1/files/*, /api/v1/chat/*, /api/v1/subscription/*
+- **Port**: `8222`
+- **Tech**: Spring Cloud Gateway, Redis (rate limiting)
+- **Key Routes**: `/api/v1/auth/*`, `/api/v1/workspaces/*`, `/api/v1/files/*`, `/api/v1/chat/*`,
+  `/api/v1/subscription/*`
 
-### Auth Service (Port 8040)
+### 🔐 Auth Service
 
-Handles user registration, authentication, email verification, password reset, and OAuth2 integration with Keycloak.
-Issues JWT tokens for service-to-service and client authentication.
+User registration/auth, email verification, password reset, and JWT issuance.
 
-**Technology**: Spring Security, Keycloak, PostgreSQL, Redis, Kafka
-**Key Endpoints**: /api/v1/auth/register, /api/v1/auth/login, /api/v1/auth/verify-email, /api/v1/auth/reset-password
+- **Port**: `8040`
+- **Tech**: Spring Security, Keycloak, PostgreSQL, Redis, Kafka
+- **Key Endpoints**: `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/verify-email`,
+  `/api/v1/auth/reset-password`
 
-### Workspace Service (Port 8060)
+### 🗂️ Workspace Service
 
-Multi-tenant workspace management with projects, documents, and team collaboration. Handles workspace hierarchy,
-role-based access control (OWNER/ADMIN/MEMBER), and invitation system.
+Multi-tenant workspace/projects/documents with RBAC and invitations.
 
-**Technology**: Spring Boot, PostgreSQL, Redis, Kafka
-**Key Endpoints**: /api/v1/workspaces/*, /api/v1/projects/*, /api/v1/documents/*, /api/v1/members/*
+- **Port**: `8060`
+- **Tech**: Spring Boot, PostgreSQL, Redis, Kafka
+- **Key Endpoints**: `/api/v1/workspaces/*`, `/api/v1/projects/*`, `/api/v1/documents/*`, `/api/v1/members/*`
 
-### File Storage Service (Port 8080)
+### 📦 File Storage Service
 
-S3-compatible file storage using MinIO. Generates presigned URLs for secure uploads/downloads, manages file metadata,
-and publishes document upload events to Kafka.
+S3-compatible file storage via MinIO, presigned URLs, file metadata, and upload events.
 
-**Technology**: Spring Boot, AWS SDK for Java, MinIO, Redis, Kafka
-**Key Endpoints**: /api/v1/files/upload, /api/v1/files/{id}, /api/v1/files/{id}/presigned-url
+- **Port**: `8080`
+- **Tech**: Spring Boot, AWS SDK for Java, MinIO, Redis, Kafka
+- **Key Endpoints**: `/api/v1/files/upload`, `/api/v1/files/{id}`, `/api/v1/files/{id}/presigned-url`
 
-### Ingestion Service (Port 8080)
+### 🧾 Ingestion Service
 
-Document processing pipeline orchestrator. Extracts text from multiple formats (PDF, DOCX, PPTX, HTML, Markdown), chunks
-text with semantic overlap (700 tokens, 120 overlap), and coordinates vectorization.
+Document processing orchestrator: extract text, chunking, and vectorization coordination.
 
-**Technology**: Spring Boot, Apache PDFBox, Apache POI, PostgreSQL, Kafka
-**Supported Formats**: PDF, DOCX, PPTX, HTML, Markdown, Plain Text
-**Key Endpoints**: /api/v1/internal/ingestion/jobs, /api/v1/internal/ingestion/jobs/{id}/start
+- **Port**: `8080`
+- **Tech**: Spring Boot, Apache PDFBox, Apache POI, PostgreSQL, Kafka
+- **Supported Formats**: PDF, DOCX, PPTX, HTML, Markdown, Plain Text
+- **Key Endpoints**: `/api/v1/internal/ingestion/jobs`, `/api/v1/internal/ingestion/jobs/{id}/start`
 
-### Vector Service (Port 8100)
+### 🧠 Vector Service
 
-Manages vector embeddings and semantic search using Qdrant. Stores chunk-to-vector mappings, performs similarity
-searches, and provides retrieval for RAG pipelines.
+Embeddings + semantic search using Qdrant.
 
-**Technology**: Spring Boot, Qdrant (gRPC), PostgreSQL, Redis, Kafka
-**Key Endpoints**: /api/v1/internal/vector/search, /api/v1/internal/vector/search-by-text,
-/api/v1/internal/vector/collections/{id}
+- **Port**: `8100`
+- **Tech**: Spring Boot, Qdrant (gRPC), PostgreSQL, Redis, Kafka
+- **Key Endpoints**:
+  ```text
+  /api/v1/internal/vector/search
+  /api/v1/internal/vector/search-by-text
+  /api/v1/internal/vector/collections/{id}
+  ```
 
-### LLM Router Service (Port 8090)
+### 🧠➡️ LLM Router Service
 
-Unified gateway for LLM operations. Routes requests to OpenAI and OpenRouter with circuit breaker protection, handles
-streaming responses, and manages text embeddings.
+Unified gateway for LLM completions/embeddings with provider routing and circuit breakers.
 
-**Technology**: Spring Boot, OpenAI Java Client, WebClient, Resilience4j, PostgreSQL, Kafka
-**Key Endpoints**: /api/v1/internal/llm/completions, /api/v1/internal/llm/completion/stream,
-/api/v1/internal/llm/embeddings
+- **Port**: `8090`
+- **Tech**: Spring Boot, OpenAI Java Client, WebClient, Resilience4j, PostgreSQL, Kafka
+- **Key Endpoints**:
+  ```text
+  /api/v1/internal/llm/completions
+  /api/v1/internal/llm/completion/stream
+  /api/v1/internal/llm/embeddings
+  ```
 
-### Chat Service (Port 8110)
+### 💬 Chat Service
 
-RAG-powered conversational AI with streaming support. Orchestrates semantic search, context retrieval, and LLM
-completion generation. Maintains conversation history and provides real-time streaming responses.
+RAG-powered conversational AI with streaming and conversation history.
 
-**Technology**: Spring Boot, PostgreSQL, Redis, Kafka, WebFlux
-**Key Endpoints**: /api/v1/chat/completions, /api/v1/chat/completions/stream, /api/v1/chat/conversations/*
+- **Port**: `8110`
+- **Tech**: Spring Boot, PostgreSQL, Redis, Kafka, WebFlux
+- **Key Endpoints**: `/api/v1/chat/completions`, `/api/v1/chat/completions/stream`, `/api/v1/chat/conversations/*`
 
-### Notification Service (Port 8050)
+### ✉️ Notification Service
 
-Event-driven email delivery system. Consumes domain events from Kafka, renders HTML emails using Thymeleaf templates,
-and persists encrypted notification records in MongoDB.
+Event-driven email delivery: consumes Kafka events, renders templates, stores notification records.
 
-**Technology**: Spring Boot, MongoDB, Kafka, JavaMailSender, Thymeleaf
-**Notification Types**: User registration, email verification, password reset, workspace invitations, payment
-notifications
+- **Port**: `8050`
+- **Tech**: Spring Boot, MongoDB, Kafka, JavaMailSender, Thymeleaf
+- **Notification Types**: user registration, email verification, password reset, workspace invitations, payment
+  notifications
 
-### Subscription Service (Port 8120)
+### 💳 Subscription Service
 
-Manages billing, token quota tracking, and Stripe payment processing. Handles subscription lifecycle, usage monitoring,
-webhook processing, and customer portal access.
+Billing, quotas, Stripe integration, webhooks, and customer portal.
 
-**Technology**: Spring Boot, Stripe Java SDK, PostgreSQL, Redis, Kafka
-**Key Endpoints**: /api/v1/billing/*, /api/v1/subscription/*, /api/v1/usage/*
+- **🔌 Port**: `8120`
+- **🧰 Tech**: Spring Boot, Stripe Java SDK, PostgreSQL, Redis, Kafka
+- **🧩 Key Endpoints**: `/api/v1/billing/*`, `/api/v1/subscription/*`, `/api/v1/usage/*`
 
-## Database Migrations
+## 🗄️ Database Migrations
 
 Services use Flyway for database migrations. Migrations run automatically on startup.
 
@@ -343,7 +371,7 @@ mvn flyway:undo
 mvn flyway:info
 ```
 
-## Contributing
+## 🤝 Contributing
 
 Development follows standard Git workflow:
 
@@ -353,6 +381,6 @@ Development follows standard Git workflow:
 4. Commit with conventional commits: `git commit -m "feat: add new feature"`
 5. Push and create pull request
 
-## License
+## 📄 License
 
-Copyright 2025 Aleksander Baska. All rights reserved.
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
