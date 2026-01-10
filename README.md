@@ -196,7 +196,7 @@ Key groups included in `.env.example`:
 - **LLM providers**: `OPENAI_API_KEY`, `OPENROUTER_API_KEY`
 - **Frontend/Stripe/Redis**: `FRONTEND_URL`, `STRIPE_*`, `REDIS_PASSWORD`
 
-Keycloak realm/client setup: see `infra/keycloak/KEYCLOAK_SETUP.md` (realm import + client secrets).
+Keycloak realm/client setup: see [KEYCLOAK_SETUP](./infra/keycloak/KEYCLOAK_SETUP.md) (realm import + client secrets).
 
 ### 🐳 Running with Docker Compose
 
@@ -230,9 +230,9 @@ Access the platform:
 Nuvine ships with built-in observability via Prometheus metrics and pre-provisioned Grafana dashboards.
 
 - **Grafana dashboards**: `infra/grafana/dashboards/`
-  - `infra/grafana/dashboards/nuvine-observability.json`
-  - `infra/grafana/dashboards/nuvine-http-endpoints.json`
-  - `infra/grafana/dashboards/nuvine-jvm-gc.json`
+    - `infra/grafana/dashboards/nuvine-observability.json`
+    - `infra/grafana/dashboards/nuvine-http-endpoints.json`
+    - `infra/grafana/dashboards/nuvine-jvm-gc.json`
 - **Grafana provisioning** (datasources + dashboards): `infra/grafana/provisioning/`
 - **Prometheus scrape config**: `infra/docker/prometheus.yml` (scrapes `/actuator/prometheus` on services)
 
