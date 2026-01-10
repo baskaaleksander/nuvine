@@ -28,7 +28,7 @@ public class SubscriptionController {
     @PostMapping("/payment-session")
     @RateLimiting(
             name = "payment_session_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<PaymentSessionResponse> createPaymentSession(
@@ -48,7 +48,7 @@ public class SubscriptionController {
     @PostMapping("/customer-portal-session")
     @RateLimiting(
             name = "customer_portal_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<CustomerPortalSessionResponse> createCustomerPortalSession(

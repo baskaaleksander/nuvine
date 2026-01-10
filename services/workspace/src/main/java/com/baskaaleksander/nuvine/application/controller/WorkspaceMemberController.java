@@ -56,7 +56,7 @@ public class WorkspaceMemberController {
     @DeleteMapping("/me")
     @RateLimiting(
             name = "remove_workspace_member_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> removeWorkspaceMemberSelf(
@@ -71,7 +71,7 @@ public class WorkspaceMemberController {
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     @RateLimiting(
             name = "update_workspace_member_role_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> updateWorkspaceMemberRole(
@@ -88,7 +88,7 @@ public class WorkspaceMemberController {
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     @RateLimiting(
             name = "remove_workspace_member_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> removeWorkspaceMember(
@@ -105,7 +105,7 @@ public class WorkspaceMemberController {
     @ResponseStatus(HttpStatus.CREATED)
     @RateLimiting(
             name = "invite_workspace_member_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public void inviteWorkspaceMember(

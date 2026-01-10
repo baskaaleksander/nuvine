@@ -23,7 +23,7 @@ public class WorkspaceController {
     @PostMapping
     @RateLimiting(
             name = "create_workspace_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public WorkspaceCreateResponse createWorkspace(
@@ -60,7 +60,7 @@ public class WorkspaceController {
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     @RateLimiting(
             name = "update_workspace_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> updateWorkspace(
@@ -85,7 +85,7 @@ public class WorkspaceController {
     @PreAuthorize("@workspaceAccess.canEditWorkspace(#workspaceId, #jwt.getSubject())")
     @RateLimiting(
             name = "delete_workspace_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> deleteWorkspace(

@@ -26,7 +26,7 @@ public class DocumentController {
     @PostMapping("/api/v1/projects/{projectId}/documents")
     @RateLimiting(
             name = "create_document_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<DocumentPublicResponse> createDocument(
@@ -68,7 +68,7 @@ public class DocumentController {
     @PatchMapping("/api/v1/documents/{documentId}")
     @RateLimiting(
             name = "update_document_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<DocumentPublicResponse> updateDocument(
@@ -83,7 +83,7 @@ public class DocumentController {
     @DeleteMapping("/api/v1/documents/{documentId}")
     @RateLimiting(
             name = "delete_document_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> deleteDocument(

@@ -24,7 +24,7 @@ public class ProjectController {
     @PreAuthorize("@projectAccess.canManageProjectsInWorkspace(#workspaceId, #jwt.getSubject())")
     @RateLimiting(
             name = "create_project_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<ProjectResponse> createProject(
@@ -64,7 +64,7 @@ public class ProjectController {
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     @RateLimiting(
             name = "update_project_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> updateProject(
@@ -80,7 +80,7 @@ public class ProjectController {
     @PreAuthorize("@projectAccess.canManageProject(#projectId, #jwt.getSubject())")
     @RateLimiting(
             name = "delete_project_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> deleteProject(

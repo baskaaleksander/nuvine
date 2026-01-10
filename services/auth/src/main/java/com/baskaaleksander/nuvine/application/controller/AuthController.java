@@ -103,7 +103,7 @@ public class AuthController {
     @PatchMapping("/me")
     @RateLimiting(
             name = "profile_update_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<MeResponse> updateMe(

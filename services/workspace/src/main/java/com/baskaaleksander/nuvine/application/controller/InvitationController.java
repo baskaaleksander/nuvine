@@ -21,7 +21,7 @@ public class InvitationController {
     @PostMapping("/{token}")
     @RateLimiting(
             name = "respond_to_invitation_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<Void> respondToInvitation(

@@ -24,7 +24,7 @@ public class FileStorageController {
     @PostMapping("/upload-url")
     @RateLimiting(
             name = "upload_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<UploadUrlResponse> generatePresignedUploadUrl(
@@ -41,7 +41,7 @@ public class FileStorageController {
     @GetMapping("/{documentId}/download-url")
     @RateLimiting(
             name = "download_limit",
-            cacheKey = "@jwt.getSubject()",
+            cacheKey = "#jwt.getSubject()",
             ratePerMethod = true
     )
     public ResponseEntity<DocumentDownloadUrlResponse> getDownloadUrl(
