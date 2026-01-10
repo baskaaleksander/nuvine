@@ -6,6 +6,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
+        enable.metrics.push: false
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
           emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent,
@@ -19,6 +20,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
+        enable.metrics.push: false
         spring.json.add.type.headers: true
   mail:
     properties:
