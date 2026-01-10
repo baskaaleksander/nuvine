@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import org.springframework.data.repository.query.Param;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,14 +29,14 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             WHERE d.projectId = :projectId
             AND d.deleted = false
             AND (:status IS NULL OR d.status = :status)
-            AND (:createdAtFrom IS NULL OR d.createdAt >= :createdAtFrom)
-            AND (:createdAtTo IS NULL OR d.createdAt <= :createdAtTo)
+            AND d.createdAt >= COALESCE(:createdAtFrom, d.createdAt)
+            AND d.createdAt <= COALESCE(:createdAtTo, d.createdAt)
             """)
     Page<Document> findAllByProjectIdWithFilters(
-            UUID projectId,
-            DocumentStatus status,
-            Instant createdAtFrom,
-            Instant createdAtTo,
+            @Param("projectId") UUID projectId,
+            @Param("status") DocumentStatus status,
+            @Param("createdAtFrom") Instant createdAtFrom,
+            @Param("createdAtTo") Instant createdAtTo,
             Pageable pageable
     );
 }
