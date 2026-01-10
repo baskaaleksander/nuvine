@@ -200,8 +200,10 @@ services:
       - nuvine-net
     command:
       - start-dev
+      - --import-realm
     volumes:
       - nuvine_keycloak:/opt/keycloak/data
+      - ../keycloak/nuvine-keycloak.json:/opt/keycloak/data/import/nuvine-keycloak.json:ro
     restart: unless-stopped
     depends_on:
       postgres-keycloak:
