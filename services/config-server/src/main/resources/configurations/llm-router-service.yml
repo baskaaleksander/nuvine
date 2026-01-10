@@ -1,8 +1,5 @@
 spring:
   datasource:
-    url: ${POSTGRES_LLM_ROUTER_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -10,7 +7,6 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}
     consumer:
       group-id: vector-service
       auto-offset-reset: earliest
@@ -33,15 +29,10 @@ server:
 
 openai:
   base-url: https://api.openai.com/v1
-  api-key: ${OPENAI_API_KEY}
   embedding-model: text-embedding-3-small
 
 openrouter:
   base-url: https://openrouter.ai/api/v1
-  api-key: ${OPENROUTER_API_KEY}
-
-api-key:
-  openai: ${OPENAI_API_KEY}
 
 resilience4j:
   circuitbreaker:
@@ -71,9 +62,3 @@ management:
   health:
     circuitbreakers:
       enabled: true
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans

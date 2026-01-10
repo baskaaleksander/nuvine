@@ -1,9 +1,4 @@
 spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: ${REDIS_PASSWORD}
   cloud:
     gateway:
       server:
@@ -96,14 +91,6 @@ spring:
               uri: lb://subscription-service
               predicates:
                 - Path=/api/v1/billing/**
-
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
 
 server:
   port: 8222

@@ -1,23 +1,9 @@
-ingestion:
-  keycloak:
-    auth-server-url: http://localhost:9098/realms/nuvine/protocol/openid-connect/token
-    client-id: ingestion-service
-    client-secret: ${KEYCLOAK_INGESTION_SERVICE_SECRET}
-
 spring:
   cache:
     type: jcache
     jcache:
       provider: org.redisson.jcache.JCachingProvider
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: ${REDIS_PASSWORD}
   datasource:
-    url: ${POSTGRES_INGESTION_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -25,7 +11,6 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}
     consumer:
       group-id: ingestion-service
       auto-offset-reset: earliest
@@ -57,15 +42,6 @@ dlq:
     processing-delay-ms: 300000
     batch-size: 100
 
-s3:
-  bucket-name: ${MINIO_BUCKET_NAME}
-  internal-url: ${MINIO_INTERNAL_URL}
-  access:
-    name: ${MINIO_ACCESS_NAME}
-    secret: ${MINIO_ACCESS_SECRET}
-  webhook:
-    secret: ${MINIO_WEBHOOK_SECRET}
-
 bucket4j:
   enabled: true
   cache-to-use: jcache
@@ -77,14 +53,6 @@ bucket4j:
           - capacity: 5
             time: 15
             unit: minutes
-
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
 
 server:
   port: 8080

@@ -1,0 +1,29 @@
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  datasource:
+    url: ${WORKSPACE_DB_URL}
+    username: ${WORKSPACE_DB_USER}
+    password: ${WORKSPACE_DB_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+  client-id: workspace-service
+  client-secret: ${KEYCLOAK_WORKSPACE_SERVICE_SECRET}
+
+application:
+  config:
+    auth-internal-url: http://gateway:8222/api/v1/internal/auth
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

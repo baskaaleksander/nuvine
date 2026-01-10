@@ -1,0 +1,25 @@
+spring:
+  data:
+    mongodb:
+      username: ${NOTIFICATION_MONGO_USER}
+      password: ${NOTIFICATION_MONGO_PASSWORD}
+      host: ${NOTIFICATION_MONGO_HOST}
+      port: 27017
+      database: ${NOTIFICATION_MONGO_DB}
+      authentication-database: ${NOTIFICATION_MONGO_ADMIN_DB}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+  mail:
+    host: ${NOTIF_MAIL_HOST}
+    port: ${NOTIF_MAIL_PORT}
+    username: ${NOTIF_MAIL_USERNAME}
+    password: ${NOTIF_MAIL_PASSWORD}
+    email: ${NOTIF_MAIL_SENDER}
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

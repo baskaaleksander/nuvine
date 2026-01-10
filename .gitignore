@@ -33,5 +33,9 @@ build/
 .vscode/
 
 .env
+.env.prod
 .DS_Store
+
+# Keycloak realm config with secrets
+/infra/keycloak/nuvine-keycloak.json
 

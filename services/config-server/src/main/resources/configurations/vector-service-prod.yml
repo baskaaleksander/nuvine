@@ -1,0 +1,23 @@
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  datasource:
+    url: ${VECTOR_DB_URL}
+    username: ${VECTOR_DB_USER}
+    password: ${VECTOR_DB_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+
+qdrant:
+  host: ${QDRANT_HOST}
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
