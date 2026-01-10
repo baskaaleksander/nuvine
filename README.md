@@ -225,6 +225,17 @@ Access the platform:
 - Zipkin: http://localhost:9411
 - MinIO Console: http://localhost:9001
 
+## 🔭 Observability
+
+Nuvine ships with built-in observability via Prometheus metrics and pre-provisioned Grafana dashboards.
+
+- **Grafana dashboards**: `infra/grafana/dashboards/`
+  - `infra/grafana/dashboards/nuvine-observability.json`
+  - `infra/grafana/dashboards/nuvine-http-endpoints.json`
+  - `infra/grafana/dashboards/nuvine-jvm-gc.json`
+- **Grafana provisioning** (datasources + dashboards): `infra/grafana/provisioning/`
+- **Prometheus scrape config**: `infra/docker/prometheus.yml` (scrapes `/actuator/prometheus` on services)
+
 ### 🧪 Running Tests
 
 ```bash
