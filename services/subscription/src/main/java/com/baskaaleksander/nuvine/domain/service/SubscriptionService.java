@@ -17,6 +17,7 @@ import com.stripe.model.StripeSearchResult;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.CustomerSearchParams;
+import com.stripe.param.SubscriptionCancelParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import feign.FeignException;
@@ -159,6 +160,23 @@ public class SubscriptionService {
         paymentSessionRepository.save(session);
 
         return response;
+    }
+
+    public void cancelSubscription(String stripeSubscriptionId) {
+        log.info("Cancelling Stripe subscription: {}", stripeSubscriptionId);
+        try {
+            
+            SubscriptionCancelParams params = SubscriptionCancelParams.builder()
+                    .setProrate(true)
+                    .setInvoiceNow(true)
+                    .build();
+
+            stripeClient.v1().subscriptions().cancel(stripeSubscriptionId, params);
+            log.info("Stripe subscription cancelled successfully: {}", stripeSubscriptionId);
+        } catch (StripeException e) {
+            log.error("Failed to cancel Stripe subscription: {}", stripeSubscriptionId, e);
+            throw new RuntimeException("Failed to cancel Stripe subscription", e);
+        }
     }
 
     private PaymentSessionResponse createNewSubscriptionSession(String planPriceId, StripeSearchResult<Customer> searchResult, String email, Map<String, String> metadata) {
