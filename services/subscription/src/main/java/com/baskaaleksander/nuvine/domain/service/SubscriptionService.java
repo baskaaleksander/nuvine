@@ -9,6 +9,7 @@ import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
+import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -42,6 +43,7 @@ public class SubscriptionService {
     private final AuthServiceCacheWrapper authServiceCacheWrapper;
     private final WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
     private final PaymentSessionRepository paymentSessionRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     @Value("${stripe.success-url}")
     private String successUrl;
@@ -165,14 +167,24 @@ public class SubscriptionService {
     public void cancelSubscription(String stripeSubscriptionId) {
         log.info("Cancelling Stripe subscription: {}", stripeSubscriptionId);
         try {
-            
             SubscriptionCancelParams params = SubscriptionCancelParams.builder()
                     .setProrate(true)
                     .setInvoiceNow(true)
                     .build();
 
             stripeClient.v1().subscriptions().cancel(stripeSubscriptionId, params);
-            log.info("Stripe subscription cancelled successfully: {}", stripeSubscriptionId);
+            log.info("Stripe subscription cancelled successfully with proration: {}", stripeSubscriptionId);
+
+            Subscription subscription = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+            if (subscription != null) {
+                subscription.setStatus(SubscriptionStatus.CANCELED);
+                subscriptionRepository.save(subscription);
+                subscriptionCacheService.evictSubscriptionCache(subscription.getWorkspaceId());
+                log.info("Local subscription status updated to CANCELED for workspaceId: {}", subscription.getWorkspaceId());
+            } else {
+                log.warn("Local subscription not found for stripeSubscriptionId: {}", stripeSubscriptionId);
+            }
+
         } catch (StripeException e) {
             log.error("Failed to cancel Stripe subscription: {}", stripeSubscriptionId, e);
             throw new RuntimeException("Failed to cancel Stripe subscription", e);
