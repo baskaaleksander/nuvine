@@ -48,7 +48,7 @@ public class WorkspaceInternalService {
         );
     }
 
-    public void updateWorkspaceBillingTier(UUID workspaceId, String billingTierCode) {
+    public void updateWorkspaceBillingTier(UUID workspaceId, String billingTierCode, String stripeSubscriptionId) {
         var workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> {
                     log.info("UPDATE_WORKSPACE_BILLING_TIER FAILED reason=workspace_not_found workspaceId={}", workspaceId);
@@ -56,6 +56,7 @@ public class WorkspaceInternalService {
                 });
 
         workspace.setBillingTier(BillingTier.fromString(billingTierCode));
+        workspace.setSubscriptionId(stripeSubscriptionId);
         workspaceRepository.save(workspace);
 
         entityCacheEvictionService.evictWorkspace(workspaceId);
