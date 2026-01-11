@@ -21,6 +21,15 @@ public class KafkaTopicConfig {
     @Value("${topics.usage-logs-dead-letter-topic}")
     private String usageLogsDeadLetterTopic;
 
+    @Value("${topics.workspace-deleted-topic}")
+    private String workspaceDeletedTopic;
+
+    @Value("${topics.workspace-deleted-dlq-topic}")
+    private String workspaceDeletedDlqTopic;
+
+    @Value("${topics.workspace-deleted-dead-letter-topic}")
+    private String workspaceDeletedDeadLetterTopic;
+
     @Bean
     public NewTopic paymentActionRequiredTopic() {
         return TopicBuilder
@@ -47,5 +56,20 @@ public class KafkaTopicConfig {
         return TopicBuilder
                 .name(usageLogsDeadLetterTopic)
                 .build();
+    }
+
+    @Bean
+    public NewTopic workspaceDeletedTopic() {
+        return TopicBuilder.name(workspaceDeletedTopic).build();
+    }
+
+    @Bean
+    public NewTopic workspaceDeletedDlqTopic() {
+        return TopicBuilder.name(workspaceDeletedDlqTopic).build();
+    }
+
+    @Bean
+    public NewTopic workspaceDeletedDeadLetterTopic() {
+        return TopicBuilder.name(workspaceDeletedDeadLetterTopic).build();
     }
 }
