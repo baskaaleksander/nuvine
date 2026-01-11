@@ -24,7 +24,9 @@ spring:
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
           paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
-          dlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DlqMessage
+          dlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DlqMessage,
+          workspaceDeletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent,
+          workspaceDeletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedDlqMessage
     consumer:
       group-id: subscription-service
       auto-offset-reset: earliest
@@ -34,14 +36,23 @@ spring:
         enable.metrics.push: false
         spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
         spring.json.type.mapping: >
-          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent,
+          workspaceDeletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent,
+          workspaceDeletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedDlqMessage
 
 topics:
   usage-logs-dlq-topic: usage-logs-dlq
   usage-logs-dead-letter-topic: usage-logs-dead-letter
+  workspace-deleted-topic: workspace-deleted
+  workspace-deleted-dlq-topic: workspace-deleted-dlq
+  workspace-deleted-dead-letter-topic: workspace-deleted-dead-letter
 
 dlq:
   usage-logs:
+    max-retry-attempts: 10
+    processing-delay-ms: 300000
+    batch-size: 100
+  workspace-deleted:
     max-retry-attempts: 10
     processing-delay-ms: 300000
     batch-size: 100

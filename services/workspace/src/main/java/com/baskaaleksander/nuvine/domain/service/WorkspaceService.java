@@ -10,6 +10,8 @@ import com.baskaaleksander.nuvine.domain.exception.WorkspaceMemberNotFoundExcept
 import com.baskaaleksander.nuvine.domain.exception.WorkspaceNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceDeletedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
@@ -36,6 +38,7 @@ public class WorkspaceService {
     private final WorkspaceMemberMapper workspaceMemberMapper;
     private final AuthClient authClient;
     private final EntityCacheEvictionService entityCacheEvictionService;
+    private final WorkspaceDeletedEventProducer workspaceDeletedEventProducer;
 
     public WorkspaceCreateResponse createWorkspace(String name, UUID ownerUserId, String ownerEmail) {
 
@@ -185,14 +188,22 @@ public class WorkspaceService {
     @Transactional
     public void deleteWorkspace(UUID workspaceId) {
 
-        if (!workspaceRepository.existsById(workspaceId)) {
-            log.info("DELETE_WORKSPACE FAILED reason=workspace_not_found workspaceId={}", workspaceId);
-            throw new WorkspaceNotFoundException("Workspace not found");
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> {
+                    log.info("DELETE_WORKSPACE FAILED reason=workspace_not_found workspaceId={}", workspaceId);
+                    return new WorkspaceNotFoundException("Workspace not found");
+                });
+
+        if (workspace.getSubscriptionId() != null) {
+            workspaceDeletedEventProducer.send(new WorkspaceDeletedEvent(workspaceId, workspace.getSubscriptionId()));
         }
 
         workspaceMemberRepository.deleteAllMembersByWorkspaceId(workspaceId);
 
-        workspaceRepository.deleteWorkspace(workspaceId);
+        workspace.setBillingTier(BillingTier.FREE);
+        workspace.setSubscriptionId(null);
+        workspace.setDeleted(true);
+        workspaceRepository.save(workspace);
 
         entityCacheEvictionService.evictWorkspace(workspaceId);
     }

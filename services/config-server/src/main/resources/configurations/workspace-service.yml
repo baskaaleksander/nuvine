@@ -32,7 +32,8 @@ spring:
           documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent,
           workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent,
           documentIngestionDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionDlqMessage,
-          workspaceMemberDataUpdateDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberDataUpdateDlqMessage
+          workspaceMemberDataUpdateDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberDataUpdateDlqMessage,
+          workspaceDeletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent
 
 server:
   port: 8060
@@ -42,6 +43,7 @@ topics:
   document-ingestion-dead-letter-topic: document-ingestion-dead-letter
   workspace-member-data-update-dlq-topic: workspace-member-data-update-dlq
   workspace-member-data-update-dead-letter-topic: workspace-member-data-update-dead-letter
+  workspace-deleted-topic: workspace-deleted
 
 dlq:
   document-ingestion:
