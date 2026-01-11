@@ -362,9 +362,9 @@ Event-driven email delivery: consumes Kafka events, renders templates, stores no
 
 Billing, quotas, Stripe integration, webhooks, and customer portal.
 
-- **🔌 Port**: `8120`
-- **🧰 Tech**: Spring Boot, Stripe Java SDK, PostgreSQL, Redis, Kafka
-- **🧩 Key Endpoints**: `/api/v1/billing/*`, `/api/v1/subscription/*`, `/api/v1/usage/*`
+- **Port**: `8120`
+- **Tech**: Spring Boot, Stripe Java SDK, PostgreSQL, Redis, Kafka
+- **Key Endpoints**: `/api/v1/billing/*`, `/api/v1/subscription/*`, `/api/v1/usage/*`
 
 ## 🗄️ Database Migrations
 
