@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotNull;
 
 public record WorkspaceBillingTierUpdateRequest(
         @NotNull(message = "Billing tier code cannot be null")
-        String billingTierCode
+        String billingTierCode,
+        @NotNull(message = "Stripe subscription ID cannot be null")
+        String stripeSubscriptionId
 ) {
 }

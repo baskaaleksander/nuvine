@@ -311,7 +311,7 @@ public class WebhookService {
 
             workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
-                    new WorkspaceBillingTierUpdateRequest("FREE")
+                    new WorkspaceBillingTierUpdateRequest("FREE", stripeSubscriptionId)
             );
 
             log.warn("Invoice payment failed for subscription: {}", stripeSubscriptionId);
@@ -371,7 +371,7 @@ public class WebhookService {
 
                 workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                         existingSubscription.getWorkspaceId(),
-                        new WorkspaceBillingTierUpdateRequest(plan.getCode())
+                        new WorkspaceBillingTierUpdateRequest(plan.getCode(), stripeSubscriptionId)
                 );
 
                 log.info("Invoice paid, subscription restored to active: {}", stripeSubscriptionId);
@@ -427,7 +427,7 @@ public class WebhookService {
 
             workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                     existingSubscription.getWorkspaceId(),
-                    new WorkspaceBillingTierUpdateRequest("FREE")
+                    new WorkspaceBillingTierUpdateRequest("FREE", stripeSubscriptionId)
             );
 
             log.info("Customer subscription deleted successfully: {}", stripeSubscriptionId);
@@ -491,7 +491,7 @@ public class WebhookService {
                 String billingTierCode = "canceled".equals(stripeStatus) ? "FREE" : plan.getCode();
                 workspaceServiceCacheWrapper.updateWorkspaceBillingTier(
                         existingSubscription.getWorkspaceId(),
-                        new WorkspaceBillingTierUpdateRequest(billingTierCode)
+                        new WorkspaceBillingTierUpdateRequest(billingTierCode, stripeSubscriptionId)
                 );
             }
 
@@ -556,7 +556,7 @@ public class WebhookService {
                 return;
             }
 
-            workspaceServiceCacheWrapper.updateWorkspaceBillingTier(UUID.fromString(workspaceId), new WorkspaceBillingTierUpdateRequest(plan.getCode()));
+            workspaceServiceCacheWrapper.updateWorkspaceBillingTier(UUID.fromString(workspaceId), new WorkspaceBillingTierUpdateRequest(plan.getCode(), stripeSubscriptionId));
         } catch (Exception e) {
             log.error("Failed to handle customer subscription created event", e);
         }

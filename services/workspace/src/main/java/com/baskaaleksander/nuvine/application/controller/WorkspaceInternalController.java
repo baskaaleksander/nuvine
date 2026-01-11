@@ -34,6 +34,6 @@ public class WorkspaceInternalController {
             @PathVariable UUID workspaceId,
             @RequestBody @Valid WorkspaceBillingTierUpdateRequest request
     ) {
-        workspaceInternalService.updateWorkspaceBillingTier(workspaceId, request.billingTierCode());
+        workspaceInternalService.updateWorkspaceBillingTier(workspaceId, request.billingTierCode(), request.stripeSubscriptionId());
     }
 }
