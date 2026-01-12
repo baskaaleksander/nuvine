@@ -39,10 +39,10 @@ import static org.mockito.Mockito.when;
 class BillingServiceTest {
 
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionCacheService subscriptionCacheService;
 
     @Mock
-    private PlanRepository planRepository;
+    private PlanService planService;
 
     @Mock
     private SubscriptionUsageCounterRepository usageCounterRepository;
@@ -82,9 +82,9 @@ class BillingServiceTest {
             UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
             SubscriptionStatusResponse expectedResponse = createSubscriptionStatusResponse();
 
-            when(subscriptionRepository.findByWorkspaceId(workspaceId))
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                     .thenReturn(Optional.of(subscription));
-            when(planRepository.findById(subscription.getPlanId()))
+            when(planService.findById(subscription.getPlanId()))
                     .thenReturn(Optional.of(plan));
             when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                     eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
@@ -95,8 +95,8 @@ class BillingServiceTest {
             SubscriptionStatusResponse result = billingService.getSubscriptionStatus(workspaceId);
 
             assertThat(result).isEqualTo(expectedResponse);
-            verify(subscriptionRepository).findByWorkspaceId(workspaceId);
-            verify(planRepository).findById(subscription.getPlanId());
+            verify(subscriptionCacheService).findByWorkspaceId(workspaceId);
+            verify(planService).findById(subscription.getPlanId());
             verify(usageCounterRepository).findCurrentSubscriptionUsageCounter(
                     eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS));
         }
@@ -106,9 +106,9 @@ class BillingServiceTest {
         void getSubscriptionStatus_noUsageCounter_createsEmptyCounter() {
             UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
 
-            when(subscriptionRepository.findByWorkspaceId(workspaceId))
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                     .thenReturn(Optional.of(subscription));
-            when(planRepository.findById(subscription.getPlanId()))
+            when(planService.findById(subscription.getPlanId()))
                     .thenReturn(Optional.of(plan));
             when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                     eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
@@ -131,7 +131,7 @@ class BillingServiceTest {
         void getSubscriptionStatus_noSubscription_throwsException() {
             UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
 
-            when(subscriptionRepository.findByWorkspaceId(workspaceId))
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> billingService.getSubscriptionStatus(workspaceId))
@@ -144,9 +144,9 @@ class BillingServiceTest {
         void getSubscriptionStatus_noPlan_throwsException() {
             UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
 
-            when(subscriptionRepository.findByWorkspaceId(workspaceId))
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                     .thenReturn(Optional.of(subscription));
-            when(planRepository.findById(subscription.getPlanId()))
+            when(planService.findById(subscription.getPlanId()))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> billingService.getSubscriptionStatus(workspaceId))

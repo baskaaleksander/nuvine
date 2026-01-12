@@ -51,10 +51,16 @@ class BillingInternalServiceTest {
     @Mock
     private ModelPricingService modelPricingService;
 
+    @Mock
+    private SubscriptionCacheService subscriptionCacheService;
+
+    @Mock
+    private PlanService planService;
+
     @InjectMocks
     private BillingInternalService billingInternalService;
 
-    private static final ZoneId UTC = ZoneId.of("CET");
+    private static final ZoneId UTC = ZoneId.of("UTC");
 
     private Subscription subscription;
     private Plan plan;
@@ -84,9 +90,9 @@ class BillingInternalServiceTest {
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
                 .thenReturn(estimatedCost);
@@ -120,9 +126,9 @@ class BillingInternalServiceTest {
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
                 .thenReturn(estimatedCost);
@@ -146,7 +152,7 @@ class BillingInternalServiceTest {
     void checkAndReserveLimit_noSubscription_throwsSubscriptionNotFoundException() {
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.empty());
 
         SubscriptionNotFoundException exception = assertThrows(
@@ -155,7 +161,7 @@ class BillingInternalServiceTest {
         );
 
         assertTrue(exception.getMessage().contains(request.workspaceId().toString()));
-        verify(planRepository, never()).findById(any());
+        verify(planService, never()).findById(any());
     }
 
     @Test
@@ -170,16 +176,16 @@ class BillingInternalServiceTest {
 
         assertTrue(exception.getMessage().contains(request.providerKey()));
         assertTrue(exception.getMessage().contains(request.modelKey()));
-        verify(subscriptionRepository, never()).findByWorkspaceId(any());
+        verify(subscriptionCacheService, never()).findByWorkspaceId(any());
     }
 
     @Test
     void checkAndReserveLimit_planNotFound_throwsPlanNotFoundException() {
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.empty());
 
         PlanNotFoundException exception = assertThrows(
@@ -196,9 +202,9 @@ class BillingInternalServiceTest {
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
                 .thenReturn(estimatedCost);
@@ -226,9 +232,9 @@ class BillingInternalServiceTest {
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
                 .thenReturn(estimatedCost);
@@ -261,9 +267,9 @@ class BillingInternalServiceTest {
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
-        when(subscriptionRepository.findByWorkspaceId(request.workspaceId()))
+        when(subscriptionCacheService.findByWorkspaceId(request.workspaceId()))
                 .thenReturn(Optional.of(subscription));
-        when(planRepository.findById(subscription.getPlanId()))
+        when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(eq(request.providerKey()), eq(request.modelKey()), eq(request.inputTokens()), eq(4096L)))
                 .thenReturn(estimatedCost);
@@ -282,7 +288,7 @@ class BillingInternalServiceTest {
         UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
         BigDecimal amount = BigDecimal.valueOf(100);
 
-        when(subscriptionRepository.findByWorkspaceId(workspaceId))
+        when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                 .thenReturn(Optional.of(subscription));
 
         billingInternalService.releaseReservation(workspaceId, amount);
@@ -301,7 +307,7 @@ class BillingInternalServiceTest {
         UUID workspaceId = TestFixtures.DEFAULT_WORKSPACE_ID;
         BigDecimal amount = BigDecimal.valueOf(100);
 
-        when(subscriptionRepository.findByWorkspaceId(workspaceId))
+        when(subscriptionCacheService.findByWorkspaceId(workspaceId))
                 .thenReturn(Optional.empty());
 
         assertThrows(

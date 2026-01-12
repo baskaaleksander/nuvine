@@ -11,10 +11,9 @@ import com.baskaaleksander.nuvine.domain.exception.SubscriptionNotFoundException
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.domain.model.Plan;
 import com.baskaaleksander.nuvine.domain.model.Subscription;
-import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.model.*;
@@ -56,16 +55,19 @@ class SubscriptionServiceTest {
     private StripeClient stripeClient;
 
     @Mock
-    private PlanRepository planRepository;
+    private PlanService planService;
+
+    @Mock
+    private SubscriptionCacheService subscriptionCacheService;
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
     @Mock
-    private AuthServiceClient authServiceClient;
+    private AuthServiceCacheWrapper authServiceCacheWrapper;
 
     @Mock
-    private WorkspaceServiceClient workspaceServiceClient;
+    private WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
 
     @Mock
     private PaymentSessionRepository paymentSessionRepository;
@@ -93,13 +95,13 @@ class SubscriptionServiceTest {
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(userId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
 
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             Subscription subscription = TestFixtures.activeSubscription()
                     .workspaceId(workspaceId)
                     .build();
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
 
             V1Services v1Services = mock(V1Services.class);
             BillingPortalService billingPortalService = mock(BillingPortalService.class);
@@ -127,8 +129,8 @@ class SubscriptionServiceTest {
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(otherUserId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
 
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             assertThatThrownBy(() -> subscriptionService.createCustomerPortalSession(workspaceId, userId))
                     .isInstanceOf(ForbiddenAccessException.class)
@@ -144,9 +146,9 @@ class SubscriptionServiceTest {
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(userId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
 
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> subscriptionService.createCustomerPortalSession(workspaceId, userId))
                     .isInstanceOf(SubscriptionNotFoundException.class);
@@ -198,10 +200,10 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             Subscription existingSubscription = TestFixtures.activeSubscription().build();
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(existingSubscription));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(existingSubscription));
 
             assertThatThrownBy(() -> subscriptionService.createPaymentSession(
                     workspaceId, planId, PaymentSessionIntent.SUBSCRIPTION_CREATE, userId))
@@ -222,13 +224,13 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(userId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             V1Services v1Services = mock(V1Services.class);
             CustomerService customerService = mock(CustomerService.class);
@@ -281,13 +283,13 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(otherOwnerId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             assertThatThrownBy(() -> subscriptionService.createPaymentSession(
                     workspaceId, planId, PaymentSessionIntent.SUBSCRIPTION_CREATE, userId))
@@ -310,8 +312,8 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> subscriptionService.createPaymentSession(
                     workspaceId, planId, PaymentSessionIntent.SUBSCRIPTION_UPDATE, userId))
@@ -329,18 +331,18 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             Subscription subscription = TestFixtures.activeSubscription()
                     .workspaceId(workspaceId)
                     .stripeSubscriptionId("sub_test")
                     .build();
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
 
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(userId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             V1Services v1Services = mock(V1Services.class);
             CustomerService customerService = mock(CustomerService.class);
@@ -398,18 +400,18 @@ class SubscriptionServiceTest {
                     .thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             Subscription subscription = TestFixtures.activeSubscription()
                     .workspaceId(workspaceId)
                     .stripeSubscriptionId("sub_test")
                     .build();
-            when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
+            when(subscriptionCacheService.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(subscription));
 
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse(userId);
             UserInternalResponse user = TestFixtures.userInternalResponse(userId);
-            when(workspaceServiceClient.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(userId)).thenReturn(user);
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(workspaceId)).thenReturn(workspace);
+            when(authServiceCacheWrapper.getUserInternalResponse(userId)).thenReturn(user);
 
             V1Services v1Services = mock(V1Services.class);
             CustomerService customerService = mock(CustomerService.class);
