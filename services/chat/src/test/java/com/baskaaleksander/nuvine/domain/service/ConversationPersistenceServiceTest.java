@@ -38,6 +38,9 @@ class ConversationPersistenceServiceTest {
     @Mock
     private SubscriptionServiceClient subscriptionServiceClient;
 
+    @Mock
+    private ConversationCacheService conversationCacheService;
+
     @InjectMocks
     private ConversationPersistenceService conversationPersistenceService;
 

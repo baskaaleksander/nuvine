@@ -63,6 +63,9 @@ class ChatServiceTest {
     @Mock
     private TokenCountingService tokenCountingService;
 
+    @Mock
+    private ConversationCacheService conversationCacheService;
+
     @InjectMocks
     private ChatService chatService;
 
@@ -278,33 +281,18 @@ class ChatServiceTest {
             paginationRequest.setSortField("createdAt");
             paginationRequest.setDirection(Sort.Direction.DESC);
 
-            ConversationMessage msg1 = ConversationMessage.builder()
-                    .id(UUID.randomUUID())
-                    .conversationId(conversationId)
-                    .content("Hello")
-                    .role(ConversationRole.USER)
-                    .build();
-            ConversationMessage msg2 = ConversationMessage.builder()
-                    .id(UUID.randomUUID())
-                    .conversationId(conversationId)
-                    .content("Hi there")
-                    .role(ConversationRole.ASSISTANT)
-                    .build();
-
-            Page<ConversationMessage> page = new PageImpl<>(List.of(msg1, msg2));
-
-            when(conversationMessageRepository.findAllByConversationId(eq(conversationId), any(Pageable.class)))
-                    .thenReturn(page);
-
             ConversationMessageResponse response1 = new ConversationMessageResponse(
-                    msg1.getId(), conversationId, "Hello", ConversationRole.USER, "gpt-4", 10, UUID.randomUUID(), Instant.now()
+                    UUID.randomUUID(), conversationId, "Hello", ConversationRole.USER, "gpt-4", 10, UUID.randomUUID(), Instant.now()
             );
             ConversationMessageResponse response2 = new ConversationMessageResponse(
-                    msg2.getId(), conversationId, "Hi there", ConversationRole.ASSISTANT, "gpt-4", 20, UUID.randomUUID(), Instant.now()
+                    UUID.randomUUID(), conversationId, "Hi there", ConversationRole.ASSISTANT, "gpt-4", 20, UUID.randomUUID(), Instant.now()
             );
 
-            when(mapper.toResponse(msg1)).thenReturn(response1);
-            when(mapper.toResponse(msg2)).thenReturn(response2);
+            PagedResponse<ConversationMessageResponse> cachedResponse = new PagedResponse<>(
+                    List.of(response1, response2), 1, 2, 10, 0, true, false
+            );
+            when(conversationCacheService.findMessages(eq(conversationId), eq(paginationRequest)))
+                    .thenReturn(cachedResponse);
 
             PagedResponse<ConversationMessageResponse> result = chatService.getMessages(
                     conversationId, userId, paginationRequest
@@ -321,10 +309,11 @@ class ChatServiceTest {
             paginationRequest.setPage(0);
             paginationRequest.setSize(10);
 
-            Page<ConversationMessage> emptyPage = Page.empty();
-
-            when(conversationMessageRepository.findAllByConversationId(eq(conversationId), any(Pageable.class)))
-                    .thenReturn(emptyPage);
+            PagedResponse<ConversationMessageResponse> emptyResponse = new PagedResponse<>(
+                    List.of(), 0, 0, 10, 0, true, false
+            );
+            when(conversationCacheService.findMessages(eq(conversationId), eq(paginationRequest)))
+                    .thenReturn(emptyResponse);
 
             PagedResponse<ConversationMessageResponse> result = chatService.getMessages(
                     conversationId, userId, paginationRequest
@@ -351,7 +340,7 @@ class ChatServiceTest {
                     new UserConversationResponse(convo2Id, "Plain text message", now.minusSeconds(60))
             );
 
-            when(conversationMessageRepository.findUserConversations(any(UUID.class), eq(projectId)))
+            when(conversationCacheService.findUserConversations(any(UUID.class), eq(projectId)))
                     .thenReturn(responses);
 
             List<UserConversationResponse> result = chatService.getUserConversations(userId, projectId);
@@ -371,7 +360,7 @@ class ChatServiceTest {
                     new UserConversationResponse(convoId, longMessage, Instant.now())
             );
 
-            when(conversationMessageRepository.findUserConversations(any(UUID.class), eq(projectId)))
+            when(conversationCacheService.findUserConversations(any(UUID.class), eq(projectId)))
                     .thenReturn(responses);
 
             List<UserConversationResponse> result = chatService.getUserConversations(userId, projectId);
@@ -383,7 +372,7 @@ class ChatServiceTest {
         @Test
         @DisplayName("Should return empty list when user has no conversations")
         void getUserConversations_noConversations_returnsEmptyList() {
-            when(conversationMessageRepository.findUserConversations(any(UUID.class), eq(projectId)))
+            when(conversationCacheService.findUserConversations(any(UUID.class), eq(projectId)))
                     .thenReturn(List.of());
 
             List<UserConversationResponse> result = chatService.getUserConversations(userId, projectId);
