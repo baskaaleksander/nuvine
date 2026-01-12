@@ -51,6 +51,10 @@ class WorkspaceMemberServiceTest {
     private WorkspaceMemberInvitedEventProducer workspaceMemberInvitedEventProducer;
     @Mock
     private WorkspaceMemberInviteTokenService workspaceMemberInviteTokenService;
+    @Mock
+    private AccessCacheEvictionService accessCacheEvictionService;
+    @Mock
+    private EntityCacheEvictionService entityCacheEvictionService;
 
     @InjectMocks
     private WorkspaceMemberService workspaceMemberService;
@@ -202,10 +206,12 @@ class WorkspaceMemberServiceTest {
 
         workspaceMemberService.addWorkspaceMember(workspaceId, userId, WorkspaceRole.MODERATOR);
 
-        InOrder inOrder = inOrder(workspaceMemberRepository);
+        InOrder inOrder = inOrder(workspaceMemberRepository, accessCacheEvictionService, entityCacheEvictionService);
         inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
         inOrder.verify(workspaceMemberRepository).updateDeletedById(deletedMember.getId(), false);
         inOrder.verify(workspaceMemberRepository).updateMemberRole(userId, workspaceId, WorkspaceRole.MODERATOR);
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, userId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, userId);
         verifyNoInteractions(workspaceMemberAddedEventProducer);
         verify(workspaceMemberRepository, never()).save(any());
     }
@@ -221,10 +227,12 @@ class WorkspaceMemberServiceTest {
         ArgumentCaptor<WorkspaceMember> memberCaptor = ArgumentCaptor.forClass(WorkspaceMember.class);
         ArgumentCaptor<WorkspaceMemberAddedEvent> eventCaptor = ArgumentCaptor.forClass(WorkspaceMemberAddedEvent.class);
 
-        InOrder inOrder = inOrder(workspaceMemberRepository, workspaceMemberAddedEventProducer);
+        InOrder inOrder = inOrder(workspaceMemberRepository, workspaceMemberAddedEventProducer, accessCacheEvictionService, entityCacheEvictionService);
         inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
         inOrder.verify(workspaceMemberRepository).save(memberCaptor.capture());
         inOrder.verify(workspaceMemberAddedEventProducer).sendWorkspaceMemberAddedEvent(eventCaptor.capture());
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, userId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, userId);
 
         WorkspaceMember savedMember = memberCaptor.getValue();
         assertEquals(workspaceId, savedMember.getWorkspaceId());
@@ -298,11 +306,15 @@ class WorkspaceMemberServiceTest {
 
         workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.OWNER);
 
-        InOrder inOrder = inOrder(workspaceMemberRepository);
+        InOrder inOrder = inOrder(workspaceMemberRepository, accessCacheEvictionService, entityCacheEvictionService);
         inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
         inOrder.verify(workspaceMemberRepository).findOwnerUserIdByWorkspaceId(workspaceId);
         inOrder.verify(workspaceMemberRepository).updateMemberRole(userId, workspaceId, WorkspaceRole.OWNER);
         inOrder.verify(workspaceMemberRepository).updateMemberRole(ownerId, workspaceId, WorkspaceRole.MODERATOR);
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, userId);
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, ownerId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, userId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, ownerId);
     }
 
     @Test
@@ -336,9 +348,11 @@ class WorkspaceMemberServiceTest {
 
         workspaceMemberService.updateWorkspaceMemberRole(workspaceId, userId, WorkspaceRole.VIEWER);
 
-        InOrder inOrder = inOrder(workspaceMemberRepository);
+        InOrder inOrder = inOrder(workspaceMemberRepository, accessCacheEvictionService, entityCacheEvictionService);
         inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
         inOrder.verify(workspaceMemberRepository).updateMemberRole(userId, workspaceId, WorkspaceRole.VIEWER);
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, userId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, userId);
     }
 
     @Test
@@ -384,8 +398,11 @@ class WorkspaceMemberServiceTest {
 
         workspaceMemberService.removeWorkspaceMember(workspaceId, userId);
 
-        verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
-        verify(workspaceMemberRepository).updateDeletedById(activeMember.getId(), true);
+        InOrder inOrder = inOrder(workspaceMemberRepository, accessCacheEvictionService, entityCacheEvictionService);
+        inOrder.verify(workspaceMemberRepository).findByWorkspaceIdAndUserId(workspaceId, userId);
+        inOrder.verify(workspaceMemberRepository).updateDeletedById(activeMember.getId(), true);
+        inOrder.verify(accessCacheEvictionService).evictAccessForUserInWorkspace(workspaceId, userId);
+        inOrder.verify(entityCacheEvictionService).evictWorkspaceMember(workspaceId, userId);
     }
 
     @Test

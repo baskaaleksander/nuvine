@@ -13,6 +13,8 @@ import com.baskaaleksander.nuvine.domain.model.WorkspaceMember;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceMemberStatus;
 import com.baskaaleksander.nuvine.domain.model.WorkspaceRole;
 import com.baskaaleksander.nuvine.infrastructure.client.AuthClient;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.WorkspaceDeletedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
@@ -52,6 +54,10 @@ public class WorkspaceServiceTest {
     private WorkspaceMemberMapper workspaceMemberMapper;
     @Mock
     private AuthClient authClient;
+    @Mock
+    private EntityCacheEvictionService entityCacheEvictionService;
+    @Mock
+    private WorkspaceDeletedEventProducer workspaceDeletedEventProducer;
 
     @InjectMocks
     private WorkspaceService workspaceService;
@@ -349,11 +355,12 @@ public class WorkspaceServiceTest {
 
         workspaceService.updateWorkspace(workspaceId, updatedWorkspaceName, ownerUserId);
 
-        InOrder inOrder = inOrder(workspaceRepository);
+        InOrder inOrder = inOrder(workspaceRepository, entityCacheEvictionService);
         inOrder.verify(workspaceRepository).existsByNameAndOwnerId(updatedWorkspaceName, ownerUserId);
         inOrder.verify(workspaceRepository).findById(workspaceId);
         inOrder.verify(workspaceRepository).updateWorkspaceName(workspaceId, updatedWorkspaceName);
-        verifyNoMoreInteractions(workspaceRepository);
+        inOrder.verify(entityCacheEvictionService).evictWorkspace(workspaceId);
+        verifyNoMoreInteractions(workspaceRepository, entityCacheEvictionService);
         verifyNoInteractions(workspaceMemberRepository, projectRepository, workspaceMapper, workspaceMemberMapper);
     }
 
@@ -396,25 +403,27 @@ public class WorkspaceServiceTest {
 
     @Test
     void deleteWorkspace_whenNotFound_throwsWorkspaceNotFoundException() {
-        when(workspaceRepository.existsById(workspaceId)).thenReturn(false);
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.empty());
 
         assertThrows(WorkspaceNotFoundException.class, () -> workspaceService.deleteWorkspace(workspaceId));
 
-        verify(workspaceRepository).existsById(workspaceId);
+        verify(workspaceRepository).findById(workspaceId);
         verify(workspaceMemberRepository, never()).deleteAllMembersByWorkspaceId(any());
-        verify(workspaceRepository, never()).deleteWorkspace(any());
+        verify(workspaceRepository, never()).save(any());
+        verifyNoMoreInteractions(workspaceRepository);
+        verifyNoInteractions(entityCacheEvictionService);
     }
 
     @Test
-    void deleteWorkspace_deletesMembersThenWorkspace() {
-        when(workspaceRepository.existsById(workspaceId)).thenReturn(true);
+    void deleteWorkspace_softDeletesWorkspaceAndMembers() {
+        when(workspaceRepository.findById(workspaceId)).thenReturn(java.util.Optional.of(activeWorkspace));
 
         workspaceService.deleteWorkspace(workspaceId);
 
-        InOrder inOrder = inOrder(workspaceMemberRepository, workspaceRepository);
-        inOrder.verify(workspaceRepository).existsById(workspaceId);
-        inOrder.verify(workspaceMemberRepository).deleteAllMembersByWorkspaceId(workspaceId);
-        inOrder.verify(workspaceRepository).deleteWorkspace(workspaceId);
-        verifyNoMoreInteractions(workspaceMemberRepository, workspaceRepository);
+        verify(workspaceRepository).findById(workspaceId);
+        verify(workspaceMemberRepository).deleteAllMembersByWorkspaceId(workspaceId);
+        verify(workspaceRepository).save(any(Workspace.class));
+        verify(entityCacheEvictionService).evictWorkspace(workspaceId);
+        verifyNoMoreInteractions(workspaceRepository, entityCacheEvictionService);
     }
 }
