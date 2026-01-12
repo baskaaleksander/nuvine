@@ -39,8 +39,10 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Modifying
     void updateDeletedById(UUID id, boolean deleted);
 
+    @Query("select wm from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.userId = :userId and wm.deleted = false")
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
+    @Query("select wm from WorkspaceMember wm where wm.workspaceId = :workspaceId and wm.email = :email and wm.deleted = false")
     Optional<WorkspaceMember> findByWorkspaceIdAndEmail(UUID workspaceId, String email);
 
     List<WorkspaceMember> findAllByUserId(UUID userId);
