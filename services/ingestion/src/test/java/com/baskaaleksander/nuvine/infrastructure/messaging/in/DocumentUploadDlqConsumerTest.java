@@ -4,6 +4,7 @@ import com.baskaaleksander.nuvine.domain.exception.IngestionJobNotFoundException
 import com.baskaaleksander.nuvine.domain.model.IngestionJob;
 import com.baskaaleksander.nuvine.domain.model.IngestionStage;
 import com.baskaaleksander.nuvine.domain.model.IngestionStatus;
+import com.baskaaleksander.nuvine.domain.service.IngestionJobCacheService;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
 import com.baskaaleksander.nuvine.infrastructure.repository.IngestionJobRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,9 @@ class DocumentUploadDlqConsumerTest {
 
     @Mock
     private IngestionJobRepository jobRepository;
+
+    @Mock
+    private IngestionJobCacheService ingestionJobCacheService;
 
     @InjectMocks
     private DocumentUploadDlqConsumer consumer;

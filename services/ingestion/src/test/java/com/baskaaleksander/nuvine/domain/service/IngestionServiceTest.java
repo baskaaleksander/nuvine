@@ -42,6 +42,9 @@ class IngestionServiceTest {
     @Mock
     private VectorProcessingEventProducer vectorProcessingEventProducer;
 
+    @Mock
+    private IngestionJobCacheService ingestionJobCacheService;
+
     @InjectMocks
     private IngestionService ingestionService;
 

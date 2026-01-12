@@ -7,12 +7,12 @@ import com.baskaaleksander.nuvine.application.dto.WorkspaceInternalSubscriptionR
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.domain.model.Plan;
 import com.baskaaleksander.nuvine.domain.model.Subscription;
-import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceClient;
-import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceClient;
+import com.baskaaleksander.nuvine.infrastructure.client.AuthServiceCacheWrapper;
+import com.baskaaleksander.nuvine.infrastructure.client.WorkspaceServiceCacheWrapper;
 import com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent;
 import com.baskaaleksander.nuvine.infrastructure.messaging.out.PaymentActionRequiredEventProducer;
+import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.PaymentSessionRepository;
-import com.baskaaleksander.nuvine.infrastructure.persistence.PlanRepository;
 import com.baskaaleksander.nuvine.infrastructure.persistence.SubscriptionRepository;
 import com.stripe.StripeClient;
 import com.stripe.model.*;
@@ -47,19 +47,25 @@ class WebhookServiceTest {
     private SubscriptionRepository subscriptionRepository;
 
     @Mock
+    private SubscriptionCacheService subscriptionCacheService;
+
+    @Mock
     private PaymentSessionRepository paymentSessionRepository;
 
     @Mock
-    private WorkspaceServiceClient workspaceServiceClient;
+    private WorkspaceServiceCacheWrapper workspaceServiceCacheWrapper;
 
     @Mock
-    private PlanRepository planRepository;
+    private PaymentRepository paymentRepository;
+
+    @Mock
+    private PlanService planService;
 
     @Mock
     private PaymentActionRequiredEventProducer paymentActionRequiredEventProducer;
 
     @Mock
-    private AuthServiceClient authServiceClient;
+    private AuthServiceCacheWrapper authServiceCacheWrapper;
 
     @Mock
     private StripeClient stripeClient;
@@ -102,7 +108,7 @@ class WebhookServiceTest {
             when(stripeSubscription.getItems()).thenReturn(itemCollection);
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             webhookService.handleEvent(event);
 
@@ -116,7 +122,7 @@ class WebhookServiceTest {
             assertThat(savedSubscription.getStripeSubscriptionId()).isEqualTo(stripeSubscriptionId);
             assertThat(savedSubscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
 
-            verify(workspaceServiceClient).updateWorkspaceBillingTier(
+            verify(workspaceServiceCacheWrapper).updateWorkspaceBillingTier(
                     eq(workspaceId),
                     any(WorkspaceBillingTierUpdateRequest.class)
             );
@@ -163,7 +169,7 @@ class WebhookServiceTest {
                     .thenReturn(existingSubscription);
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             webhookService.handleEvent(event);
 
@@ -172,7 +178,7 @@ class WebhookServiceTest {
             assertThat(existingSubscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
             assertThat(existingSubscription.getPlanId()).isEqualTo(planId);
 
-            verify(workspaceServiceClient).updateWorkspaceBillingTier(
+            verify(workspaceServiceCacheWrapper).updateWorkspaceBillingTier(
                     eq(existingSubscription.getWorkspaceId()),
                     any(WorkspaceBillingTierUpdateRequest.class)
             );
@@ -194,7 +200,7 @@ class WebhookServiceTest {
             webhookService.handleEvent(event);
 
             verify(subscriptionRepository, never()).save(any());
-            verify(workspaceServiceClient, never()).updateWorkspaceBillingTier(any(), any());
+            verify(workspaceServiceCacheWrapper, never()).updateWorkspaceBillingTier(any(), any());
         }
     }
 
@@ -226,7 +232,7 @@ class WebhookServiceTest {
 
             ArgumentCaptor<WorkspaceBillingTierUpdateRequest> requestCaptor =
                     ArgumentCaptor.forClass(WorkspaceBillingTierUpdateRequest.class);
-            verify(workspaceServiceClient).updateWorkspaceBillingTier(
+            verify(workspaceServiceCacheWrapper).updateWorkspaceBillingTier(
                     eq(existingSubscription.getWorkspaceId()),
                     requestCaptor.capture()
             );
@@ -252,12 +258,20 @@ class WebhookServiceTest {
             when(stripeInvoice.getParent()).thenReturn(parent);
             when(parent.getSubscriptionDetails()).thenReturn(subscriptionDetails);
             when(subscriptionDetails.getSubscription()).thenReturn(stripeSubscriptionId);
+            when(stripeInvoice.getId()).thenReturn("in_test123");
+            when(stripeInvoice.getAmountDue()).thenReturn(1000L);
+            when(stripeInvoice.getAmountPaid()).thenReturn(0L);
+            when(stripeInvoice.getCurrency()).thenReturn("usd");
+            when(stripeInvoice.getPeriodStart()).thenReturn(Instant.now().getEpochSecond());
+            when(stripeInvoice.getPeriodEnd()).thenReturn(Instant.now().plusSeconds(2592000).getEpochSecond());
+            when(stripeInvoice.getInvoicePdf()).thenReturn("https://invoice.pdf");
 
             Subscription existingSubscription = TestFixtures.activeSubscription()
                     .stripeSubscriptionId(stripeSubscriptionId)
                     .build();
             when(subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId))
                     .thenReturn(existingSubscription);
+            when(paymentRepository.findByStripeInvoiceId(any())).thenReturn(Optional.empty());
 
             webhookService.handleEvent(event);
 
@@ -266,7 +280,7 @@ class WebhookServiceTest {
 
             ArgumentCaptor<WorkspaceBillingTierUpdateRequest> requestCaptor =
                     ArgumentCaptor.forClass(WorkspaceBillingTierUpdateRequest.class);
-            verify(workspaceServiceClient).updateWorkspaceBillingTier(
+            verify(workspaceServiceCacheWrapper).updateWorkspaceBillingTier(
                     eq(existingSubscription.getWorkspaceId()),
                     requestCaptor.capture()
             );
@@ -295,6 +309,13 @@ class WebhookServiceTest {
             when(stripeInvoice.getParent()).thenReturn(parent);
             when(parent.getSubscriptionDetails()).thenReturn(subscriptionDetails);
             when(subscriptionDetails.getSubscription()).thenReturn(stripeSubscriptionId);
+            when(stripeInvoice.getId()).thenReturn("in_test123");
+            when(stripeInvoice.getAmountDue()).thenReturn(1000L);
+            when(stripeInvoice.getAmountPaid()).thenReturn(1000L);
+            when(stripeInvoice.getCurrency()).thenReturn("usd");
+            when(stripeInvoice.getPeriodStart()).thenReturn(periodStart);
+            when(stripeInvoice.getPeriodEnd()).thenReturn(periodEnd);
+            when(stripeInvoice.getInvoicePdf()).thenReturn("https://invoice.pdf");
 
             Subscription existingSubscription = TestFixtures.pastDueSubscription()
                     .planId(planId)
@@ -302,9 +323,10 @@ class WebhookServiceTest {
                     .build();
             when(subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId))
                     .thenReturn(existingSubscription);
+            when(paymentRepository.findByStripeInvoiceId(any())).thenReturn(Optional.empty());
 
             Plan plan = TestFixtures.proPlan().id(planId).build();
-            when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
+            when(planService.findById(planId)).thenReturn(Optional.of(plan));
 
             V1Services v1Services = mock(V1Services.class);
             SubscriptionService subscriptionService = mock(SubscriptionService.class);
@@ -327,7 +349,7 @@ class WebhookServiceTest {
             verify(subscriptionRepository).save(existingSubscription);
             assertThat(existingSubscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
 
-            verify(workspaceServiceClient).updateWorkspaceBillingTier(
+            verify(workspaceServiceCacheWrapper).updateWorkspaceBillingTier(
                     eq(existingSubscription.getWorkspaceId()),
                     any(WorkspaceBillingTierUpdateRequest.class)
             );
@@ -351,6 +373,12 @@ class WebhookServiceTest {
 
             when(stripeInvoice.getId()).thenReturn(invoiceId);
             when(stripeInvoice.getHostedInvoiceUrl()).thenReturn(hostedInvoiceUrl);
+            when(stripeInvoice.getAmountDue()).thenReturn(1000L);
+            when(stripeInvoice.getAmountPaid()).thenReturn(0L);
+            when(stripeInvoice.getCurrency()).thenReturn("usd");
+            when(stripeInvoice.getPeriodStart()).thenReturn(Instant.now().getEpochSecond());
+            when(stripeInvoice.getPeriodEnd()).thenReturn(Instant.now().plusSeconds(2592000).getEpochSecond());
+            when(stripeInvoice.getInvoicePdf()).thenReturn("https://invoice.pdf");
 
             Invoice.Parent parent = mock(Invoice.Parent.class);
             Invoice.Parent.SubscriptionDetails subscriptionDetails = mock(Invoice.Parent.SubscriptionDetails.class);
@@ -363,13 +391,14 @@ class WebhookServiceTest {
                     .build();
             when(subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId))
                     .thenReturn(existingSubscription);
+            when(paymentRepository.findByStripeInvoiceId(any())).thenReturn(Optional.empty());
 
             WorkspaceInternalSubscriptionResponse workspace = TestFixtures.workspaceInternalResponse();
             UserInternalResponse owner = TestFixtures.userInternalResponse(workspace.ownerId());
 
-            when(workspaceServiceClient.getWorkspaceSubscription(existingSubscription.getWorkspaceId()))
+            when(workspaceServiceCacheWrapper.getWorkspaceSubscription(existingSubscription.getWorkspaceId()))
                     .thenReturn(workspace);
-            when(authServiceClient.getUserInternalResponse(workspace.ownerId()))
+            when(authServiceCacheWrapper.getUserInternalResponse(workspace.ownerId()))
                     .thenReturn(owner);
 
             webhookService.handleEvent(event);

@@ -5,7 +5,10 @@ import com.baskaaleksander.nuvine.application.mapper.DocumentMapper;
 import com.baskaaleksander.nuvine.domain.exception.DocumentNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Document;
 import com.baskaaleksander.nuvine.domain.model.DocumentStatus;
+import com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent;
+import com.baskaaleksander.nuvine.infrastructure.messaging.out.DocumentUploadedEventProducer;
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
+import org.mockito.InOrder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +31,10 @@ class DocumentInternalServiceTest {
     private DocumentRepository documentRepository;
     @Mock
     private DocumentMapper documentMapper;
+    @Mock
+    private EntityCacheEvictionService entityCacheEvictionService;
+    @Mock
+    private DocumentUploadedEventProducer eventProducer;
 
     @InjectMocks
     private DocumentInternalService documentInternalService;
@@ -149,8 +156,14 @@ class DocumentInternalServiceTest {
 
         DocumentInternalResponse response = documentInternalService.uploadCompleted(documentId, "newKey", "image/png", 42L);
 
+        InOrder inOrder = inOrder(documentRepository, entityCacheEvictionService, eventProducer);
         ArgumentCaptor<Document> docCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(documentRepository).save(docCaptor.capture());
+        inOrder.verify(documentRepository).save(docCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictDocument(documentId);
+
+        ArgumentCaptor<DocumentUploadedEvent> eventCaptor = ArgumentCaptor.forClass(DocumentUploadedEvent.class);
+        inOrder.verify(eventProducer).sendDocumentUploadedEvent(eventCaptor.capture());
+
         Document updated = docCaptor.getValue();
 
         assertEquals("newKey", updated.getStorageKey());
@@ -158,6 +171,15 @@ class DocumentInternalServiceTest {
         assertEquals(42L, updated.getSizeBytes());
         assertEquals(DocumentStatus.UPLOADED, updated.getStatus());
         assertEquals(internalResponse, response);
+
+        assertEquals(new DocumentUploadedEvent(
+                documentId.toString(),
+                workspaceId.toString(),
+                projectId.toString(),
+                "newKey",
+                "image/png",
+                42L
+        ), eventCaptor.getValue());
     }
 
     @Test
@@ -189,8 +211,10 @@ class DocumentInternalServiceTest {
 
         DocumentInternalResponse response = documentInternalService.updateStatus(documentId, DocumentStatus.FAILED);
 
+        InOrder inOrder = inOrder(documentRepository, entityCacheEvictionService);
         ArgumentCaptor<Document> docCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(documentRepository).save(docCaptor.capture());
+        inOrder.verify(documentRepository).save(docCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictDocument(documentId);
         Document updated = docCaptor.getValue();
 
         assertEquals(DocumentStatus.FAILED, updated.getStatus());

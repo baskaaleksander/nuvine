@@ -48,6 +48,9 @@ class IngestionCommandServiceTest {
     @Mock
     private IngestionJobRepository ingestionJobRepository;
 
+    @Mock
+    private IngestionJobCacheService ingestionJobCacheService;
+
     @InjectMocks
     private IngestionCommandService ingestionCommandService;
 

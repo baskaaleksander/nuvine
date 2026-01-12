@@ -8,6 +8,7 @@ import com.baskaaleksander.nuvine.domain.exception.ProjectNotFoundException;
 import com.baskaaleksander.nuvine.domain.model.Project;
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
+import org.mockito.InOrder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,8 @@ class ProjectServiceTest {
     private ProjectMapper projectMapper;
     @Mock
     private DocumentRepository documentRepository;
+    @Mock
+    private EntityCacheEvictionService entityCacheEvictionService;
 
     @InjectMocks
     private ProjectService projectService;
@@ -268,8 +271,10 @@ class ProjectServiceTest {
 
         projectService.updateProject(projectId, updateNameRequest);
 
+        InOrder inOrder = inOrder(projectRepository, entityCacheEvictionService);
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
-        verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictProject(projectId);
         Project updated = projectCaptor.getValue();
         assertEquals(updateNameRequest.name(), updated.getName());
         assertEquals(savedProject.getDescription(), updated.getDescription());
@@ -281,8 +286,10 @@ class ProjectServiceTest {
 
         projectService.updateProject(projectId, updateDescriptionRequest);
 
+        InOrder inOrder = inOrder(projectRepository, entityCacheEvictionService);
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
-        verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictProject(projectId);
         Project updated = projectCaptor.getValue();
         assertEquals(savedProject.getName(), updated.getName());
         assertEquals(updateDescriptionRequest.description(), updated.getDescription());
@@ -294,8 +301,10 @@ class ProjectServiceTest {
 
         projectService.updateProject(projectId, updateBothRequest);
 
+        InOrder inOrder = inOrder(projectRepository, entityCacheEvictionService);
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
-        verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictProject(projectId);
         Project updated = projectCaptor.getValue();
         assertEquals(updateBothRequest.name(), updated.getName());
         assertEquals(updateBothRequest.description(), updated.getDescription());
@@ -336,8 +345,10 @@ class ProjectServiceTest {
 
         projectService.deleteProject(projectId);
 
+        InOrder inOrder = inOrder(projectRepository, entityCacheEvictionService);
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
-        verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(projectRepository).save(projectCaptor.capture());
+        inOrder.verify(entityCacheEvictionService).evictProject(projectId);
         assertTrue(projectCaptor.getValue().isDeleted());
     }
 }
