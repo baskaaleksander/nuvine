@@ -31,6 +31,9 @@ class IngestionStatusOrchestratorTest {
     @Mock
     private DocumentIngestionCompletedEventProducer documentIngestionCompletedEventProducer;
 
+    @Mock
+    private IngestionJobCacheService ingestionJobCacheService;
+
     @InjectMocks
     private IngestionStatusOrchestrator orchestrator;
 
