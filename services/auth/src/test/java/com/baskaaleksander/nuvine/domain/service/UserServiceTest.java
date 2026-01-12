@@ -212,7 +212,7 @@ public class UserServiceTest {
         Page<User> page = new PageImpl<>(
                 List.of(user1, user2),
                 anyPageable,
-                2
+                12
         );
 
         when(userRepository.findAll(any(Pageable.class))).thenReturn(page);
@@ -223,7 +223,7 @@ public class UserServiceTest {
 
         assertEquals(2, response.content().size());
         assertEquals(2, response.totalPages());
-        assertEquals(2, response.totalElements());
+        assertEquals(12, response.totalElements());
         assertEquals(10, response.size());
         assertEquals(1, response.page());
         assertTrue(response.last());
