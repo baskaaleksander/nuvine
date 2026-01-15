@@ -5,10 +5,6 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-/**
- * Singleton container configuration for integration tests.
- * Containers are started once and reused across all tests within this module.
- */
 public final class TestContainersConfig {
 
     private TestContainersConfig() {}
