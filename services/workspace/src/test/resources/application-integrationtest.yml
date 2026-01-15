@@ -70,17 +70,14 @@ dlq:
     processing-delay-ms: 1000
     batch-size: 10
 
-# Disable rate limiting for integration tests
 bucket4j:
   enabled: false
 
-# Keycloak client credentials - values overridden by WireMock
 keycloak:
   auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
   client-id: workspace-service
   client-secret: test-secret
 
-# Application configuration - URLs overridden by WireMock
 application:
   config:
     auth-internal-url: http://localhost:9999/api/v1/internal/auth
