@@ -3,6 +3,7 @@ package com.baskaaleksander.nuvine.integration.support;
 import com.baskaaleksander.nuvine.domain.model.*;
 import com.baskaaleksander.nuvine.infrastructure.repository.DocumentRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.ProjectRepository;
+import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberInviteTokenRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceMemberRepository;
 import com.baskaaleksander.nuvine.infrastructure.repository.WorkspaceRepository;
 import org.springframework.stereotype.Component;
@@ -14,15 +15,18 @@ public class TestDataBuilder {
 
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final WorkspaceMemberInviteTokenRepository workspaceMemberInviteTokenRepository;
     private final ProjectRepository projectRepository;
     private final DocumentRepository documentRepository;
 
     public TestDataBuilder(WorkspaceRepository workspaceRepository,
                            WorkspaceMemberRepository workspaceMemberRepository,
+                           WorkspaceMemberInviteTokenRepository workspaceMemberInviteTokenRepository,
                            ProjectRepository projectRepository,
                            DocumentRepository documentRepository) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
+        this.workspaceMemberInviteTokenRepository = workspaceMemberInviteTokenRepository;
         this.projectRepository = projectRepository;
         this.documentRepository = documentRepository;
     }
@@ -120,12 +124,25 @@ public class TestDataBuilder {
         return createDocument(workspaceId, projectId, createdBy, name, DocumentStatus.UPLOADING);
     }
 
+    public WorkspaceMemberInviteToken createInviteToken(WorkspaceMember member, String token) {
+        WorkspaceMemberInviteToken inviteToken = WorkspaceMemberInviteToken.builder()
+                .workspaceMember(member)
+                .token(token)
+                .expiresAt(java.time.Instant.now().plusSeconds(3600))
+                .build();
+        return workspaceMemberInviteTokenRepository.save(inviteToken);
+    }
+
     public WorkspaceRepository workspaceRepository() {
         return workspaceRepository;
     }
 
     public WorkspaceMemberRepository workspaceMemberRepository() {
         return workspaceMemberRepository;
+    }
+
+    public WorkspaceMemberInviteTokenRepository workspaceMemberInviteTokenRepository() {
+        return workspaceMemberInviteTokenRepository;
     }
 
     public ProjectRepository projectRepository() {
@@ -137,6 +154,7 @@ public class TestDataBuilder {
     }
 
     public void cleanUp() {
+        workspaceMemberInviteTokenRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
         documentRepository.deleteAll();
         projectRepository.deleteAll();
