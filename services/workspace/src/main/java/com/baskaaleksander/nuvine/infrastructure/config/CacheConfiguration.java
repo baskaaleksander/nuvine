@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 import javax.cache.CacheManager;
 import javax.cache.Caching;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
+@Profile("!integrationtest")
 public class CacheConfiguration {
 
     public static final String KEYCLOAK_TOKEN_CACHE = "keycloak-tokens";
