@@ -32,6 +32,7 @@ public abstract class BaseIntegrationTest {
 
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        registry.add("spring.data.redis.password", () -> "");
         registry.add("spring.redis.redisson.config", () -> 
             "singleServerConfig:\n  address: redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379));
 

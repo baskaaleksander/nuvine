@@ -1,5 +1,6 @@
 package com.baskaaleksander.nuvine.integration.base;
 
+import com.baskaaleksander.nuvine.integration.support.JwtTestUtils;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -22,9 +23,9 @@ public abstract class BaseControllerIntegrationTest extends BaseIntegrationTest 
     @BeforeAll
     static void setupWireMock() {
         wireMockServer = new WireMockServer(
-            WireMockConfiguration.wireMockConfig()
-                .dynamicPort()
-                .usingFilesUnderClasspath("wiremock")
+                WireMockConfiguration.wireMockConfig()
+                        .dynamicPort()
+                        .usingFilesUnderClasspath("wiremock")
         );
         wireMockServer.start();
         WireMock.configureFor(wireMockServer.port());
@@ -33,18 +34,17 @@ public abstract class BaseControllerIntegrationTest extends BaseIntegrationTest 
     @DynamicPropertySource
     static void configureWireMockProperties(DynamicPropertyRegistry registry) {
         registry.add("application.config.auth-internal-url",
-            () -> "http://localhost:" + wireMockServer.port());
-        registry.add("application.config.api-base-url",
-            () -> "http://localhost:" + wireMockServer.port());
+                () -> "http://localhost:" + wireMockServer.port() + "/api/v1/internal/auth");
 
-        registry.add("keycloak.server-url",
-            () -> "http://localhost:" + wireMockServer.port());
-        registry.add("keycloak.realm", () -> "nuvine");
+        registry.add("keycloak.auth-server-url",
+                () -> "http://localhost:" + wireMockServer.port() + "/realms/nuvine/protocol/openid-connect/token");
+        registry.add("keycloak.client-id", () -> "workspace-service");
+        registry.add("keycloak.client-secret", () -> "test-secret");
 
         registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri",
-            () -> "http://localhost:" + wireMockServer.port() + "/realms/nuvine");
+                () -> "http://localhost:" + wireMockServer.port() + "/realms/nuvine");
         registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
-            () -> "http://localhost:" + wireMockServer.port() + "/realms/nuvine/protocol/openid-connect/certs");
+                () -> "http://localhost:" + wireMockServer.port() + "/realms/nuvine/protocol/openid-connect/certs");
     }
 
     @BeforeEach
@@ -65,12 +65,31 @@ public abstract class BaseControllerIntegrationTest extends BaseIntegrationTest 
     }
 
     protected void stubJwkEndpoint() {
+        String jwksResponse = String.format("""
+                        {
+                          "keys": [
+                            {
+                              "kty": "RSA",
+                              "alg": "RS256",
+                              "use": "sig",
+                              "kid": "%s",
+                              "n": "%s",
+                              "e": "%s"
+                            }
+                          ]
+                        }
+                        """,
+                JwtTestUtils.getKeyId(),
+                JwtTestUtils.getModulusBase64Url(),
+                JwtTestUtils.getExponentBase64Url()
+        );
+
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/realms/nuvine/protocol/openid-connect/certs"))
-                .willReturn(WireMock.aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBodyFile("keycloak/jwks.json"))
+                WireMock.get(WireMock.urlPathEqualTo("/realms/nuvine/protocol/openid-connect/certs"))
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody(jwksResponse))
         );
     }
 

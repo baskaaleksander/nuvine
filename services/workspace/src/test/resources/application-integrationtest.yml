@@ -1,4 +1,3 @@
-
 spring:
   application:
     name: workspace-service
@@ -54,6 +53,11 @@ server:
   port: 0
 
 topics:
+  workspace-member-added-topic: workspace-member-added-topic-test
+  document-uploaded-topic: document-uploaded-topic-test
+  document-ingestion-completed-topic: document-ingestion-completed-topic-test
+  workspace-member-invited-topic: workspace-member-invited-topic-test
+  update-workspace-member-data-topic: update-workspace-member-data-topic-test
   document-ingestion-dlq-topic: document-ingestion-dlq-test
   document-ingestion-dead-letter-topic: document-ingestion-dead-letter-test
   workspace-member-data-update-dlq-topic: workspace-member-data-update-dlq-test
