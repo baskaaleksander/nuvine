@@ -15,7 +15,7 @@ public class WireMockStubs {
 
     public void stubAuthServiceGetUser(UUID userId, String email, String firstName, String lastName) {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/users/" + userId))
+            WireMock.get(WireMock.urlPathEqualTo("/api/v1/internal/auth/users/" + userId))
                 .willReturn(WireMock.aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
@@ -25,7 +25,7 @@ public class WireMockStubs {
 
     public void stubAuthServiceGetUserByEmail(String email, UUID userId, String firstName, String lastName) {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/users/email"))
+            WireMock.get(WireMock.urlPathEqualTo("/api/v1/internal/auth/users/email"))
                 .withQueryParam("email", WireMock.equalTo(email))
                 .willReturn(WireMock.aResponse()
                     .withStatus(200)
@@ -36,7 +36,7 @@ public class WireMockStubs {
 
     public void stubAuthServiceUserNotFound(UUID userId) {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/users/" + userId))
+            WireMock.get(WireMock.urlPathEqualTo("/api/v1/internal/auth/users/" + userId))
                 .willReturn(WireMock.aResponse()
                     .withStatus(404)
                     .withHeader("Content-Type", "application/json")
@@ -46,7 +46,7 @@ public class WireMockStubs {
 
     public void stubAuthServiceUserNotFoundByEmail(String email) {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/users/email"))
+            WireMock.get(WireMock.urlPathEqualTo("/api/v1/internal/auth/users/email"))
                 .withQueryParam("email", WireMock.equalTo(email))
                 .willReturn(WireMock.aResponse()
                     .withStatus(404)
@@ -102,7 +102,7 @@ public class WireMockStubs {
 
     public void stubAuthServiceError(UUID userId) {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/users/" + userId))
+            WireMock.get(WireMock.urlPathEqualTo("/api/v1/internal/auth/users/" + userId))
                 .willReturn(WireMock.aResponse()
                     .withStatus(500)
                     .withHeader("Content-Type", "application/json")
