@@ -92,7 +92,13 @@ public class JwtTestUtils {
     }
 
     public static String getExponentBase64Url() {
+        byte[] expBytes = PUBLIC_KEY.getPublicExponent().toByteArray();
+        if (expBytes[0] == 0) {
+            byte[] tmp = new byte[expBytes.length - 1];
+            System.arraycopy(expBytes, 1, tmp, 0, tmp.length);
+            expBytes = tmp;
+        }
         return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(PUBLIC_KEY.getPublicExponent().toByteArray());
+                .encodeToString(expBytes);
     }
 }

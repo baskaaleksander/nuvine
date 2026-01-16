@@ -17,4 +17,5 @@ public abstract class BaseRepositoryIntegrationTest extends BaseIntegrationTest 
             jdbcTemplate.execute("TRUNCATE TABLE " + table + " CASCADE");
         }
     }
+
 }
