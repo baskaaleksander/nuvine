@@ -225,6 +225,7 @@ public class AuthService {
     }
 
     @CacheEvict(value = "users", key = "#jwt.subject")
+    @Transactional
     public void logoutAll(String refreshToken, Jwt jwt) {
         var dbToken = refreshTokenRepository.findByToken(refreshToken);
 
@@ -235,6 +236,7 @@ public class AuthService {
     }
 
     @CacheEvict(value = "users", key = "#jwt.subject")
+    @Transactional
     public void logout(String refreshToken, Jwt jwt) {
         log.info("LOGOUT START token={}", MaskingUtil.maskToken(refreshToken));
         try {
