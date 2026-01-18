@@ -88,13 +88,8 @@ public class WebhookService {
     }
 
     private PaymentSession getPaymentSession(Event event) {
-        EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-        Session checkoutSession;
-
-        try {
-            checkoutSession = (com.stripe.model.checkout.Session) eventDataObjectDeserializer.getObject().get();
-        } catch (Exception e) {
-            log.error("Failed to deserialize event data", e);
+        Session checkoutSession = deserializeEventObject(event, Session.class, "checkout session");
+        if (checkoutSession == null) {
             return null;
         }
 
@@ -109,15 +104,28 @@ public class WebhookService {
         return paymentSession;
     }
 
+    private <T extends com.stripe.model.StripeObject> T deserializeEventObject(Event event, Class<T> type, String description) {
+        EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
+        try {
+            return type.cast(eventDataObjectDeserializer.getObject().orElse(null));
+        } catch (Exception e) {
+            log.debug("Failed to deserialize {} from object, falling back to raw JSON", description, e);
+        }
+
+        try {
+            String rawJson = eventDataObjectDeserializer.getRawJson();
+            return com.stripe.net.ApiResource.GSON.fromJson(rawJson, type);
+        } catch (Exception e) {
+            log.error("Failed to deserialize {} event data", description, e);
+            return null;
+        }
+    }
+
     private void handlePaymentIntentPaymentFailed(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.PaymentIntent paymentIntent;
-
-            try {
-                paymentIntent = (com.stripe.model.PaymentIntent) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.PaymentIntent paymentIntent = deserializeEventObject(
+                    event, com.stripe.model.PaymentIntent.class, "payment intent");
+            if (paymentIntent == null) {
                 return;
             }
 
@@ -139,13 +147,9 @@ public class WebhookService {
 
     private void handlePaymentIntentSucceeded(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.PaymentIntent paymentIntent;
-
-            try {
-                paymentIntent = (com.stripe.model.PaymentIntent) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.PaymentIntent paymentIntent = deserializeEventObject(
+                    event, com.stripe.model.PaymentIntent.class, "payment intent");
+            if (paymentIntent == null) {
                 return;
             }
 
@@ -168,13 +172,9 @@ public class WebhookService {
 
     private void handleInvoiceFinalized(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Invoice stripeInvoice;
-
-            try {
-                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Invoice stripeInvoice = deserializeEventObject(
+                    event, com.stripe.model.Invoice.class, "invoice");
+            if (stripeInvoice == null) {
                 return;
             }
 
@@ -204,13 +204,9 @@ public class WebhookService {
 
     private void handleInvoicePaymentActionRequired(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Invoice stripeInvoice;
-
-            try {
-                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Invoice stripeInvoice = deserializeEventObject(
+                    event, com.stripe.model.Invoice.class, "invoice");
+            if (stripeInvoice == null) {
                 return;
             }
 
@@ -270,13 +266,9 @@ public class WebhookService {
 
     private void handleInvoicePaymentFailed(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Invoice stripeInvoice;
-
-            try {
-                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Invoice stripeInvoice = deserializeEventObject(
+                    event, com.stripe.model.Invoice.class, "invoice");
+            if (stripeInvoice == null) {
                 return;
             }
 
@@ -322,13 +314,9 @@ public class WebhookService {
 
     private void handleInvoicePaid(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Invoice stripeInvoice;
-
-            try {
-                stripeInvoice = (com.stripe.model.Invoice) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Invoice stripeInvoice = deserializeEventObject(
+                    event, com.stripe.model.Invoice.class, "invoice");
+            if (stripeInvoice == null) {
                 return;
             }
 
@@ -400,13 +388,9 @@ public class WebhookService {
 
     private void handleCustomerSubscriptionDeleted(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Subscription stripeSubscription;
-
-            try {
-                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Subscription stripeSubscription = deserializeEventObject(
+                    event, com.stripe.model.Subscription.class, "subscription");
+            if (stripeSubscription == null) {
                 return;
             }
 
@@ -438,13 +422,9 @@ public class WebhookService {
 
     private void handleCustomerSubscriptionUpdated(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Subscription stripeSubscription;
-
-            try {
-                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Subscription stripeSubscription = deserializeEventObject(
+                    event, com.stripe.model.Subscription.class, "subscription");
+            if (stripeSubscription == null) {
                 return;
             }
 
@@ -513,13 +493,9 @@ public class WebhookService {
 
     private void handleCustomerSubscriptionCreated(Event event) {
         try {
-            EventDataObjectDeserializer eventDataObjectDeserializer = event.getDataObjectDeserializer();
-            com.stripe.model.Subscription stripeSubscription;
-
-            try {
-                stripeSubscription = (com.stripe.model.Subscription) eventDataObjectDeserializer.getObject().get();
-            } catch (Exception e) {
-                log.error("Failed to deserialize event data", e);
+            com.stripe.model.Subscription stripeSubscription = deserializeEventObject(
+                    event, com.stripe.model.Subscription.class, "subscription");
+            if (stripeSubscription == null) {
                 return;
             }
 

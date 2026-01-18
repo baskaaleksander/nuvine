@@ -17,7 +17,7 @@ public class PaymentActionRequiredEventProducer {
 
     private final KafkaTemplate<String, PaymentActionRequiredEvent> kafkaTemplate;
 
-    @Value("topics.payment-action-required-topic")
+    @Value("${topics.payment-action-required-topic}")
     private String topic;
 
     public void producePaymentActionRequiredEvent(PaymentActionRequiredEvent event) {

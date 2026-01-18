@@ -68,7 +68,7 @@ public class BillingInternalService {
                 request.modelKey(),
                 request.inputTokens(),
                 maxOutputTokens
-        );
+        ).multiply(BigDecimal.valueOf(1000));
 
         log.info("Estimated cost: {} credits (input={} output={})",
                 estimatedCost, request.inputTokens(), maxOutputTokens);

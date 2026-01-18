@@ -23,10 +23,15 @@ public class WebhookController {
     @PostMapping
     public ResponseEntity<Void> handleWebhook(
             @RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String signature
+            @RequestHeader(value = "Stripe-Signature", required = false) String signature
     ) {
 
         Event event;
+
+        if (signature == null || signature.isBlank()) {
+            log.warn("Missing Stripe signature header");
+            return ResponseEntity.badRequest().build();
+        }
 
         try {
             event = Webhook.constructEvent(payload, signature, webhookSecret);
