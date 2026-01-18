@@ -95,7 +95,8 @@ public class SubscriptionService {
             return new PaymentSessionResponse(paymentSession.getStripeUrl(), paymentSession.getStripeSessionId());
         }
 
-        var plan = planService.findById(planId).orElseThrow(() -> new RuntimeException("Plan not found"));
+        var plan = planService.findById(planId)
+                .orElseThrow(() -> new PlanNotFoundException("Plan not found"));
 
         var subscription = subscriptionCacheService.findByWorkspaceId(workspaceId).orElse(null);
 

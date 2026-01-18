@@ -16,7 +16,7 @@ import java.util.UUID;
 @Repository
 public interface SubscriptionUsageCounterRepository extends JpaRepository<SubscriptionUsageCounter, UUID> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE SubscriptionUsageCounter 
             SET usedValue = usedValue + :cost,
@@ -50,7 +50,7 @@ public interface SubscriptionUsageCounterRepository extends JpaRepository<Subscr
 
     Optional<SubscriptionUsageCounter> findBySubscriptionId(UUID subscriptionId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE SubscriptionUsageCounter
             SET reservedBudget = reservedBudget + :amount,
@@ -68,7 +68,7 @@ public interface SubscriptionUsageCounterRepository extends JpaRepository<Subscr
             @Param("amount") BigDecimal amount
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE SubscriptionUsageCounter
             SET reservedBudget = reservedBudget - :amount,
