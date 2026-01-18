@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.config;
+package com.baskaaleksander.nuvine.integration.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -22,8 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-@Profile("!integrationtest")
-public class CacheConfiguration {
+@Profile("integrationtest")
+public class TestCacheConfiguration {
+
+    public static final String KEYCLOAK_TOKEN_CACHE = "keycloak-tokens";
 
     @Value("${spring.data.redis.host}")
     private String redisHost;
@@ -31,7 +33,7 @@ public class CacheConfiguration {
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
-    @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password:}")
     private String redisPassword;
 
     @Bean(destroyMethod = "shutdown")
@@ -39,9 +41,12 @@ public class CacheConfiguration {
     public RedissonClient redissonClient() {
         Config config = new Config();
 
-        config.useSingleServer()
-                .setAddress("redis://" + redisHost + ":" + redisPort)
-                .setPassword(redisPassword);
+        var serverConfig = config.useSingleServer()
+                .setAddress("redis://" + redisHost + ":" + redisPort);
+
+        if (redisPassword != null && !redisPassword.isEmpty()) {
+            serverConfig.setPassword(redisPassword);
+        }
 
         config.setCodec(new Kryo5Codec());
         return Redisson.create(config);
@@ -67,7 +72,7 @@ public class CacheConfiguration {
         createCache(manager, redissonClient, "subscriptions", subscriptionConfig);
         createCache(manager, redissonClient, "users", externalServiceConfig);
         createCache(manager, redissonClient, "workspaces", externalServiceConfig);
-        createCache(manager, redissonClient, "keycloak-tokens", keycloakTokenConfig);
+        createCache(manager, redissonClient, KEYCLOAK_TOKEN_CACHE, keycloakTokenConfig);
 
         return manager;
     }
@@ -76,13 +81,13 @@ public class CacheConfiguration {
             TimeUnit timeUnit,
             long timeDuration
     ) {
-        MutableConfiguration<String, Object> config = new MutableConfiguration<>();
-        config.setStoreByValue(false)
+        MutableConfiguration<String, Object> configuration = new MutableConfiguration<>();
+        configuration.setStoreByValue(false)
                 .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(
                         new Duration(timeUnit, timeDuration)))
                 .setStatisticsEnabled(true);
 
-        return config;
+        return configuration;
     }
 
     private void createCache(CacheManager manager, RedissonClient redissonClient,
