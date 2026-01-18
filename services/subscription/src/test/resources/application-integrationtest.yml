@@ -1,0 +1,111 @@
+spring:
+  application:
+    name: subscription-service
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
+
+  cache:
+    type: simple
+
+  kafka:
+    consumer:
+      group-id: subscription-service-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent,
+          workspaceDeletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
+          dlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DlqMessage,
+          workspaceDeletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceDeletedDlqMessage
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  payment-action-required-topic: payment-action-required-topic-test
+  log-token-usage-topic: log-token-usage-topic-test
+  usage-logs-dlq-topic: usage-logs-dlq-test
+  usage-logs-dead-letter-topic: usage-logs-dead-letter-test
+  workspace-deleted-topic: workspace-deleted-topic-test
+  workspace-deleted-dlq-topic: workspace-deleted-dlq-test
+  workspace-deleted-dead-letter-topic: workspace-deleted-dead-letter-test
+
+dlq:
+  usage:
+    max-retry-attempts: 3
+    processing-delay-ms: 1000
+    batch-size: 10
+  workspace-deleted:
+    max-retry-attempts: 3
+    processing-delay-ms: 1000
+    batch-size: 10
+
+bucket4j:
+  enabled: false
+
+stripe:
+  api-key: sk_test_fake_key
+  webhook-secret: whsec_test_secret
+  success-url: http://localhost:9999/success
+  cancel-url: http://localhost:9999/cancel
+  webhook-tolerance-seconds: 300
+
+keycloak:
+  auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+  client-id: subscription-service
+  client-secret: test-secret
+
+subscription:
+  keycloak:
+    auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+    client-id: subscription-service
+    client-secret: test-secret
+
+application:
+  config:
+    auth-internal-url: http://localhost:9999/api/v1/internal/auth
+    api-base-url: http://localhost:9999
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG
