@@ -1,7 +1,7 @@
 package com.baskaaleksander.nuvine.infrastructure.config;
 
 import com.baskaaleksander.nuvine.infrastructure.auth.KeycloakClientCredentialsTokenProvider;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -9,16 +9,24 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-@RequiredArgsConstructor
 public class LlmRouterWebClientConfig {
 
     private final KeycloakClientCredentialsTokenProvider tokenProvider;
+    private final String apiBaseUrl;
+
+    public LlmRouterWebClientConfig(
+            KeycloakClientCredentialsTokenProvider tokenProvider,
+            @Value("${application.config.api-base-url}") String apiBaseUrl
+    ) {
+        this.tokenProvider = tokenProvider;
+        this.apiBaseUrl = apiBaseUrl;
+    }
 
     @Bean
     public WebClient llmRouterWebClient() {
 
         return WebClient.builder()
-                .baseUrl("http://localhost:8090")
+                .baseUrl(apiBaseUrl)
                 .filter(authorizationFilter())
                 .build();
     }
