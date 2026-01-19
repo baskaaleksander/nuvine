@@ -10,15 +10,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
         name = "subscription-service",
-        url = "${application.config.api-base-url}/internal/billing/",
+        url = "${application.config.api-base-url}",
         contextId = "subscriptionServiceClient",
         configuration = InternalFeignConfig.class
 )
 public interface SubscriptionServiceClient {
 
-    @PostMapping("/check-limit")
+    @PostMapping("/internal/billing/check-limit")
     CheckLimitResult checkLimit(@RequestBody CheckLimitRequest request);
 
-    @PostMapping("/release-reservation")
+    @PostMapping("/internal/billing/release-reservation")
     void releaseReservation(@RequestBody ReleaseReservationRequest request);
 }
