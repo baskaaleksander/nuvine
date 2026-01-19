@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: chat-service
+  main:
+    allow-bean-definition-overriding: true
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
+
+  cache:
+    type: simple
+
+  kafka:
+    consumer:
+      group-id: chat-service-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          logTokenUsageEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.LogTokenUsageEvent
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  log-token-usage-topic: log-token-usage-topic-test
+
+bucket4j:
+  enabled: false
+
+keycloak:
+  auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+  client-id: chat-service
+  client-secret: test-secret
+
+application:
+  config:
+    api-base-url: http://localhost:9999
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG
