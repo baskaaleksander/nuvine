@@ -15,7 +15,11 @@ public class ChatAccessEvaluation {
     public boolean canAccessChat(UUID chatId, String userId) {
 
         var message = conversationMessageRepository.findByConversationId(chatId, 1);
-        
+
+        if (message.isEmpty()) {
+            return false;
+        }
+
         return message.getFirst().getOwnerId().equals(UUID.fromString(userId));
     }
 
