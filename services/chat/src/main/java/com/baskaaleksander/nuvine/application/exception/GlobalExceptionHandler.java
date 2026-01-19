@@ -7,6 +7,7 @@ import com.baskaaleksander.nuvine.domain.exception.RequestLimitExceededException
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -18,14 +19,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RequestLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleRequestLimitExceededException(RequestLimitExceededException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
-                409,
-                HttpStatus.CONFLICT.getReasonPhrase(),
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
                 ex.getMessage(),
                 request.getRequestURI(),
                 Instant.now()
         );
 
-        return ResponseEntity.status(409).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(ContextNotFoundException.class)
@@ -52,6 +53,19 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(404).body(errorResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI(),
+                Instant.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
