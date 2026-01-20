@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: vector-service
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
+
+  cache:
+    type: simple
+
+  kafka:
+    consumer:
+      group-id: vector-service-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto,com.baskaaleksander.nuvine.domain.model"
+        spring.json.type.mapping: >
+          vectorProcessingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent,
+          embeddingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent,
+          vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent,
+          vectorProcessingRequestDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestDlqMessage,
+          embeddingCompletedDlqMessage:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedDlqMessage
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  vector-processing-request-topic: vector-processing-request-topic-test
+  embedding-completed-topic: embedding-completed-topic-test
+  embedding-request-topic: embedding-request-topic-test
+  vector-processing-completed-topic: vector-processing-completed-topic-test
+  vector-processing-request-dlq-topic: vector-processing-request-dlq-test
+  vector-processing-request-dead-letter-topic: vector-processing-request-dead-letter-test
+  embedding-completed-dlq-topic: embedding-completed-dlq-test
+  embedding-completed-dead-letter-topic: embedding-completed-dead-letter-test
+
+dlq:
+  vector-processing-request:
+    max-retry-attempts: 3
+    processing-delay-ms: 1000
+    batch-size: 10
+  embedding-completed:
+    max-retry-attempts: 3
+    processing-delay-ms: 1000
+    batch-size: 10
+
+qdrant:
+  host: localhost
+  port: 6334
+  collection: test-collection
+
+keycloak:
+  auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+  client-id: vector-service
+  client-secret: test-secret
+
+application:
+  config:
+    api-base-url: http://localhost:9999
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG
