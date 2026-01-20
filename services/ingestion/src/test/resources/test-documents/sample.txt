@@ -1,0 +1,12 @@
+This is a sample text document for integration testing.
+
+It contains multiple paragraphs to test the chunking and extraction functionality
+of the ingestion service.
+
+The document processing pipeline should:
+1. Fetch this document from S3
+2. Extract the text content
+3. Chunk the content into smaller pieces
+4. Send the chunks for vector processing
+
+This is the end of the sample document.
