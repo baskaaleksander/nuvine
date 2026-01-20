@@ -2,7 +2,7 @@ package com.baskaaleksander.nuvine.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -59,8 +59,8 @@ public class EmbeddingJob {
     @Column(length = 50)
     private String modelUsed;
 
-    @CreationTimestamp
-    @Column(updatable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
