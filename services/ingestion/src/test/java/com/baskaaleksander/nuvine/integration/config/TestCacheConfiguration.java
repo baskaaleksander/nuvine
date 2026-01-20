@@ -1,4 +1,4 @@
-package com.baskaaleksander.nuvine.infrastructure.config;
+package com.baskaaleksander.nuvine.integration.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -22,8 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-@Profile("!integrationtest")
-public class CacheConfiguration {
+@Profile("integrationtest")
+public class TestCacheConfiguration {
 
     public static final String INGESTION_JOB_CACHE = "ingestion-jobs";
 
@@ -33,7 +33,7 @@ public class CacheConfiguration {
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
-    @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password:}")
     private String redisPassword;
 
     @Bean(destroyMethod = "shutdown")
@@ -41,9 +41,12 @@ public class CacheConfiguration {
     public RedissonClient redissonClient() {
         Config config = new Config();
 
-        config.useSingleServer()
-                .setAddress("redis://" + redisHost + ":" + redisPort)
-                .setPassword(redisPassword);
+        var serverConfig = config.useSingleServer()
+                .setAddress("redis://" + redisHost + ":" + redisPort);
+
+        if (redisPassword != null && !redisPassword.isEmpty()) {
+            serverConfig.setPassword(redisPassword);
+        }
 
         config.setCodec(new Kryo5Codec());
         return Redisson.create(config);
@@ -59,7 +62,6 @@ public class CacheConfiguration {
         MutableConfiguration<String, Object> jobCacheConfig = createConfig(TimeUnit.HOURS, 1);
 
         createCache(manager, redissonClient, "ingestion-service-buckets", rateBucketConfig);
-
         createCache(manager, redissonClient, INGESTION_JOB_CACHE, jobCacheConfig);
 
         return manager;
