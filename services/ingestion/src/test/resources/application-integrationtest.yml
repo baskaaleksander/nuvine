@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: ingestion-service
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
+
+  cache:
+    type: simple
+
+  kafka:
+    consumer:
+      group-id: ingestion-service-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent,
+          vectorProcessingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingCompletedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          vectorProcessingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.VectorProcessingRequestEvent,
+          documentIngestionCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentIngestionCompletedEvent,
+          documentUploadedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.DocumentUploadedEvent
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  document-uploaded-topic: document-uploaded-topic-test
+  vector-processing-request-topic: vector-processing-request-topic-test
+  vector-processing-completed-topic: vector-processing-completed-topic-test
+  document-ingestion-completed-topic: document-ingestion-completed-topic-test
+  vector-processing-completed-dlq-topic: vector-processing-completed-dlq-test
+  vector-processing-completed-dead-letter-topic: vector-processing-completed-dead-letter-test
+
+dlq:
+  vector-processing-completed:
+    max-retry-attempts: 3
+    processing-delay-ms: 1000
+    batch-size: 10
+
+s3:
+  bucket-name: test-bucket
+  access:
+    name: test
+    secret: test
+  internal-url: http://localhost:4566
+
+bucket4j:
+  enabled: false
+
+keycloak:
+  auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+  client-id: ingestion-service
+  client-secret: test-secret
+
+application:
+  config:
+    api-base-url: http://localhost:9999/api/v1
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG
