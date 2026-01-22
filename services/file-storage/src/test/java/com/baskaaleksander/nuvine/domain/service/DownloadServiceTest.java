@@ -95,7 +95,7 @@ class DownloadServiceTest {
         DocumentDownloadUrlResponse result = downloadService.getDownloadUrl(documentId.toString());
 
         assertNotNull(result);
-        assertEquals(mockUrl.toString(), result.downloadUrl());
+        assertEquals(mockUrl.toString(), result.url());
         verify(workspaceServiceUserClient).getInternalDocument(documentId.toString());
         verify(s3Presigner).presignGetObject(any(GetObjectPresignRequest.class));
     }
@@ -172,7 +172,7 @@ class DownloadServiceTest {
         DocumentDownloadUrlResponse result = downloadService.getDownloadUrl(documentId.toString());
 
         assertNotNull(result);
-        assertEquals(mockUrl.toString(), result.downloadUrl());
+        assertEquals(mockUrl.toString(), result.url());
     }
 
     @Test
@@ -189,7 +189,7 @@ class DownloadServiceTest {
         DocumentDownloadUrlResponse result = downloadService.getDownloadUrl(documentId.toString());
 
         assertNotNull(result);
-        assertEquals(mockUrl.toString(), result.downloadUrl());
+        assertEquals(mockUrl.toString(), result.url());
     }
 
     @Test
