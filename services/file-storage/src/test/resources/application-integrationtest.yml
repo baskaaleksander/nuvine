@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: file-storage-service
+  cache:
+    type: simple
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+s3:
+  bucket-name: test-bucket
+  access:
+    name: test
+    secret: test
+  internal-url: http://localhost:4566
+  external-url: http://localhost:4566
+  webhook:
+    secret: test-webhook-secret
+
+bucket4j:
+  enabled: false
+
+file-storage:
+  keycloak:
+    auth-server-url: http://localhost:9999/realms/nuvine/protocol/openid-connect/token
+    client-id: file-storage-service
+    client-secret: test-secret
+
+application:
+  config:
+    api-base-url: http://localhost:9999/api/v1
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG
