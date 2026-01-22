@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: llm-router-service
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  kafka:
+    consumer:
+      group-id: llm-router-service-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto,com.baskaaleksander.nuvine.domain.model"
+        spring.json.type.mapping: >
+          embeddingRequestEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingRequestEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          embeddingCompletedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmbeddingCompletedEvent
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  embedding-request-topic: embedding-request-topic-test
+  embedding-completed-topic: embedding-completed-topic-test
+
+openai:
+  base-url: http://localhost:9999
+  api-key: test-openai-api-key
+  embedding-model: text-embedding-3-small
+
+openrouter:
+  base-url: http://localhost:9999
+  api-key: test-openrouter-api-key
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+    com.github.tomakehurst.wiremock: DEBUG

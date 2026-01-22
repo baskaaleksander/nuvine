@@ -23,8 +23,12 @@ public class EmbeddingRequestEventConsumer {
     @KafkaListener(topics = "${topics.embedding-request-topic}")
     public void consumeEmbeddingRequestEvent(EmbeddingRequestEvent event) {
         log.info("EMBEDDING_REQUEST_EVENT received embeddingJobId={} chunksCount={}", event.embeddingJobId(), event.chunks().size());
-        List<EmbeddedChunk> embeddedChunks = embeddingService.createEmbeddings(event.chunks());
-        eventProducer.sendEmbeddingCompletedEvent(new EmbeddingCompletedEvent(event.embeddingJobId(), embeddedChunks, event.model()));
-        log.info("EMBEDDING_REQUEST_EVENT PROCESSED embeddingJobId={} embeddedChunksCount={}", event.embeddingJobId(), embeddedChunks.size());
+        try {
+            List<EmbeddedChunk> embeddedChunks = embeddingService.createEmbeddings(event.chunks());
+            eventProducer.sendEmbeddingCompletedEvent(new EmbeddingCompletedEvent(event.embeddingJobId(), embeddedChunks, event.model()));
+            log.info("EMBEDDING_REQUEST_EVENT PROCESSED embeddingJobId={} embeddedChunksCount={}", event.embeddingJobId(), embeddedChunks.size());
+        } catch (Exception ex) {
+            log.error("EMBEDDING_REQUEST_EVENT failed embeddingJobId={} error={}", event.embeddingJobId(), ex.getMessage(), ex);
+        }
     }
 }
