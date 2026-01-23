@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: notification-service-test
+
+  data:
+    mongodb:
+      database: notifications-test
+
+  mail:
+    host: localhost
+    port: 2525
+    email: noreply@nuvine.test
+
+  kafka:
+    consumer:
+      group-id: notification-service-integration-test-${random.uuid}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.baskaaleksander.nuvine.infrastructure.messaging.dto"
+        spring.json.type.mapping: >
+          emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent,
+          passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent,
+          userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent,
+          workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
+          workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.type.mapping: >
+          emailVerificationEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.EmailVerificationEvent,
+          passwordResetEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PasswordResetEvent,
+          userRegisteredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.UserRegisteredEvent,
+          workspaceMemberAddedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberAddedEvent,
+          paymentActionRequiredEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.PaymentActionRequiredEvent,
+          workspaceMemberInvitedEvent:com.baskaaleksander.nuvine.infrastructure.messaging.dto.WorkspaceMemberInvitedEvent
+
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 0
+
+topics:
+  user-registered-topic: user-registered-topic-test
+  email-verification-topic: email-verification-topic-test
+  password-reset-topic: password-reset-topic-test
+  workspace-member-added-topic: workspace-member-added-topic-test
+  workspace-member-invited-topic: workspace-member-invited-topic-test
+  payment-action-required-topic: payment-action-required-topic-test
+
+crypto:
+  notifications:
+    secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
+    fingerprint-secret: ZmluZ2VycHJpbnQtc2VjcmV0LWtleS0zMmJ5dGVz
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+application:
+  frontend-url: http://localhost:3000
+
+logging:
+  level:
+    root: WARN
+    com.baskaaleksander.nuvine: INFO
+    org.testcontainers: INFO
