@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -86,7 +87,8 @@ class BillingInternalServiceTest {
 
     @Test
     void checkAndReserveLimit_sufficientCredits_reservesBudgetAndReturnsApproved() {
-        BigDecimal estimatedCost = BigDecimal.valueOf(100);
+        BigDecimal rawCost = new BigDecimal("0.1");
+        BigDecimal expectedCredits = BigDecimal.valueOf(100);
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
@@ -95,7 +97,7 @@ class BillingInternalServiceTest {
         when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
-                .thenReturn(estimatedCost);
+                .thenReturn(rawCost);
         when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                 eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
                 .thenReturn(Optional.of(usageCounter));
@@ -103,7 +105,7 @@ class BillingInternalServiceTest {
         CheckLimitResult result = billingInternalService.checkAndReserveLimit(request);
 
         assertTrue(result.approved());
-        assertEquals(estimatedCost, result.estimatedCost());
+        assertEquals(0, expectedCredits.compareTo(result.estimatedCost()));
         assertEquals(usageCounter.getUsedValue(), result.usedCredits());
         assertEquals(BigDecimal.valueOf(10000), result.limitCredits());
 
@@ -112,7 +114,7 @@ class BillingInternalServiceTest {
                 any(LocalDate.class),
                 any(LocalDate.class),
                 eq(UsageMetric.CREDITS),
-                eq(estimatedCost)
+                argThat(bd -> bd.compareTo(expectedCredits) == 0)
         );
     }
 
@@ -122,7 +124,8 @@ class BillingInternalServiceTest {
                 .usedValue(BigDecimal.valueOf(9000))
                 .reservedBudget(BigDecimal.valueOf(500))
                 .build();
-        BigDecimal estimatedCost = BigDecimal.valueOf(600);
+        BigDecimal rawCost = new BigDecimal("0.6");
+        BigDecimal expectedCredits = BigDecimal.valueOf(600);
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
@@ -131,7 +134,7 @@ class BillingInternalServiceTest {
         when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
-                .thenReturn(estimatedCost);
+                .thenReturn(rawCost);
         when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                 eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
                 .thenReturn(Optional.of(usageCounter));
@@ -139,7 +142,7 @@ class BillingInternalServiceTest {
         CheckLimitResult result = billingInternalService.checkAndReserveLimit(request);
 
         assertFalse(result.approved());
-        assertEquals(estimatedCost, result.estimatedCost());
+        assertEquals(0, expectedCredits.compareTo(result.estimatedCost()));
         assertEquals(usageCounter.getUsedValue(), result.usedCredits());
         assertEquals(usageCounter.getReservedBudget(), result.reservedCredits());
         assertEquals(BigDecimal.valueOf(10000), result.limitCredits());
@@ -198,7 +201,8 @@ class BillingInternalServiceTest {
 
     @Test
     void checkAndReserveLimit_noExistingCounter_createsNewCounter() {
-        BigDecimal estimatedCost = BigDecimal.valueOf(100);
+        BigDecimal rawCost = new BigDecimal("0.1");
+        BigDecimal expectedCredits = BigDecimal.valueOf(100);
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
@@ -207,7 +211,7 @@ class BillingInternalServiceTest {
         when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
-                .thenReturn(estimatedCost);
+                .thenReturn(rawCost);
         when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                 eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
                 .thenReturn(Optional.empty());
@@ -222,13 +226,14 @@ class BillingInternalServiceTest {
         SubscriptionUsageCounter savedCounter = counterCaptor.getValue();
         assertEquals(subscription.getId(), savedCounter.getSubscriptionId());
         assertEquals(BigDecimal.ZERO, savedCounter.getUsedValue());
-        assertEquals(estimatedCost, savedCounter.getReservedBudget());
+        assertEquals(0, expectedCredits.compareTo(savedCounter.getReservedBudget()));
         assertEquals(UsageMetric.CREDITS, savedCounter.getMetric());
     }
 
     @Test
     void checkAndReserveLimit_raceConditionOnCounterCreation_fallsBackToUpdate() {
-        BigDecimal estimatedCost = BigDecimal.valueOf(100);
+        BigDecimal rawCost = new BigDecimal("0.1");
+        BigDecimal expectedCredits = BigDecimal.valueOf(100);
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
@@ -237,7 +242,7 @@ class BillingInternalServiceTest {
         when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(request.providerKey(), request.modelKey(), request.inputTokens(), 4096L))
-                .thenReturn(estimatedCost);
+                .thenReturn(rawCost);
         when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                 eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
                 .thenReturn(Optional.empty());
@@ -254,7 +259,7 @@ class BillingInternalServiceTest {
                 any(LocalDate.class),
                 any(LocalDate.class),
                 eq(UsageMetric.CREDITS),
-                eq(estimatedCost)
+                argThat(bd -> bd.compareTo(expectedCredits) == 0)
         );
     }
 
@@ -263,7 +268,7 @@ class BillingInternalServiceTest {
         llmModel = TestFixtures.llmModel()
                 .maxOutputTokens(0L)
                 .build();
-        BigDecimal estimatedCost = BigDecimal.valueOf(100);
+        BigDecimal rawCost = new BigDecimal("0.1");
 
         when(llmModelRepository.findActiveModel(eq(request.providerKey()), eq(request.modelKey()), any(Instant.class)))
                 .thenReturn(Optional.of(llmModel));
@@ -272,7 +277,7 @@ class BillingInternalServiceTest {
         when(planService.findById(subscription.getPlanId()))
                 .thenReturn(Optional.of(plan));
         when(modelPricingService.calculateCost(eq(request.providerKey()), eq(request.modelKey()), eq(request.inputTokens()), eq(4096L)))
-                .thenReturn(estimatedCost);
+                .thenReturn(rawCost);
         when(usageCounterRepository.findCurrentSubscriptionUsageCounter(
                 eq(subscription.getId()), any(LocalDate.class), any(LocalDate.class), eq(UsageMetric.CREDITS)))
                 .thenReturn(Optional.of(usageCounter));
